@@ -1,10 +1,197 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>WAR Campaign Map</title>
+<meta charset="utf-8">
+<title>WAR Campaign System – World Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #1b1b1b;
+  color: #e6e6e6;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  height: 100%;
+}
+
+#topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #111;
+  border-bottom: 1px solid #333;
+  padding: 8px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#topbar button, #topbar select {
+  background: #222;
+  color: #eee;
+  border: 1px solid #444;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+#topbar button:hover {
+  background: #333;
+}
+
+#map-wrap {
+  position: absolute;
+  top: 46px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+#map {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+#map img {
+  display: block;
+  max-width: none;
+}
+
+.pin {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  border: 2px solid #000;
+}
+
+.faction-allies { background: #c9b27c; }
+.faction-axis   { background: #666666; }
+.faction-ussr   { background: #b22222; }
+.faction-neutral{ background: #888888; }
+
+#panel {
+  position: fixed;
+  right: 0;
+  top: 46px;
+  width: 280px;
+  bottom: 0;
+  background: #141414;
+  border-left: 1px solid #333;
+  padding: 10px;
+  overflow-y: auto;
+  display: none;
+}
+
+#panel h2 {
+  margin-top: 0;
+  font-size: 16px;
+}
+
+footer {
+  position: fixed;
+  bottom: 4px;
+  left: 6px;
+  font-size: 11px;
+  color: #aaa;
+  background: rgba(0,0,0,0.6);
+  padding: 4px 6px;
+}
+</style>
 </head>
+
 <body>
-  <h1>Loading map…</h1>
+
+<div id="topbar">
+  <button onclick="zoomWorld()">World</button>
+  <button onclick="zoomTheatre('WE')">Western Europe</button>
+  <button onclick="zoomTheatre('EE')">Eastern Europe</button>
+  <button onclick="zoomTheatre('NA')">North Africa</button>
+  <button onclick="zoomTheatre('PA')">Pacific</button>
+
+  <select id="modeSelect" onchange="setMode(this.value)">
+    <option value="GM">GM Mode</option>
+    <option value="PLAYER">Player Mode</option>
+  </select>
+</div>
+
+<div id="map-wrap">
+  <div id="map">
+    <img id="mapImage" src="assets/mapchart_world.jpeg">
+  </div>
+</div>
+
+<div id="panel">
+  <h2 id="panelTitle"></h2>
+  <div id="panelContent"></div>
+</div>
+
+<footer>
+  Base map created with MapChart.net (CC BY-SA 4.0)
+</footer>
+
+<script>
+const map = document.getElementById("map");
+const panel = document.getElementById("panel");
+let mode = "GM";
+
+const theatres = {
+  WE: { x: 900, y: 420, scale: 2.2 },
+  EE: { x: 1200, y: 420, scale: 2.2 },
+  NA: { x: 1000, y: 760, scale: 2.3 },
+  PA: { x: 1700, y: 620, scale: 2.0 }
+};
+
+function zoomWorld() {
+  map.style.transform = "translate(0px,0px) scale(1)";
+}
+
+function zoomTheatre(t) {
+  const z = theatres[t];
+  map.style.transform =
+    `translate(${-z.x}px, ${-z.y}px) scale(${z.scale})`;
+}
+
+function setMode(m) {
+  mode = m;
+}
+
+const territories = [
+  { id:"WE-01", name:"Southern England", x:880, y:390 },
+  { id:"WE-02", name:"Normandy", x:920, y:450 },
+  { id:"WE-03", name:"Paris Basin", x:950, y:480 },
+  { id:"WE-05", name:"Ruhr", x:1000, y:450 },
+  { id:"EE-01", name:"Western Poland", x:1080, y:450 },
+  { id:"EE-08", name:"Moscow", x:1320, y:420 },
+  { id:"NA-TBRK", name:"Tobruk", x:1040, y:760 },
+  { id:"NA-ELAL", name:"El Alamein", x:1070, y:780 },
+  { id:"PA-PHIL", name:"Philippines", x:1650, y:650 },
+  { id:"PA-GUAM", name:"Guam", x:1700, y:610 }
+];
+
+territories.forEach(t => {
+  const p = document.createElement("div");
+  p.className = "pin faction-neutral";
+  p.style.left = t.x + "px";
+  p.style.top = t.y + "px";
+  p.onclick = () => openPanel(t);
+  map.appendChild(p);
+});
+
+function openPanel(t) {
+  panel.style.display = "block";
+  document.getElementById("panelTitle").textContent = t.id + " – " + t.name;
+  document.getElementById("panelContent").innerHTML =
+    "<p>Territory information goes here.</p>";
+}
+</script>
+
 </body>
 </html>
