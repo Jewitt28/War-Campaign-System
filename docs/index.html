@@ -38,7 +38,7 @@
   #topbar button:hover{background:#333;}
 
   #wrap{
-    position:absolute; top:60px; left:0; right:340px; bottom:0;
+    position:absolute; top:60px; left:0; right:360px; bottom:0;
     overflow:auto;
     background:
       radial-gradient(circle at 20% 10%, rgba(255,255,255,.04), transparent 40%),
@@ -54,8 +54,27 @@
     box-shadow:0 8px 30px rgba(0,0,0,.35);
   }
 
+  /* Edges overlay */
+  #edges{
+    position:absolute; inset:0;
+    z-index:2;
+    pointer-events:none;
+  }
+  .edgeLine{
+    stroke: rgba(233,227,215,.25);
+    stroke-width: 2;
+  }
+  .edgeLine.dim{
+    stroke: rgba(233,227,215,.12);
+  }
+  .edgeLine.strong{
+    stroke: rgba(233,227,215,.45);
+    stroke-width: 3;
+  }
+
   .theatre{
-    position:absolute; border:2px dashed rgba(233,227,215,.25);
+    position:absolute; z-index:1;
+    border:2px dashed rgba(233,227,215,.25);
     border-radius:10px; overflow:hidden;
   }
   .theatreHeader{
@@ -83,7 +102,10 @@
     cursor:pointer;
     user-select:none;
     box-shadow:0 2px 8px rgba(0,0,0,.35);
+    z-index:3;
+    transition: transform .08s ease, box-shadow .08s ease, outline-color .08s ease;
   }
+  .node:hover{ transform: translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.45); }
 
   .owner-allies{background:var(--allies); color:#111;}
   .owner-axis{background:var(--axis); color:#111;}
@@ -92,14 +114,21 @@
   .owner-custom{background:var(--custom); color:#111;}
 
   /* Fog: greyed but still visible */
-  .fog-unknown{
-    filter: grayscale(1);
-    opacity: .35;
+  .fog-unknown{ filter: grayscale(1); opacity: .35; }
+
+  /* Selection */
+  .selected{
+    outline: 3px solid rgba(233,227,215,.70);
+    outline-offset: 2px;
+  }
+  .adjacent{
+    outline: 3px solid rgba(233,227,215,.35);
+    outline-offset: 2px;
   }
 
   /* Right drawer */
   #panel{
-    position:fixed; top:60px; right:0; bottom:0; width:340px;
+    position:fixed; top:60px; right:0; bottom:0; width:360px;
     background:#171717; border-left:2px solid #444;
     padding:12px; overflow:auto; display:none;
   }
@@ -107,7 +136,7 @@
   .meta{color:var(--muted); font-size:12px; margin-bottom:10px;}
   .row{margin:10px 0;}
   .row label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px;}
-  .row select, .row input, .row textarea{
+  .row select, .row textarea{
     width:100%; background:#222; color:#eee; border:1px solid #555; padding:6px 8px;
     box-sizing:border-box;
   }
@@ -120,6 +149,8 @@
   .btnRow{display:flex; gap:10px; margin-top:10px;}
   .btnRow button{flex:1;}
   .hint{font-size:12px; color:var(--muted); margin-top:10px; line-height:1.4;}
+  .linkish{ color:#e9e3d7; text-decoration:underline; cursor:pointer; }
+  .linkish:hover{ opacity:.85; }
 </style>
 </head>
 
@@ -141,6 +172,13 @@
       <option value="custom">Custom</option>
     </select>
 
+    <label style="color:var(--muted);font-size:12px;">Adjacency</label>
+    <select id="adjSel">
+      <option value="off">Off</option>
+      <option value="select" selected>On Select</option>
+      <option value="always">Always</option>
+    </select>
+
     <button onclick="jump('WE')">Western Europe</button>
     <button onclick="jump('EE')">Eastern Europe</button>
     <button onclick="jump('NA')">North Africa</button>
@@ -153,6 +191,8 @@
 
   <div id="wrap">
     <div id="board">
+      <svg id="edges"></svg>
+
       <div id="WE" class="theatre">
         <div class="theatreHeader"><span>WESTERN EUROPE</span><span class="pill">14</span></div>
         <div class="theatreBody" data-theatre="WE"></div>
@@ -182,9 +222,15 @@
       <span class="pill" id="pId"></span>
     </div>
 
+    <div class="row">
+      <label>Adjacency</label>
+      <div id="adjList" class="hint"></div>
+      <div class="hint">Tip: click a neighbour to jump/highlight.</div>
+    </div>
+
     <div id="playerInfo" class="row" style="display:none;">
       <div class="hint">
-        Player view: details shown depend on visibility. Unknown territories stay visible but greyed.
+        Player view: Unknown territories stay visible but greyed.
       </div>
     </div>
 
@@ -214,7 +260,6 @@
         <select id="visCustom" style="margin-top:6px;">
           <option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option>
         </select>
-        <div class="hint">Order: Allies / Axis / USSR / Custom.</div>
       </div>
 
       <div class="row">
@@ -226,11 +271,6 @@
         <button onclick="saveTerritory()">Save</button>
         <button onclick="closePanel()">Close</button>
       </div>
-    </div>
-
-    <div id="detailsBlock" class="row">
-      <label>Details</label>
-      <div id="detailsText" class="hint"></div>
     </div>
 
     <div class="hint" style="margin-top:14px;">
@@ -251,86 +291,36 @@ const THEATRE_NAME = {WE:"Western Europe", EE:"Eastern Europe", NA:"North Africa
 const OWNER_ICON = {allies:"★", axis:"✚", ussr:"☭", neutral:"●", custom:"⚑"};
 const STORAGE_KEY = "war_board_state_v1";
 
-/** Territories (56) — IDs/names from your prototype JSON */
-const TERRS = [
-  // Western Europe (sorted by id)
-  {id:"WE-01", name:"Southern England", theatreKey:"WE"},
-  {id:"WE-02", name:"Northern England", theatreKey:"WE"},
-  {id:"WE-03", name:"Normandy", theatreKey:"WE"},
-  {id:"WE-04", name:"Paris Basin", theatreKey:"WE"},
-  {id:"WE-05", name:"Low Countries", theatreKey:"WE"},
-  {id:"WE-06", name:"Ruhr", theatreKey:"WE"},
-  {id:"WE-07", name:"Western Germany", theatreKey:"WE"},
-  {id:"WE-08", name:"Southern Germany", theatreKey:"WE"},
-  {id:"WE-09", name:"Alpine Region", theatreKey:"WE"},
-  {id:"WE-10", name:"Northern Italy", theatreKey:"WE"},
-  {id:"WE-11", name:"Central Italy", theatreKey:"WE"},
-  {id:"WE-12", name:"Iberian Peninsula", theatreKey:"WE"},
-  {id:"WE-13", name:"Western Mediterranean Coast", theatreKey:"WE"},
-  {id:"WE-14", name:"Atlantic Sea Lanes", theatreKey:"WE"},
+/**
+ * TERRS with authoritative adjacency (from your latest prototype export)
+ * Fields: id, name, theatreKey, adj[]
+ */
+const TERRS = [{"id":"EE-01","name":"Western Poland","theatreKey":"EE","adj":["EE-02"]},{"id":"EE-02","name":"Eastern Poland","theatreKey":"EE","adj":["EE-01","EE-03"]},{"id":"EE-03","name":"Baltic States","theatreKey":"EE","adj":["EE-02","EE-04"]},{"id":"EE-04","name":"Belarus","theatreKey":"EE","adj":["EE-03","EE-05"]},{"id":"EE-05","name":"Ukraine (West)","theatreKey":"EE","adj":["EE-04","EE-06"]},{"id":"EE-06","name":"Ukraine (East)","theatreKey":"EE","adj":["EE-05","EE-07","EE-11"]},{"id":"EE-07","name":"Crimea","theatreKey":"EE","adj":["EE-06","EE-08"]},{"id":"EE-08","name":"Moscow","theatreKey":"EE","adj":["EE-07","EE-09"]},{"id":"EE-09","name":"Leningrad","theatreKey":"EE","adj":["EE-08","EE-10"]},{"id":"EE-10","name":"Smolensk Corridor","theatreKey":"EE","adj":["EE-09","EE-11"]},{"id":"EE-11","name":"Caucasus","theatreKey":"EE","adj":["EE-10","EE-12","EE-06"]},{"id":"EE-12","name":"Stalingrad","theatreKey":"EE","adj":["EE-11","EE-13"]},{"id":"EE-13","name":"Arctic Front","theatreKey":"EE","adj":["EE-12","EE-14"]},{"id":"EE-14","name":"Volga Belt","theatreKey":"EE","adj":["EE-13"]},{"id":"NA-01","name":"Algeria Coast","theatreKey":"NA","adj":["NA-02"]},{"id":"NA-02","name":"Tunis","theatreKey":"NA","adj":["NA-01","NA-03"]},{"id":"NA-03","name":"Tripoli","theatreKey":"NA","adj":["NA-02","NA-04"]},{"id":"NA-04","name":"Benghazi","theatreKey":"NA","adj":["NA-03","NA-05"]},{"id":"NA-05","name":"Tobruk","theatreKey":"NA","adj":["NA-04","NA-06"]},{"id":"NA-06","name":"El Alamein","theatreKey":"NA","adj":["NA-05","NA-07"]},{"id":"NA-07","name":"Alexandria","theatreKey":"NA","adj":["NA-06","NA-08"]},{"id":"NA-08","name":"Western Desert","theatreKey":"NA","adj":["NA-07","NA-09"]},{"id":"NA-09","name":"Southern Desert","theatreKey":"NA","adj":["NA-08","NA-10"]},{"id":"NA-10","name":"Fezzan","theatreKey":"NA","adj":["NA-09","NA-11"]},{"id":"NA-11","name":"Siwa Oasis","theatreKey":"NA","adj":["NA-10","NA-12"]},{"id":"NA-12","name":"Cairo Corridor","theatreKey":"NA","adj":["NA-11","NA-13"]},{"id":"NA-13","name":"Med Sea Lanes","theatreKey":"NA","adj":["NA-12","NA-14"]},{"id":"NA-14","name":"Red Sea Approaches","theatreKey":"NA","adj":["NA-13"]},{"id":"PA-01","name":"Midway","theatreKey":"PA","adj":["PA-02"]},{"id":"PA-02","name":"Wake / Johnston","theatreKey":"PA","adj":["PA-01","PA-03"]},{"id":"PA-03","name":"Marshall Is.","theatreKey":"PA","adj":["PA-02","PA-04"]},{"id":"PA-04","name":"Gilbert Is.","theatreKey":"PA","adj":["PA-03","PA-05"]},{"id":"PA-05","name":"Caroline Is.","theatreKey":"PA","adj":["PA-04","PA-06"]},{"id":"PA-06","name":"Guam (sea lanes)","theatreKey":"PA","adj":["PA-05","PA-07"]},{"id":"PA-07","name":"Mariana Is.","theatreKey":"PA","adj":["PA-06","PA-08"]},{"id":"PA-08","name":"Philippines","theatreKey":"PA","adj":["PA-07","PA-09","PA-13"]},{"id":"PA-09","name":"Solomon Is.","theatreKey":"PA","adj":["PA-08","PA-10"]},{"id":"PA-10","name":"New Guinea","theatreKey":"PA","adj":["PA-09","PA-11"]},{"id":"PA-11","name":"Fiji","theatreKey":"PA","adj":["PA-10","PA-12"]},{"id":"PA-12","name":"N. Australia","theatreKey":"PA","adj":["PA-11","PA-14"]},{"id":"PA-13","name":"Formosa","theatreKey":"PA","adj":["PA-08"]},{"id":"PA-14","name":"Pacific Sea Lanes","theatreKey":"PA","adj":["PA-12"]},{"id":"WE-01","name":"Southern England","theatreKey":"WE","adj":["WE-02"]},{"id":"WE-02","name":"Northern France","theatreKey":"WE","adj":["WE-01","WE-03"]},{"id":"WE-03","name":"Benelux","theatreKey":"WE","adj":["WE-02","WE-04"]},{"id":"WE-04","name":"Western Germany","theatreKey":"WE","adj":["WE-03","WE-05"]},{"id":"WE-05","name":"Berlin Region","theatreKey":"WE","adj":["WE-04","WE-06"]},{"id":"WE-06","name":"Denmark / Norway Sea Lane","theatreKey":"WE","adj":["WE-05","WE-07"]},{"id":"WE-07","name":"Northern Italy","theatreKey":"WE","adj":["WE-06","WE-08"]},{"id":"WE-08","name":"Central Italy","theatreKey":"WE","adj":["WE-07","WE-09"]},{"id":"WE-09","name":"Southern Italy","theatreKey":"WE","adj":["WE-08","WE-10"]},{"id":"WE-10","name":"Iberian Peninsula","theatreKey":"WE","adj":["WE-09","WE-11"]},{"id":"WE-11","name":"Western Mediterranean Coast","theatreKey":"WE","adj":["WE-10","WE-12"]},{"id":"WE-12","name":"Scandinavia (South)","theatreKey":"WE","adj":["WE-11","WE-13"]},{"id":"WE-13","name":"Atlantic Sea Lanes","theatreKey":"WE","adj":["WE-12","WE-14"]},{"id":"WE-14","name":"Alpine Region","theatreKey":"WE","adj":["WE-13"]}];
 
-  // Eastern Europe
-  {id:"EE-01", name:"Western Poland", theatreKey:"EE"},
-  {id:"EE-02", name:"Eastern Poland", theatreKey:"EE"},
-  {id:"EE-03", name:"Baltic States", theatreKey:"EE"},
-  {id:"EE-04", name:"Belarus", theatreKey:"EE"},
-  {id:"EE-05", name:"Ukraine (West)", theatreKey:"EE"},
-  {id:"EE-06", name:"Ukraine (East)", theatreKey:"EE"},
-  {id:"EE-07", name:"Crimea", theatreKey:"EE"},
-  {id:"EE-08", name:"Moscow", theatreKey:"EE"},
-  {id:"EE-09", name:"Leningrad", theatreKey:"EE"},
-  {id:"EE-10", name:"Smolensk Corridor", theatreKey:"EE"},
-  {id:"EE-11", name:"Caucasus", theatreKey:"EE"},
-  {id:"EE-12", name:"Stalingrad", theatreKey:"EE"},
-  {id:"EE-13", name:"Arctic Front", theatreKey:"EE"},
-  {id:"EE-14", name:"Volga Belt", theatreKey:"EE"},
-
-  // North Africa
-  {id:"NA-01", name:"Algeria Coast", theatreKey:"NA"},
-  {id:"NA-02", name:"Tunis", theatreKey:"NA"},
-  {id:"NA-03", name:"Tripoli", theatreKey:"NA"},
-  {id:"NA-04", name:"Benghazi", theatreKey:"NA"},
-  {id:"NA-05", name:"Tobruk", theatreKey:"NA"},
-  {id:"NA-06", name:"El Alamein", theatreKey:"NA"},
-  {id:"NA-07", name:"Alexandria", theatreKey:"NA"},
-  {id:"NA-08", name:"Western Desert", theatreKey:"NA"},
-  {id:"NA-09", name:"Southern Desert", theatreKey:"NA"},
-  {id:"NA-10", name:"Fezzan", theatreKey:"NA"},
-  {id:"NA-11", name:"Siwa Oasis", theatreKey:"NA"},
-  {id:"NA-12", name:"Cairo Corridor", theatreKey:"NA"},
-  {id:"NA-13", name:"Med Sea Lanes", theatreKey:"NA"},
-  {id:"NA-14", name:"Red Sea Approaches", theatreKey:"NA"},
-
-  // Pacific
-  {id:"PA-01", name:"Midway", theatreKey:"PA"},
-  {id:"PA-02", name:"Wake / Johnston", theatreKey:"PA"},
-  {id:"PA-03", name:"Marshall Is.", theatreKey:"PA"},
-  {id:"PA-04", name:"Gilbert Is.", theatreKey:"PA"},
-  {id:"PA-05", name:"Caroline Is.", theatreKey:"PA"},
-  {id:"PA-06", name:"Guam (sea lanes)", theatreKey:"PA"},
-  {id:"PA-07", name:"Mariana Is.", theatreKey:"PA"},
-  {id:"PA-08", name:"Philippines", theatreKey:"PA"},
-  {id:"PA-09", name:"Solomon Is.", theatreKey:"PA"},
-  {id:"PA-10", name:"New Guinea", theatreKey:"PA"},
-  {id:"PA-11", name:"Fiji", theatreKey:"PA"},
-  {id:"PA-12", name:"N. Australia", theatreKey:"PA"},
-  {id:"PA-13", name:"Formosa", theatreKey:"PA"},
-  {id:"PA-14", name:"Pacific Sea Lanes", theatreKey:"PA"},
-];
-
-/** State: owner + visibility + notes */
-let state = loadState();
-let currentId = null;
-
+const byId = new Map(TERRS.map(t => [t.id, t]));
+const board = document.getElementById("board");
+const edgesSvg = document.getElementById("edges");
 const modeSel = document.getElementById("modeSel");
 const playerFactionSel = document.getElementById("playerFactionSel");
+const adjSel = document.getElementById("adjSel");
+
+let state = loadState();
+let currentId = null;
 
 modeSel.addEventListener("change", () => {
   applyMode();
   rerenderFog();
+  redrawEdges();
 });
 
-playerFactionSel.addEventListener("change", () => rerenderFog());
+playerFactionSel.addEventListener("change", () => {
+  rerenderFog();
+  redrawEdges();
+});
+
+adjSel.addEventListener("change", () => {
+  redrawEdges();
+});
 
 function jump(key){
   document.getElementById(key).scrollIntoView({behavior:"smooth", block:"start", inline:"nearest"});
@@ -341,7 +331,6 @@ function loadState(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw) return JSON.parse(raw);
   }catch(e){}
-  // default state
   const s = {};
   for(const t of TERRS){
     s[t.id] = {
@@ -408,18 +397,39 @@ function nodeClassFor(owner){
   return `node owner-${owner}`;
 }
 
+function clearHighlights(){
+  document.querySelectorAll(".node").forEach(n => {
+    n.classList.remove("selected");
+    n.classList.remove("adjacent");
+  });
+}
+
+function rerenderFog(){
+  const mode = modeSel.value;
+  const faction = playerFactionSel.value;
+  document.querySelectorAll(".node").forEach(el => {
+    const tid = el.dataset.id;
+    const st = state[tid];
+    el.classList.remove("fog-unknown");
+    if(mode === "PLAYER"){
+      const v = (st && st.vis && st.vis[faction]) ? st.vis[faction] : "Unknown";
+      if(v === "Unknown") el.classList.add("fog-unknown");
+    }
+  });
+  if(currentId) refreshPanel(currentId);
+}
+
 function renderAll(){
-  // clear theatre bodies
   document.querySelectorAll(".theatreBody").forEach(b => b.innerHTML = "");
-  // group by theatre
+  clearEdges();
+  clearHighlights();
+
   const byTheatre = {WE:[], EE:[], NA:[], PA:[]};
   for(const t of TERRS) byTheatre[t.theatreKey].push(t);
 
   for(const key of Object.keys(byTheatre)){
     const body = document.querySelector(`.theatreBody[data-theatre="${key}"]`);
     const list = byTheatre[key];
-
-    // stable order by id
     list.sort((a,b)=> a.id.localeCompare(b.id));
 
     list.forEach((t, idx) => {
@@ -440,38 +450,122 @@ function renderAll(){
 
   applyMode();
   rerenderFog();
+  redrawEdges();
 }
 
-function rerenderFog(){
+/* --- Adjacency drawing --- */
+function clearEdges(){
+  while(edgesSvg.firstChild) edgesSvg.removeChild(edgesSvg.firstChild);
+}
+
+function nodeCenter(id){
+  const el = document.querySelector(`.node[data-id="${id}"]`);
+  if(!el) return null;
+  const b = board.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  return {
+    x: (r.left - b.left) + r.width/2,
+    y: (r.top  - b.top)  + r.height/2
+  };
+}
+
+function drawLine(aId, bId, cls){
+  const a = nodeCenter(aId);
+  const b = nodeCenter(bId);
+  if(!a || !b) return;
+
+  const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+  line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
+  line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+  line.setAttribute("class", cls);
+  edgesSvg.appendChild(line);
+}
+
+function redrawEdges(){
+  // size svg to board
+  edgesSvg.setAttribute("width", board.clientWidth);
+  edgesSvg.setAttribute("height", board.clientHeight);
+  edgesSvg.setAttribute("viewBox", `0 0 ${board.clientWidth} ${board.clientHeight}`);
+
+  const mode = adjSel.value;
+  clearEdges();
+
+  if(mode === "off") return;
+
+  if(mode === "always"){
+    const seen = new Set();
+    for(const t of TERRS){
+      for(const n of t.adj){
+        const key = [t.id, n].sort().join("|");
+        if(seen.has(key)) continue;
+        seen.add(key);
+        drawLine(t.id, n, "edgeLine");
+      }
+    }
+    return;
+  }
+
+  // select mode: only draw if a territory selected
+  if(currentId){
+    highlightAdjacency(currentId);
+  }
+}
+
+function highlightAdjacency(id){
+  clearEdges();
+  clearHighlights();
+
+  const t = byId.get(id);
+  if(!t) return;
+
+  // selected node
+  const selectedEl = document.querySelector(`.node[data-id="${id}"]`);
+  if(selectedEl) selectedEl.classList.add("selected");
+
   const mode = modeSel.value;
   const faction = playerFactionSel.value;
-  document.querySelectorAll(".node").forEach(el => {
-    const tid = el.dataset.id;
-    const st = state[tid];
-    el.classList.remove("fog-unknown");
-    if(mode === "PLAYER"){
-      const v = (st && st.vis && st.vis[faction]) ? st.vis[faction] : "Unknown";
-      if(v === "Unknown") el.classList.add("fog-unknown");
-    }
-  });
 
-  // If a panel is open, refresh it too
-  if(currentId) refreshPanel(currentId);
+  // neighbours
+  for(const n of t.adj){
+    const nEl = document.querySelector(`.node[data-id="${n}"]`);
+    if(nEl) nEl.classList.add("adjacent");
+
+    // dim lines in player mode if neighbour is Unknown to that faction
+    let cls = "edgeLine strong";
+    if(mode === "PLAYER"){
+      const st = state[n];
+      const vis = (st && st.vis && st.vis[faction]) ? st.vis[faction] : "Unknown";
+      if(vis === "Unknown") cls = "edgeLine dim";
+    }
+    drawLine(id, n, cls);
+  }
 }
 
+/* --- Panel --- */
 function openPanel(id){
   currentId = id;
   refreshPanel(id);
   document.getElementById("panel").style.display = "block";
+
+  if(adjSel.value === "select"){
+    highlightAdjacency(id);
+  }else{
+    // In "always" we still want selection highlight but keep all edges
+    clearHighlights();
+    const el = document.querySelector(`.node[data-id="${id}"]`);
+    if(el) el.classList.add("selected");
+  }
 }
 
 function closePanel(){
   currentId = null;
   document.getElementById("panel").style.display = "none";
+  clearHighlights();
+  redrawEdges();
 }
 
 function refreshPanel(id){
-  const t = TERRS.find(x => x.id === id);
+  const t = byId.get(id);
   if(!t) return;
   const st = state[id];
 
@@ -479,22 +573,30 @@ function refreshPanel(id){
   document.getElementById("pTheatre").textContent = THEATRE_NAME[t.theatreKey];
   document.getElementById("pId").textContent = t.id;
 
-  const mode = modeSel.value;
-  const pf = playerFactionSel.value;
-
-  // Details block: show less in PLAYER mode if Unknown
-  const vis = st.vis[pf] || "Unknown";
-  const details = [];
-  details.push(`Visibility for ${pf.toUpperCase()}: ${vis}`);
-  if(mode === "GM" || vis !== "Unknown"){
-    details.push(`Owner: ${st.owner.toUpperCase()}`);
-    if(st.notes) details.push(`Notes: ${st.notes}`);
-  } else {
-    details.push("Details hidden.");
+  // adjacency list with links
+  const adjList = document.getElementById("adjList");
+  if(!t.adj || !t.adj.length){
+    adjList.textContent = "None";
+  }else{
+    adjList.innerHTML = "";
+    t.adj.forEach((nid, i) => {
+      const nt = byId.get(nid);
+      const span = document.createElement("span");
+      span.className = "linkish";
+      span.textContent = nt ? `${nid} — ${nt.name}` : nid;
+      span.onclick = () => {
+        // Jump to theatre then open
+        const nk = (nt && nt.theatreKey) ? nt.theatreKey : nid.split("-")[0];
+        jump(nk);
+        setTimeout(() => openPanel(nid), 250);
+      };
+      adjList.appendChild(span);
+      if(i < t.adj.length-1) adjList.appendChild(document.createTextNode(" • "));
+    });
   }
-  document.getElementById("detailsText").textContent = details.join(" • ");
 
-  // GM controls
+  // GM fields
+  const mode = modeSel.value;
   if(mode === "GM"){
     document.getElementById("ownerSel").value = st.owner;
     document.getElementById("visAllies").value = st.vis.allies || "Known";
@@ -518,16 +620,24 @@ function saveTerritory(){
   st.notes = document.getElementById("notes").value || "";
   saveState();
 
-  // update node appearance
   const node = document.querySelector(`.node[data-id="${currentId}"]`);
   if(node){
     node.className = nodeClassFor(st.owner);
     node.textContent = OWNER_ICON[st.owner] || "●";
   }
   rerenderFog();
+
+  if(adjSel.value === "select"){
+    highlightAdjacency(currentId);
+  }else{
+    redrawEdges();
+  }
 }
 
 renderAll();
+
+// Redraw edges if window resizes (keeps SVG aligned)
+window.addEventListener("resize", () => redrawEdges());
 </script>
 </body>
 </html>
