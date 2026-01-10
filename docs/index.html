@@ -62,6 +62,7 @@ html, body {
   max-width: none;
 }
 
+/* Pins */
 .pin {
   position: absolute;
   width: 14px;
@@ -72,16 +73,34 @@ html, body {
   border: 2px solid #000;
 }
 
-.faction-allies { background: #c9b27c; }
-.faction-axis   { background: #666666; }
-.faction-ussr   { background: #b22222; }
-.faction-neutral{ background: #888888; }
+.faction-allies  { background: #c9b27c; }
+.faction-axis    { background: #666666; }
+.faction-ussr    { background: #b22222; }
+.faction-neutral { background: #888888; }
 
+/* Theatre tint */
+#theatreLabel {
+  position: fixed;
+  right: 12px;
+  top: 56px;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: rgba(0,0,0,0.65);
+  border: 1px solid #444;
+  display: none;
+}
+
+.we { color: #e0c97a; }
+.ee { color: #e07a7a; }
+.na { color: #e0b07a; }
+.pa { color: #7aa0e0; }
+
+/* Side panel */
 #panel {
   position: fixed;
   right: 0;
   top: 46px;
-  width: 280px;
+  width: 300px;
   bottom: 0;
   background: #141414;
   border-left: 1px solid #333;
@@ -122,9 +141,11 @@ footer {
   </select>
 </div>
 
+<div id="theatreLabel"></div>
+
 <div id="map-wrap">
   <div id="map">
-    <img id="mapImage" src="assets/mapchart_world.jpeg">
+    <img src="assets/mapchart_world.jpeg">
   </div>
 </div>
 
@@ -140,56 +161,133 @@ footer {
 <script>
 const map = document.getElementById("map");
 const panel = document.getElementById("panel");
+const theatreLabel = document.getElementById("theatreLabel");
 let mode = "GM";
 
+/* Theatre zoom calibration */
 const theatres = {
-  WE: { x: 900, y: 420, scale: 2.2 },
-  EE: { x: 1200, y: 420, scale: 2.2 },
-  NA: { x: 1000, y: 760, scale: 2.3 },
-  PA: { x: 1700, y: 620, scale: 2.0 }
+  WE: { x: 780, y: 350, scale: 2.4, label:"Western Europe", cls:"we" },
+  EE: { x: 1050, y: 350, scale: 2.4, label:"Eastern Europe", cls:"ee" },
+  NA: { x: 900, y: 650, scale: 2.3, label:"North Africa", cls:"na" },
+  PA: { x: 1500, y: 550, scale: 2.0, label:"Pacific", cls:"pa" }
 };
 
 function zoomWorld() {
   map.style.transform = "translate(0px,0px) scale(1)";
+  theatreLabel.style.display = "none";
 }
 
 function zoomTheatre(t) {
   const z = theatres[t];
-  map.style.transform =
-    `translate(${-z.x}px, ${-z.y}px) scale(${z.scale})`;
+  map.style.transform = `translate(${-z.x}px, ${-z.y}px) scale(${z.scale})`;
+  theatreLabel.textContent = z.label;
+  theatreLabel.className = z.cls;
+  theatreLabel.style.display = "block";
 }
 
 function setMode(m) {
   mode = m;
+  updateVisibility();
 }
 
+/* TERRITORIES – ALL 56 */
 const territories = [
-  { id:"WE-01", name:"Southern England", x:880, y:390 },
-  { id:"WE-02", name:"Normandy", x:920, y:450 },
-  { id:"WE-03", name:"Paris Basin", x:950, y:480 },
-  { id:"WE-05", name:"Ruhr", x:1000, y:450 },
-  { id:"EE-01", name:"Western Poland", x:1080, y:450 },
-  { id:"EE-08", name:"Moscow", x:1320, y:420 },
-  { id:"NA-TBRK", name:"Tobruk", x:1040, y:760 },
-  { id:"NA-ELAL", name:"El Alamein", x:1070, y:780 },
-  { id:"PA-PHIL", name:"Philippines", x:1650, y:650 },
-  { id:"PA-GUAM", name:"Guam", x:1700, y:610 }
+  /* WESTERN EUROPE */
+  {id:"WE-01",name:"Southern England",x:800,y:340,theatre:"WE"},
+  {id:"WE-02",name:"Normandy",x:820,y:390,theatre:"WE"},
+  {id:"WE-03",name:"Paris Basin",x:840,y:410,theatre:"WE"},
+  {id:"WE-04",name:"Low Countries",x:860,y:380,theatre:"WE"},
+  {id:"WE-05",name:"Ruhr",x:900,y:380,theatre:"WE"},
+  {id:"WE-06",name:"Western Germany",x:910,y:410,theatre:"WE"},
+  {id:"WE-07",name:"Southern Germany",x:930,y:440,theatre:"WE"},
+  {id:"WE-08",name:"Northern Italy",x:900,y:470,theatre:"WE"},
+  {id:"WE-09",name:"Central Italy",x:900,y:500,theatre:"WE"},
+  {id:"WE-10",name:"Iberian Peninsula",x:760,y:450,theatre:"WE"},
+  {id:"WE-11",name:"W. Mediterranean Coast",x:820,y:480,theatre:"WE"},
+  {id:"WE-12",name:"Scandinavia South",x:900,y:300,theatre:"WE"},
+  {id:"WE-13",name:"Atlantic Sea Lanes",x:700,y:360,theatre:"WE"},
+  {id:"WE-14",name:"Alpine Region",x:930,y:470,theatre:"WE"},
+
+  /* EASTERN EUROPE */
+  {id:"EE-01",name:"Western Poland",x:980,y:400,theatre:"EE"},
+  {id:"EE-02",name:"Eastern Poland",x:1010,y:400,theatre:"EE"},
+  {id:"EE-03",name:"Baltic States",x:1020,y:360,theatre:"EE"},
+  {id:"EE-04",name:"Belarus",x:1050,y:390,theatre:"EE"},
+  {id:"EE-05",name:"Ukraine West",x:1080,y:420,theatre:"EE"},
+  {id:"EE-06",name:"Ukraine East",x:1120,y:420,theatre:"EE"},
+  {id:"EE-07",name:"Crimea",x:1120,y:460,theatre:"EE"},
+  {id:"EE-08",name:"Moscow Region",x:1180,y:380,theatre:"EE"},
+  {id:"EE-09",name:"Leningrad",x:1160,y:330,theatre:"EE"},
+  {id:"EE-10",name:"Smolensk Corridor",x:1120,y:390,theatre:"EE"},
+  {id:"EE-11",name:"Caucasus",x:1180,y:460,theatre:"EE"},
+  {id:"EE-12",name:"Stalingrad",x:1220,y:440,theatre:"EE"},
+  {id:"EE-13",name:"Arctic Front",x:1180,y:280,theatre:"EE"},
+  {id:"EE-14",name:"Volga Belt",x:1250,y:410,theatre:"EE"},
+
+  /* NORTH AFRICA */
+  {id:"NA-ALG",name:"Algeria Coast",x:820,y:620,theatre:"NA"},
+  {id:"NA-TUN",name:"Tunis",x:860,y:620,theatre:"NA"},
+  {id:"NA-TRP",name:"Tripoli",x:900,y:620,theatre:"NA"},
+  {id:"NA-BEN",name:"Benghazi",x:940,y:620,theatre:"NA"},
+  {id:"NA-TBRK",name:"Tobruk",x:980,y:620,theatre:"NA"},
+  {id:"NA-ELAL",name:"El Alamein",x:1010,y:620,theatre:"NA"},
+  {id:"NA-ALEX",name:"Alexandria",x:1040,y:620,theatre:"NA"},
+  {id:"NA-WDES",name:"Western Desert",x:940,y:650,theatre:"NA"},
+  {id:"NA-SDES",name:"Southern Desert",x:940,y:690,theatre:"NA"},
+  {id:"NA-FEZ",name:"Fezzan",x:880,y:680,theatre:"NA"},
+  {id:"NA-SIWA",name:"Siwa Oasis",x:980,y:650,theatre:"NA"},
+  {id:"NA-COR",name:"Cairo Corridor",x:1040,y:650,theatre:"NA"},
+  {id:"NA-MED",name:"Med Sea Lanes",x:900,y:580,theatre:"NA"},
+  {id:"NA-RED",name:"Red Sea Approaches",x:1080,y:680,theatre:"NA"},
+
+  /* PACIFIC */
+  {id:"PA-MID",name:"Midway",x:1450,y:520,theatre:"PA"},
+  {id:"PA-WAKE",name:"Wake",x:1500,y:500,theatre:"PA"},
+  {id:"PA-MAR",name:"Marshalls",x:1550,y:540,theatre:"PA"},
+  {id:"PA-GIL",name:"Gilberts",x:1520,y:560,theatre:"PA"},
+  {id:"PA-CAR",name:"Carolines",x:1580,y:560,theatre:"PA"},
+  {id:"PA-GUAM",name:"Guam",x:1600,y:540,theatre:"PA"},
+  {id:"PA-MARI",name:"Marianas",x:1620,y:520,theatre:"PA"},
+  {id:"PA-PHIL",name:"Philippines",x:1600,y:600,theatre:"PA"},
+  {id:"PA-SOLO",name:"Solomons",x:1580,y:640,theatre:"PA"},
+  {id:"PA-NEWG",name:"New Guinea",x:1600,y:660,theatre:"PA"},
+  {id:"PA-FIJI",name:"Fiji",x:1520,y:680,theatre:"PA"},
+  {id:"PA-AUSN",name:"N. Australia",x:1550,y:720,theatre:"PA"},
+  {id:"PA-FORM",name:"Formosa",x:1580,y:580,theatre:"PA"},
+  {id:"PA-SEA",name:"Pacific Sea Lanes",x:1480,y:600,theatre:"PA"}
 ];
 
+/* Default visibility + faction */
+territories.forEach(t => {
+  t.faction = "neutral";
+  t.visibility = "Known";
+});
+
+function updateVisibility() {
+  document.querySelectorAll(".pin").forEach(p => {
+    const vis = p.dataset.visibility;
+    p.style.display =
+      (mode === "PLAYER" && vis === "Unknown") ? "none" : "block";
+  });
+}
+
+/* Render pins */
 territories.forEach(t => {
   const p = document.createElement("div");
   p.className = "pin faction-neutral";
   p.style.left = t.x + "px";
   p.style.top = t.y + "px";
-  p.onclick = () => openPanel(t);
+  p.dataset.visibility = t.visibility;
+  p.onclick = () => openPanel(t, p);
   map.appendChild(p);
 });
 
-function openPanel(t) {
+function openPanel(t, pin) {
   panel.style.display = "block";
   document.getElementById("panelTitle").textContent = t.id + " – " + t.name;
   document.getElementById("panelContent").innerHTML =
-    "<p>Territory information goes here.</p>";
+    `<p><b>Theatre:</b> ${t.theatre}</p>
+     <p><b>Faction:</b> ${t.faction}</p>`;
 }
 </script>
 
