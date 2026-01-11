@@ -36,9 +36,10 @@
     background:#222; color:#eee; border:1px solid #555; padding:6px 10px; cursor:pointer;
   }
   #topbar button:hover{background:#333;}
+  #topbar .smallLabel{color:var(--muted);font-size:12px;}
 
   #wrap{
-    position:absolute; top:60px; left:0; right:390px; bottom:0;
+    position:absolute; top:64px; left:0; right:430px; bottom:0;
     overflow:auto;
     background:
       radial-gradient(circle at 20% 10%, rgba(255,255,255,.04), transparent 40%),
@@ -60,17 +61,9 @@
     z-index:2;
     pointer-events:none;
   }
-  .edgeLine{
-    stroke: rgba(233,227,215,.25);
-    stroke-width: 2;
-  }
-  .edgeLine.dim{
-    stroke: rgba(233,227,215,.12);
-  }
-  .edgeLine.strong{
-    stroke: rgba(233,227,215,.55);
-    stroke-width: 3;
-  }
+  .edgeLine{ stroke: rgba(233,227,215,.25); stroke-width: 2; }
+  .edgeLine.dim{ stroke: rgba(233,227,215,.12); }
+  .edgeLine.strong{ stroke: rgba(233,227,215,.55); stroke-width: 3; }
 
   .theatre{
     position:absolute; z-index:1;
@@ -117,18 +110,12 @@
   .fog-unknown{ filter: grayscale(1); opacity: .35; }
 
   /* Selection */
-  .selected{
-    outline: 3px solid rgba(233,227,215,.70);
-    outline-offset: 2px;
-  }
-  .adjacent{
-    outline: 3px solid rgba(233,227,215,.35);
-    outline-offset: 2px;
-  }
+  .selected{ outline: 3px solid rgba(233,227,215,.70); outline-offset: 2px; }
+  .adjacent{ outline: 3px solid rgba(233,227,215,.35); outline-offset: 2px; }
 
   /* Right drawer */
   #panel{
-    position:fixed; top:60px; right:0; bottom:0; width:390px;
+    position:fixed; top:64px; right:0; bottom:0; width:430px;
     background:#171717; border-left:2px solid #444;
     padding:12px; overflow:auto; display:none;
   }
@@ -158,12 +145,24 @@
     gap:6px 8px;
     align-items:center;
   }
-  .grid2 .tag{
-    font-size:12px;
-    color:var(--muted);
-  }
+  .grid2 .tag{ font-size:12px; color:var(--muted); }
 
   .hr{height:1px;background:rgba(255,255,255,.08); margin:14px 0;}
+
+  .orderCard{
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(0,0,0,.18);
+    padding:8px;
+    border-radius:10px;
+    margin-top:8px;
+  }
+  .orderTop{
+    display:flex; justify-content:space-between; gap:8px; align-items:center;
+    font-size:12px; color:var(--muted);
+  }
+  .orderMain{ margin-top:6px; font-size:13px; }
+  .orderBtns{ display:flex; gap:8px; margin-top:8px; }
+  .orderBtns button{ flex:1; }
 </style>
 </head>
 
@@ -171,13 +170,31 @@
   <div id="topbar">
     <div class="title">WAR! Campaign — Strategic Board</div>
 
-    <label style="color:var(--muted);font-size:12px;">Mode</label>
+    <span class="pill" id="turnPill">Turn 1</span>
+    <span class="pill" id="phasePill">Strategic</span>
+
+    <span class="smallLabel">Phase</span>
+    <select id="phaseSel">
+      <option value="Strategic">Strategic</option>
+      <option value="Operations">Operations</option>
+      <option value="Resolution">Resolution</option>
+    </select>
+
+    <button id="advanceBtn">Advance Phase</button>
+
+    <span class="smallLabel">Auto-advance turn</span>
+    <select id="autoAdvSel">
+      <option value="on" selected>On</option>
+      <option value="off">Off</option>
+    </select>
+
+    <span class="smallLabel">Mode</span>
     <select id="modeSel">
       <option value="GM">GM</option>
       <option value="PLAYER">Player</option>
     </select>
 
-    <label style="color:var(--muted);font-size:12px;">Player Faction</label>
+    <span class="smallLabel">Player Faction</span>
     <select id="playerFactionSel">
       <option value="allies">Allies</option>
       <option value="axis">Axis</option>
@@ -185,20 +202,20 @@
       <option value="custom">Custom</option>
     </select>
 
-    <label style="color:var(--muted);font-size:12px;">Adjacency</label>
+    <span class="smallLabel">Adjacency</span>
     <select id="adjSel">
       <option value="off">Off</option>
       <option value="select" selected>On Select</option>
       <option value="always">Always</option>
     </select>
 
-    <button onclick="jump('WE')">Western Europe</button>
-    <button onclick="jump('EE')">Eastern Europe</button>
-    <button onclick="jump('NA')">North Africa</button>
+    <button onclick="jump('WE')">W. Europe</button>
+    <button onclick="jump('EE')">E. Europe</button>
+    <button onclick="jump('NA')">N. Africa</button>
     <button onclick="jump('PA')">Pacific</button>
 
-    <button onclick="exportState()">Export State</button>
-    <button onclick="importState()">Import State</button>
+    <button onclick="exportState()">Export</button>
+    <button onclick="importState()">Import</button>
     <button onclick="resetState()">Reset</button>
   </div>
 
@@ -235,6 +252,21 @@
       <span class="pill" id="pId"></span>
     </div>
 
+    <!-- Faction HQ quick view -->
+    <div class="row">
+      <label>Faction HQ (Quick)</label>
+      <div class="hint" id="hqQuick"></div>
+      <div class="btnRow" id="hqBtns" style="display:none;">
+        <button onclick="gmAdjustResources(+1)">+1 Res</button>
+        <button onclick="gmAdjustResources(-1)">-1 Res</button>
+      </div>
+      <div class="hint" style="margin-top:8px;">
+        Resource collection happens automatically at start of Strategic: +1 per controlled territory (simple baseline).
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
     <div class="row">
       <label>Adjacency</label>
       <div id="adjList" class="hint"></div>
@@ -264,10 +296,65 @@
 
     <div class="hr"></div>
 
-    <div id="playerInfo" class="row" style="display:none;">
-      <div class="hint">
-        Player view: Unknown territories stay visible but greyed.
+    <!-- Orders -->
+    <div class="row">
+      <label>Orders (Operations Phase)</label>
+      <div class="hint" id="ordersHint"></div>
+
+      <div class="row">
+        <label>General Name</label>
+        <input id="orderGeneral" placeholder="e.g. Gen. Montgomery" />
       </div>
+
+      <div class="row">
+        <label>Order Type</label>
+        <select id="orderType">
+          <option value="Move">Move</option>
+          <option value="Attack">Attack</option>
+          <option value="Recon">Recon</option>
+          <option value="Withdraw">Withdraw</option>
+          <option value="Bombard">Bombard</option>
+          <option value="Hold">Hold</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>From (use current territory or pick)</label>
+        <select id="orderFrom"></select>
+      </div>
+
+      <div class="row">
+        <label>To (optional; for Move/Attack/Recon/Bombard/Withdraw)</label>
+        <select id="orderTo"></select>
+        <div class="hint" style="margin-top:8px;">Move/Attack/etc must be adjacent. Hold ignores To.</div>
+      </div>
+
+      <div class="row">
+        <label>Condition (optional; 1 binary condition max)</label>
+        <input id="orderCond" placeholder='e.g. "If enemy present, Withdraw; else Move"' />
+      </div>
+
+      <div class="row">
+        <label>Notes</label>
+        <input id="orderNotes" placeholder="Any extra detail for GM." />
+      </div>
+
+      <div class="btnRow">
+        <button onclick="createOrder()">Add Order</button>
+        <button onclick="closePanel()">Close</button>
+      </div>
+
+      <div class="hint" style="margin-top:10px;">
+        Player orders are hidden from other factions until Resolution. After Ops ends, orders lock.
+      </div>
+
+      <div id="ordersList"></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div id="playerInfo" class="row" style="display:none;">
+      <div class="hint">Player view: Unknown territories stay visible but greyed.</div>
     </div>
 
     <div id="gmControls" style="display:none;">
@@ -286,27 +373,13 @@
         <label>Visibility (per faction)</label>
         <div class="grid2">
           <div class="tag">Allies</div>
-          <select id="visAllies">
-            <option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option>
-          </select>
-
+          <select id="visAllies"><option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option></select>
           <div class="tag">Axis</div>
-          <select id="visAxis">
-            <option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option>
-          </select>
-
+          <select id="visAxis"><option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option></select>
           <div class="tag">USSR</div>
-          <select id="visUSSR">
-            <option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option>
-          </select>
-
+          <select id="visUSSR"><option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option></select>
           <div class="tag">Custom</div>
-          <select id="visCustom">
-            <option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option>
-          </select>
-        </div>
-        <div class="hint" style="margin-top:8px;">
-          Labels are fixed: Allies / Axis / USSR / Custom.
+          <select id="visCustom"><option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option></select>
         </div>
       </div>
 
@@ -316,7 +389,7 @@
       </div>
 
       <div class="btnRow">
-        <button onclick="saveTerritory()">Save</button>
+        <button onclick="saveTerritory()">Save Territory</button>
         <button onclick="closePanel()">Close</button>
       </div>
     </div>
@@ -337,25 +410,31 @@ const POS14 = [
 
 const THEATRE_NAME = {WE:"Western Europe", EE:"Eastern Europe", NA:"North Africa", PA:"Pacific"};
 const OWNER_ICON = {allies:"★", axis:"✚", ussr:"☭", neutral:"●", custom:"⚑"};
-const STORAGE_KEY = "war_board_state_v2";
+const STORAGE_KEY = "war_board_state_v3";
 
-/**
- * TERRS with adjacency
- * NOTE: This adjacency comes from the extracted prototype JSON.
- */
+/** Territories with adjacency (from your prototype extraction) */
 const TERRS = [{"id":"EE-01","name":"Western Poland","theatreKey":"EE","adj":["EE-02"]},{"id":"EE-02","name":"Eastern Poland","theatreKey":"EE","adj":["EE-01","EE-03"]},{"id":"EE-03","name":"Baltic States","theatreKey":"EE","adj":["EE-02","EE-04"]},{"id":"EE-04","name":"Belarus","theatreKey":"EE","adj":["EE-03","EE-05"]},{"id":"EE-05","name":"Ukraine (West)","theatreKey":"EE","adj":["EE-04","EE-06"]},{"id":"EE-06","name":"Ukraine (East)","theatreKey":"EE","adj":["EE-05","EE-07","EE-11"]},{"id":"EE-07","name":"Crimea","theatreKey":"EE","adj":["EE-06","EE-08"]},{"id":"EE-08","name":"Moscow","theatreKey":"EE","adj":["EE-07","EE-09"]},{"id":"EE-09","name":"Leningrad","theatreKey":"EE","adj":["EE-08","EE-10"]},{"id":"EE-10","name":"Smolensk Corridor","theatreKey":"EE","adj":["EE-09","EE-11"]},{"id":"EE-11","name":"Caucasus","theatreKey":"EE","adj":["EE-10","EE-12","EE-06"]},{"id":"EE-12","name":"Stalingrad","theatreKey":"EE","adj":["EE-11","EE-13"]},{"id":"EE-13","name":"Arctic Front","theatreKey":"EE","adj":["EE-12","EE-14"]},{"id":"EE-14","name":"Volga Belt","theatreKey":"EE","adj":["EE-13"]},{"id":"NA-01","name":"Algeria Coast","theatreKey":"NA","adj":["NA-02"]},{"id":"NA-02","name":"Tunis","theatreKey":"NA","adj":["NA-01","NA-03"]},{"id":"NA-03","name":"Tripoli","theatreKey":"NA","adj":["NA-02","NA-04"]},{"id":"NA-04","name":"Benghazi","theatreKey":"NA","adj":["NA-03","NA-05"]},{"id":"NA-05","name":"Tobruk","theatreKey":"NA","adj":["NA-04","NA-06"]},{"id":"NA-06","name":"El Alamein","theatreKey":"NA","adj":["NA-05","NA-07"]},{"id":"NA-07","name":"Alexandria","theatreKey":"NA","adj":["NA-06","NA-08"]},{"id":"NA-08","name":"Western Desert","theatreKey":"NA","adj":["NA-07","NA-09"]},{"id":"NA-09","name":"Southern Desert","theatreKey":"NA","adj":["NA-08","NA-10"]},{"id":"NA-10","name":"Fezzan","theatreKey":"NA","adj":["NA-09","NA-11"]},{"id":"NA-11","name":"Siwa Oasis","theatreKey":"NA","adj":["NA-10","NA-12"]},{"id":"NA-12","name":"Cairo Corridor","theatreKey":"NA","adj":["NA-11","NA-13"]},{"id":"NA-13","name":"Med Sea Lanes","theatreKey":"NA","adj":["NA-12","NA-14"]},{"id":"NA-14","name":"Red Sea Approaches","theatreKey":"NA","adj":["NA-13"]},{"id":"PA-01","name":"Midway","theatreKey":"PA","adj":["PA-02"]},{"id":"PA-02","name":"Wake / Johnston","theatreKey":"PA","adj":["PA-01","PA-03"]},{"id":"PA-03","name":"Marshall Is.","theatreKey":"PA","adj":["PA-02","PA-04"]},{"id":"PA-04","name":"Gilbert Is.","theatreKey":"PA","adj":["PA-03","PA-05"]},{"id":"PA-05","name":"Caroline Is.","theatreKey":"PA","adj":["PA-04","PA-06"]},{"id":"PA-06","name":"Guam (sea lanes)","theatreKey":"PA","adj":["PA-05","PA-07"]},{"id":"PA-07","name":"Mariana Is.","theatreKey":"PA","adj":["PA-06","PA-08"]},{"id":"PA-08","name":"Philippines","theatreKey":"PA","adj":["PA-07","PA-09","PA-13"]},{"id":"PA-09","name":"Solomon Is.","theatreKey":"PA","adj":["PA-08","PA-10"]},{"id":"PA-10","name":"New Guinea","theatreKey":"PA","adj":["PA-09","PA-11"]},{"id":"PA-11","name":"Fiji","theatreKey":"PA","adj":["PA-10","PA-12"]},{"id":"PA-12","name":"N. Australia","theatreKey":"PA","adj":["PA-11","PA-14"]},{"id":"PA-13","name":"Formosa","theatreKey":"PA","adj":["PA-08"]},{"id":"PA-14","name":"Pacific Sea Lanes","theatreKey":"PA","adj":["PA-12"]},{"id":"WE-01","name":"Southern England","theatreKey":"WE","adj":["WE-02"]},{"id":"WE-02","name":"Northern France","theatreKey":"WE","adj":["WE-01","WE-03"]},{"id":"WE-03","name":"Benelux","theatreKey":"WE","adj":["WE-02","WE-04"]},{"id":"WE-04","name":"Western Germany","theatreKey":"WE","adj":["WE-03","WE-05"]},{"id":"WE-05","name":"Berlin Region","theatreKey":"WE","adj":["WE-04","WE-06"]},{"id":"WE-06","name":"Denmark / Norway Sea Lane","theatreKey":"WE","adj":["WE-05","WE-07"]},{"id":"WE-07","name":"Northern Italy","theatreKey":"WE","adj":["WE-06","WE-08"]},{"id":"WE-08","name":"Central Italy","theatreKey":"WE","adj":["WE-07","WE-09"]},{"id":"WE-09","name":"Southern Italy","theatreKey":"WE","adj":["WE-08","WE-10"]},{"id":"WE-10","name":"Iberian Peninsula","theatreKey":"WE","adj":["WE-09","WE-11"]},{"id":"WE-11","name":"Western Mediterranean Coast","theatreKey":"WE","adj":["WE-10","WE-12"]},{"id":"WE-12","name":"Scandinavia (South)","theatreKey":"WE","adj":["WE-11","WE-13"]},{"id":"WE-13","name":"Atlantic Sea Lanes","theatreKey":"WE","adj":["WE-12","WE-14"]},{"id":"WE-14","name":"Alpine Region","theatreKey":"WE","adj":["WE-13"]}];
 
 const byId = new Map(TERRS.map(t => [t.id, t]));
+
 const board = document.getElementById("board");
 const edgesSvg = document.getElementById("edges");
+
 const modeSel = document.getElementById("modeSel");
 const playerFactionSel = document.getElementById("playerFactionSel");
 const adjSel = document.getElementById("adjSel");
 
+const phaseSel = document.getElementById("phaseSel");
+const advanceBtn = document.getElementById("advanceBtn");
+const autoAdvSel = document.getElementById("autoAdvSel");
+
+const turnPill = document.getElementById("turnPill");
+const phasePill = document.getElementById("phasePill");
+
 let state = loadState();
 let currentId = null;
 
-/* Movement helper state (not per-territory) */
+/* Movement helper state */
 let moveFrom = null;
 let moveTo = null;
 
@@ -364,20 +443,58 @@ modeSel.addEventListener("change", () => {
   rerenderFog();
   redrawEdges();
   refreshMoveUI();
+  refreshHQQuick();
+  refreshOrdersUI();
+  refreshPhaseUI();
 });
 
 playerFactionSel.addEventListener("change", () => {
   rerenderFog();
   redrawEdges();
   refreshMoveUI();
+  refreshHQQuick();
+  refreshOrdersUI();
 });
 
-adjSel.addEventListener("change", () => {
-  redrawEdges();
+adjSel.addEventListener("change", () => redrawEdges());
+
+phaseSel.addEventListener("change", () => {
+  // Players can't change phase
+  if(modeSel.value !== "GM"){
+    refreshPhaseUI();
+    return;
+  }
+  setPhase(phaseSel.value, {manual:true});
+});
+
+autoAdvSel.addEventListener("change", () => {
+  state._meta.autoAdvanceTurn = (autoAdvSel.value === "on");
+  saveState();
+});
+
+advanceBtn.addEventListener("click", () => {
+  if(modeSel.value !== "GM") return;
+  advancePhase();
 });
 
 function jump(key){
   document.getElementById(key).scrollIntoView({behavior:"smooth", block:"start", inline:"nearest"});
+}
+
+function defaultMeta(){
+  return {
+    turn: 1,
+    phase: "Strategic",
+    autoAdvanceTurn: true,
+    moveLog: [],
+    orders: {},   // orders[turn][faction] = []
+    factions: {
+      allies:{resources:0},
+      axis:{resources:0},
+      ussr:{resources:0},
+      custom:{resources:0}
+    }
+  };
 }
 
 function loadState(){
@@ -385,17 +502,25 @@ function loadState(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw){
       const parsed = JSON.parse(raw);
-      // Backfill missing fields
+      // Territory backfill
       for(const t of TERRS){
         if(!parsed[t.id]) parsed[t.id] = {};
         parsed[t.id].owner = parsed[t.id].owner || "neutral";
         parsed[t.id].vis = parsed[t.id].vis || {allies:"Known", axis:"Known", ussr:"Known", custom:"Known"};
         parsed[t.id].notes = parsed[t.id].notes || "";
       }
-      // Meta
-      if(!parsed._meta) parsed._meta = {turn:1, moveLog:[]};
-      if(typeof parsed._meta.turn !== "number") parsed._meta.turn = 1;
-      if(!Array.isArray(parsed._meta.moveLog)) parsed._meta.moveLog = [];
+      // Meta backfill
+      parsed._meta = parsed._meta || defaultMeta();
+      parsed._meta.turn = typeof parsed._meta.turn === "number" ? parsed._meta.turn : 1;
+      parsed._meta.phase = parsed._meta.phase || "Strategic";
+      parsed._meta.autoAdvanceTurn = (parsed._meta.autoAdvanceTurn !== false);
+      parsed._meta.moveLog = Array.isArray(parsed._meta.moveLog) ? parsed._meta.moveLog : [];
+      parsed._meta.orders = parsed._meta.orders || {};
+      parsed._meta.factions = parsed._meta.factions || defaultMeta().factions;
+      for(const f of ["allies","axis","ussr","custom"]){
+        if(!parsed._meta.factions[f]) parsed._meta.factions[f] = {resources:0};
+        if(typeof parsed._meta.factions[f].resources !== "number") parsed._meta.factions[f].resources = 0;
+      }
       return parsed;
     }
   }catch(e){}
@@ -407,7 +532,7 @@ function loadState(){
       notes:""
     };
   }
-  s._meta = {turn:1, moveLog:[]};
+  s._meta = defaultMeta();
   return s;
 }
 
@@ -444,18 +569,8 @@ function importState(){
     reader.onload = () => {
       try{
         const parsed = JSON.parse(reader.result);
-        state = parsed;
-        // Backfill essentials
-        state = loadState(); // will merge/backfill from localstorage; so we do a simple swap:
-        // Instead do manual merge:
-      }catch(e){}
-      try{
-        const parsed2 = JSON.parse(reader.result);
-        // merge parsed2 into fresh defaults
         const fresh = loadState();
-        for(const k of Object.keys(parsed2)){
-          fresh[k] = parsed2[k];
-        }
+        for(const k of Object.keys(parsed)) fresh[k] = parsed[k];
         state = fresh;
         saveState();
         closePanel();
@@ -469,22 +584,104 @@ function importState(){
   input.click();
 }
 
+/* -------------------------
+   Turn + Phase
+-------------------------- */
+function refreshPhaseUI(){
+  const m = state._meta;
+  turnPill.textContent = `Turn ${m.turn}`;
+  phasePill.textContent = m.phase;
+  phaseSel.value = m.phase;
+  autoAdvSel.value = m.autoAdvanceTurn ? "on" : "off";
+
+  // Only GM can change phase selector
+  phaseSel.disabled = (modeSel.value !== "GM");
+  advanceBtn.disabled = (modeSel.value !== "GM");
+
+  // If Ops ended, lock orders (safety)
+  if(m.phase !== "Operations"){
+    lockOrdersForTurn(m.turn);
+  }
+}
+
+function setPhase(newPhase, {manual=false}={}){
+  const old = state._meta.phase;
+  state._meta.phase = newPhase;
+
+  // Auto resource collection at START of Strategic
+  if(old !== "Strategic" && newPhase === "Strategic"){
+    autoCollectResources();
+  }
+
+  // Lock orders when leaving Operations
+  if(old === "Operations" && newPhase !== "Operations"){
+    lockOrdersForTurn(state._meta.turn);
+  }
+
+  saveState();
+  refreshPhaseUI();
+  refreshOrdersUI();
+  rerenderFog();
+  redrawEdges();
+}
+
+function advancePhase(){
+  const p = state._meta.phase;
+  if(p === "Strategic") setPhase("Operations", {manual:true});
+  else if(p === "Operations") setPhase("Resolution", {manual:true});
+  else {
+    // Resolution -> Strategic (next turn if auto)
+    if(state._meta.autoAdvanceTurn){
+      state._meta.turn += 1;
+    }
+    setPhase("Strategic", {manual:true});
+  }
+}
+
+function lockOrdersForTurn(turn){
+  const bucket = (state._meta.orders && state._meta.orders[turn]) ? state._meta.orders[turn] : null;
+  if(!bucket) return;
+  for(const f of Object.keys(bucket)){
+    for(const o of bucket[f]){
+      o.status = "locked";
+    }
+  }
+  saveState();
+}
+
+/* Simple baseline: +1 resource per controlled territory */
+function autoCollectResources(){
+  const counts = {allies:0, axis:0, ussr:0, custom:0};
+  for(const t of TERRS){
+    const owner = state[t.id].owner;
+    if(counts[owner] !== undefined) counts[owner] += 1;
+  }
+  for(const f of ["allies","axis","ussr","custom"]){
+    state._meta.factions[f].resources += counts[f];
+  }
+  saveState();
+}
+
+/* GM quick adjust (panel faction = either playerFaction in player mode, or current selector in GM) */
+function gmAdjustResources(delta){
+  if(modeSel.value !== "GM") return;
+  const f = playerFactionSel.value;
+  state._meta.factions[f].resources = Math.max(0, state._meta.factions[f].resources + delta);
+  saveState();
+  refreshHQQuick();
+}
+
+/* -------------------------
+   Ownership + Fog
+-------------------------- */
 function applyMode(){
   const mode = modeSel.value;
   document.getElementById("gmControls").style.display = (mode==="GM") ? "block" : "none";
   document.getElementById("playerInfo").style.display = (mode==="PLAYER") ? "block" : "none";
+  document.getElementById("hqBtns").style.display = (mode==="GM") ? "flex" : "none";
 }
 
-function nodeClassFor(owner){
-  return `node owner-${owner}`;
-}
-
-function clearHighlights(){
-  document.querySelectorAll(".node").forEach(n => {
-    n.classList.remove("selected");
-    n.classList.remove("adjacent");
-  });
-}
+function nodeClassFor(owner){ return `node owner-${owner}`; }
 
 function rerenderFog(){
   const mode = modeSel.value;
@@ -501,13 +698,17 @@ function rerenderFog(){
   if(currentId) refreshPanel(currentId);
 }
 
+/* -------------------------
+   Render Map
+-------------------------- */
 function renderAll(){
   document.querySelectorAll(".theatreBody").forEach(b => b.innerHTML = "");
   clearEdges();
   clearHighlights();
+  populateOrderDropdowns();
 
   const byTheatre = {WE:[], EE:[], NA:[], PA:[]};
-  for(const t of TERRS) if(t.id !== "_meta") byTheatre[t.theatreKey].push(t);
+  for(const t of TERRS) byTheatre[t.theatreKey].push(t);
 
   for(const key of Object.keys(byTheatre)){
     const body = document.querySelector(`.theatreBody[data-theatre="${key}"]`);
@@ -531,39 +732,41 @@ function renderAll(){
   }
 
   applyMode();
+  refreshPhaseUI();
   rerenderFog();
   redrawEdges();
+  refreshHQQuick();
   refreshMoveUI();
+  refreshOrdersUI();
 }
 
-/* --- Adjacency drawing --- */
+function clearHighlights(){
+  document.querySelectorAll(".node").forEach(n => {
+    n.classList.remove("selected");
+    n.classList.remove("adjacent");
+  });
+}
+
+/* --- Adjacency edges --- */
 function clearEdges(){
   while(edgesSvg.firstChild) edgesSvg.removeChild(edgesSvg.firstChild);
 }
-
 function nodeCenter(id){
   const el = document.querySelector(`.node[data-id="${id}"]`);
   if(!el) return null;
   const b = board.getBoundingClientRect();
   const r = el.getBoundingClientRect();
-  return {
-    x: (r.left - b.left) + r.width/2,
-    y: (r.top  - b.top)  + r.height/2
-  };
+  return { x:(r.left-b.left)+r.width/2, y:(r.top-b.top)+r.height/2 };
 }
-
 function drawLine(aId, bId, cls){
-  const a = nodeCenter(aId);
-  const b = nodeCenter(bId);
+  const a = nodeCenter(aId), b = nodeCenter(bId);
   if(!a || !b) return;
-
   const line = document.createElementNS("http://www.w3.org/2000/svg","line");
   line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
   line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
   line.setAttribute("class", cls);
   edgesSvg.appendChild(line);
 }
-
 function redrawEdges(){
   edgesSvg.setAttribute("width", board.clientWidth);
   edgesSvg.setAttribute("height", board.clientHeight);
@@ -571,7 +774,6 @@ function redrawEdges(){
 
   const mode = adjSel.value;
   clearEdges();
-
   if(mode === "off") return;
 
   if(mode === "always"){
@@ -586,16 +788,11 @@ function redrawEdges(){
     }
     return;
   }
-
-  if(currentId){
-    highlightAdjacency(currentId);
-  }
+  if(currentId) highlightAdjacency(currentId);
 }
-
 function highlightAdjacency(id){
   clearEdges();
   clearHighlights();
-
   const t = byId.get(id);
   if(!t) return;
 
@@ -617,25 +814,29 @@ function highlightAdjacency(id){
     }
     drawLine(id, n, cls);
   }
-
-  // Also show movement helper options if we have an origin
-  refreshMoveUI();
 }
 
-/* --- Panel --- */
+/* -------------------------
+   Panel
+-------------------------- */
 function openPanel(id){
   currentId = id;
   refreshPanel(id);
   document.getElementById("panel").style.display = "block";
 
-  if(adjSel.value === "select"){
-    highlightAdjacency(id);
-  }else{
+  // Prefill order FROM to selected territory
+  document.getElementById("orderFrom").value = id;
+
+  if(adjSel.value === "select") highlightAdjacency(id);
+  else{
     clearHighlights();
     const el = document.querySelector(`.node[data-id="${id}"]`);
     if(el) el.classList.add("selected");
   }
+
+  refreshHQQuick();
   refreshMoveUI();
+  refreshOrdersUI();
 }
 
 function closePanel(){
@@ -654,11 +855,10 @@ function refreshPanel(id){
   document.getElementById("pTheatre").textContent = THEATRE_NAME[t.theatreKey];
   document.getElementById("pId").textContent = t.id;
 
-  // adjacency list with links
+  // adjacency list
   const adjList = document.getElementById("adjList");
-  if(!t.adj || !t.adj.length){
-    adjList.textContent = "None";
-  }else{
+  if(!t.adj || !t.adj.length) adjList.textContent = "None";
+  else{
     adjList.innerHTML = "";
     t.adj.forEach((nid, i) => {
       const nt = byId.get(nid);
@@ -666,8 +866,7 @@ function refreshPanel(id){
       span.className = "linkish";
       span.textContent = nt ? `${nid} — ${nt.name}` : nid;
       span.onclick = () => {
-        const nk = nt ? nt.theatreKey : nid.split("-")[0];
-        jump(nk);
+        jump(nt.theatreKey);
         setTimeout(() => openPanel(nid), 250);
       };
       adjList.appendChild(span);
@@ -676,8 +875,7 @@ function refreshPanel(id){
   }
 
   // GM fields
-  const mode = modeSel.value;
-  if(mode === "GM"){
+  if(modeSel.value === "GM"){
     document.getElementById("ownerSel").value = st.owner;
     document.getElementById("visAllies").value = st.vis.allies || "Known";
     document.getElementById("visAxis").value = st.vis.axis || "Known";
@@ -687,7 +885,6 @@ function refreshPanel(id){
   }
 }
 
-/* --- Save territory --- */
 function saveTerritory(){
   if(!currentId) return;
   const st = state[currentId];
@@ -707,12 +904,29 @@ function saveTerritory(){
     node.textContent = OWNER_ICON[st.owner] || "●";
   }
   rerenderFog();
+  redrawEdges();
+  refreshHQQuick();
+}
 
-  if(adjSel.value === "select"){
-    highlightAdjacency(currentId);
-  }else{
-    redrawEdges();
+/* -------------------------
+   HQ Quick
+-------------------------- */
+function refreshHQQuick(){
+  const f = playerFactionSel.value;
+  const res = state._meta.factions[f].resources;
+
+  let ctrl = 0;
+  for(const t of TERRS){
+    if(state[t.id].owner === f) ctrl++;
   }
+
+  const phase = state._meta.phase;
+  const turn = state._meta.turn;
+  const who = (modeSel.value === "GM") ? "GM view" : "Player view";
+
+  document.getElementById("hqQuick").innerHTML =
+    `Faction: <b>${f.toUpperCase()}</b> • Resources: <b>${res}</b> • Controlled: <b>${ctrl}</b><br>` +
+    `Turn: <b>${turn}</b> • Phase: <b>${phase}</b> • ${who}`;
 }
 
 /* -------------------------
@@ -721,63 +935,44 @@ function saveTerritory(){
 function setMoveFromCurrent(){
   if(!currentId) return;
   moveFrom = currentId;
-  // If destination no longer valid, clear it
   if(moveTo && !isAdjacent(moveFrom, moveTo)) moveTo = null;
   refreshMoveUI();
-  // Highlight adjacency of origin to make move options obvious
   if(adjSel.value === "select") highlightAdjacency(moveFrom);
 }
-
 function trySetMoveToCurrent(){
   if(!currentId) return;
-  if(!moveFrom){
-    setMoveFromCurrent();
-    return;
-  }
-  if(currentId === moveFrom){
-    moveTo = null;
-    refreshMoveUI();
-    return;
-  }
+  if(!moveFrom){ setMoveFromCurrent(); return; }
+  if(currentId === moveFrom){ moveTo = null; refreshMoveUI(); return; }
   if(isAdjacent(moveFrom, currentId)){
     moveTo = currentId;
+    setMoveHint("");
   } else {
     setMoveHint(`Not adjacent: ${moveFrom} → ${currentId}. Choose a highlighted neighbour.`);
     moveTo = null;
   }
   refreshMoveUI();
 }
-
 function isAdjacent(a, b){
   const ta = byId.get(a);
-  if(!ta) return false;
-  return (ta.adj || []).includes(b);
+  return ta && (ta.adj || []).includes(b);
 }
-
 function clearMove(){
-  moveFrom = null;
-  moveTo = null;
+  moveFrom = null; moveTo = null;
   setMoveHint("");
   refreshMoveUI();
 }
-
-function setMoveHint(msg){
-  document.getElementById("mvHint").textContent = msg || "";
-}
+function setMoveHint(msg){ document.getElementById("mvHint").textContent = msg || ""; }
 
 function refreshMoveUI(){
-  const fromEl = document.getElementById("mvFrom");
-  const toEl = document.getElementById("mvTo");
-  const optionsEl = document.getElementById("mvOptions");
-
   const fromT = moveFrom ? byId.get(moveFrom) : null;
   const toT = moveTo ? byId.get(moveTo) : null;
 
-  fromEl.textContent = fromT ? `${moveFrom} — ${fromT.name}` : "—";
-  toEl.textContent = toT ? `${moveTo} — ${toT.name}` : "—";
+  document.getElementById("mvFrom").textContent = fromT ? `${moveFrom} — ${fromT.name}` : "—";
+  document.getElementById("mvTo").textContent = toT ? `${moveTo} — ${toT.name}` : "—";
 
-  // Options list: valid destinations from origin
+  const optionsEl = document.getElementById("mvOptions");
   optionsEl.innerHTML = "";
+
   if(moveFrom){
     const ta = byId.get(moveFrom);
     const title = document.createElement("div");
@@ -790,11 +985,10 @@ function refreshMoveUI(){
       const nt = byId.get(nid);
       const span = document.createElement("span");
       span.className = "linkish";
-      span.textContent = nt ? `${nid} — ${nt.name}` : nid;
+      span.textContent = `${nid} — ${nt.name}`;
       span.onclick = () => {
         moveTo = nid;
-        const nk = nt ? nt.theatreKey : nid.split("-")[0];
-        jump(nk);
+        jump(nt.theatreKey);
         setTimeout(() => openPanel(nid), 250);
         refreshMoveUI();
       };
@@ -803,10 +997,9 @@ function refreshMoveUI(){
     });
     optionsEl.appendChild(list);
 
-    // Clear stale hint if now valid
     if(moveTo && !isAdjacent(moveFrom, moveTo)){
       moveTo = null;
-      setMoveHint(`Destination cleared (not adjacent).`);
+      setMoveHint("Destination cleared (not adjacent).");
     }
   } else {
     optionsEl.textContent = "Set an origin to see valid destinations.";
@@ -814,34 +1007,267 @@ function refreshMoveUI(){
 }
 
 function logMove(){
-  const mode = modeSel.value;
-  if(!moveFrom || !moveTo){
-    setMoveHint("Set both Origin and Destination first.");
-    return;
-  }
-  if(!isAdjacent(moveFrom, moveTo)){
-    setMoveHint("Invalid move (not adjacent).");
-    return;
-  }
+  if(!moveFrom || !moveTo){ setMoveHint("Set both Origin and Destination first."); return; }
+  if(!isAdjacent(moveFrom, moveTo)){ setMoveHint("Invalid move (not adjacent)."); return; }
 
-  // Allow planning in Player mode, but only GM can write to log
-  if(mode !== "GM"){
+  if(modeSel.value !== "GM"){
     setMoveHint("Player mode: move planned (not logged). Switch to GM to log.");
     return;
   }
 
-  const meta = state._meta || (state._meta = {turn:1, moveLog:[]});
-  const entry = {
-    turn: meta.turn || 1,
-    from: moveFrom,
-    to: moveTo,
-    ts: new Date().toISOString()
-  };
-  meta.moveLog.push(entry);
+  const entry = { turn: state._meta.turn, from: moveFrom, to: moveTo, ts: new Date().toISOString() };
+  state._meta.moveLog.push(entry);
   saveState();
   setMoveHint(`Logged: Turn ${entry.turn} — ${entry.from} → ${entry.to}`);
 }
 
+/* -------------------------
+   Orders System
+-------------------------- */
+function getOrdersBucket(turn){
+  if(!state._meta.orders) state._meta.orders = {};
+  if(!state._meta.orders[turn]){
+    state._meta.orders[turn] = {allies:[], axis:[], ussr:[], custom:[]};
+  } else {
+    // backfill factions
+    for(const f of ["allies","axis","ussr","custom"]){
+      if(!state._meta.orders[turn][f]) state._meta.orders[turn][f] = [];
+    }
+  }
+  return state._meta.orders[turn];
+}
+
+function populateOrderDropdowns(){
+  const fromSel = document.getElementById("orderFrom");
+  const toSel = document.getElementById("orderTo");
+  const ids = TERRS.map(t => t.id).sort();
+
+  fromSel.innerHTML = "";
+  toSel.innerHTML = "";
+
+  for(const id of ids){
+    const t = byId.get(id);
+    const opt1 = document.createElement("option");
+    opt1.value = id;
+    opt1.textContent = `${id} — ${t.name}`;
+    fromSel.appendChild(opt1);
+
+    const opt2 = document.createElement("option");
+    opt2.value = id;
+    opt2.textContent = `${id} — ${t.name}`;
+    toSel.appendChild(opt2);
+  }
+}
+
+function refreshOrdersUI(){
+  const turn = state._meta.turn;
+  const phase = state._meta.phase;
+  const mode = modeSel.value;
+  const pf = playerFactionSel.value;
+
+  const hint = document.getElementById("ordersHint");
+  const canSubmit = (phase === "Operations");
+  if(phase !== "Operations"){
+    hint.textContent = `Current phase is ${phase}. Orders are submitted in Operations. In Resolution, orders are revealed.`;
+  } else {
+    hint.textContent = `Operations Phase: submit secret orders. Orders lock when Ops ends.`;
+  }
+
+  // Disable add order UI if not Ops and not GM
+  const disableInputs = (!canSubmit && mode !== "GM");
+  for(const id of ["orderGeneral","orderType","orderFrom","orderTo","orderCond","orderNotes"]){
+    document.getElementById(id).disabled = disableInputs;
+  }
+
+  renderOrdersList();
+}
+
+function createOrder(){
+  const turn = state._meta.turn;
+  const phase = state._meta.phase;
+  const mode = modeSel.value;
+  const pf = playerFactionSel.value;
+
+  if(phase !== "Operations" && mode !== "GM"){
+    alert("Orders can only be added in Operations Phase (unless GM).");
+    return;
+  }
+
+  const general = document.getElementById("orderGeneral").value.trim() || "Unnamed General";
+  const type = document.getElementById("orderType").value;
+  const from = document.getElementById("orderFrom").value;
+  const to = document.getElementById("orderTo").value;
+  const cond = document.getElementById("orderCond").value.trim();
+  const notes = document.getElementById("orderNotes").value.trim();
+
+  // adjacency validation for relevant types
+  const needsTo = !["Hold"].includes(type);
+  if(needsTo){
+    if(!isAdjacent(from, to)){
+      alert(`Invalid: ${type} requires an adjacent target. ${from} → ${to} is not adjacent.`);
+      return;
+    }
+  }
+
+  // binary condition best-effort: just warn if looks like multiple conditions
+  const bad = /(\bif\b.*\bif\b)|(\bunless\b.*\bunless\b)/i.test(cond);
+  if(cond && bad){
+    if(!confirm("Condition looks complex (multiple conditions). Keep it anyway?")) return;
+  }
+
+  const bucket = getOrdersBucket(turn);
+  const order = {
+    id: cryptoId(),
+    turn,
+    faction: pf,
+    general,
+    type,
+    from,
+    to: needsTo ? to : null,
+    condition: cond || null,
+    notes: notes || null,
+    status: (phase === "Operations") ? "draft" : "locked",
+    submittedAt: new Date().toISOString()
+  };
+  bucket[pf].push(order);
+  saveState();
+  renderOrdersList();
+}
+
+function canViewOrder(o){
+  const mode = modeSel.value;
+  const pf = playerFactionSel.value;
+  const phase = state._meta.phase;
+
+  if(mode === "GM") return true;
+
+  // Player sees own faction orders always (even in Operations)
+  if(o.faction === pf) return true;
+
+  // Enemy orders visible only in Resolution (and later)
+  if(phase === "Resolution") return true;
+
+  return false;
+}
+
+function canEditOrder(o){
+  const mode = modeSel.value;
+  const pf = playerFactionSel.value;
+  const phase = state._meta.phase;
+
+  if(mode === "GM") return true;
+  if(o.faction !== pf) return false;
+  if(phase !== "Operations") return false;
+  if(o.status !== "draft") return false;
+  return true;
+}
+
+function renderOrdersList(){
+  const list = document.getElementById("ordersList");
+  list.innerHTML = "";
+
+  const turn = state._meta.turn;
+  const bucket = getOrdersBucket(turn);
+
+  // Collect orders in display order
+  const all = [];
+  for(const f of ["allies","axis","ussr","custom"]){
+    for(const o of bucket[f]) all.push(o);
+  }
+  // newest first
+  all.sort((a,b) => (b.submittedAt||"").localeCompare(a.submittedAt||""));
+
+  if(all.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "hint";
+    empty.textContent = "No orders yet for this turn.";
+    list.appendChild(empty);
+    return;
+  }
+
+  for(const o of all){
+    if(!canViewOrder(o)) continue;
+
+    const card = document.createElement("div");
+    card.className = "orderCard";
+
+    const top = document.createElement("div");
+    top.className = "orderTop";
+    top.innerHTML = `<span>${o.faction.toUpperCase()} • ${o.general}</span><span>${o.status || "draft"}</span>`;
+    card.appendChild(top);
+
+    const main = document.createElement("div");
+    main.className = "orderMain";
+    const toTxt = o.to ? ` → <b>${o.to}</b>` : "";
+    const condTxt = o.condition ? `<br><span class="pill">IF</span> ${escapeHtml(o.condition)}` : "";
+    const notesTxt = o.notes ? `<br><span class="pill">NOTE</span> ${escapeHtml(o.notes)}` : "";
+    main.innerHTML =
+      `<b>${o.type}</b> from <b>${o.from}</b>${toTxt}` + condTxt + notesTxt;
+    card.appendChild(main);
+
+    const btns = document.createElement("div");
+    btns.className = "orderBtns";
+
+    const jumpBtn = document.createElement("button");
+    jumpBtn.textContent = "Go To";
+    jumpBtn.onclick = () => {
+      const t = byId.get(o.from);
+      jump(t.theatreKey);
+      setTimeout(()=>openPanel(o.from), 250);
+    };
+    btns.appendChild(jumpBtn);
+
+    if(canEditOrder(o)){
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "Delete";
+      delBtn.onclick = () => deleteOrder(o.id);
+      btns.appendChild(delBtn);
+    } else {
+      const ghost = document.createElement("button");
+      ghost.textContent = "Locked";
+      ghost.disabled = true;
+      btns.appendChild(ghost);
+    }
+
+    card.appendChild(btns);
+    list.appendChild(card);
+  }
+}
+
+function deleteOrder(orderId){
+  const turn = state._meta.turn;
+  const bucket = getOrdersBucket(turn);
+  for(const f of ["allies","axis","ussr","custom"]){
+    const idx = bucket[f].findIndex(o => o.id === orderId);
+    if(idx >= 0){
+      if(!canEditOrder(bucket[f][idx])) return;
+      bucket[f].splice(idx,1);
+      saveState();
+      renderOrdersList();
+      return;
+    }
+  }
+}
+
+function cryptoId(){
+  try{
+    return crypto.randomUUID();
+  }catch(e){
+    return "id-" + Math.random().toString(16).slice(2) + "-" + Date.now();
+  }
+}
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+
+/* -------------------------
+   Init
+-------------------------- */
+applyMode();
+populateOrderDropdowns();
 renderAll();
 window.addEventListener("resize", () => redrawEdges());
 </script>
