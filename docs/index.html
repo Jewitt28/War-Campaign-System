@@ -1271,5 +1271,68 @@ populateOrderDropdowns();
 renderAll();
 window.addEventListener("resize", () => redrawEdges());
 </script>
+  <script type="module">
+  async function loadTheatres() {
+    const res = await fetch('./assets/data/theatres_all.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Failed to load theatre data: ${res.status}`);
+    return await res.json();
+  }
+
+  function byId(arr) {
+    return Object.fromEntries(arr.map(x => [x.id, x]));
+  }
+
+  function renderUI(data) {
+    const theatres = data.theatres;
+    const theatreSelect = document.getElementById('theatreSelect');
+    const territoryList = document.getElementById('territoryList');
+    const territoryDetail = document.getElementById('territoryDetail');
+
+    theatres.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.theatreId;
+      opt.textContent = `${t.theatreId} — ${t.title || t.theatreId}`;
+      theatreSelect.appendChild(opt);
+    });
+
+    function showTheatre(theatreId) {
+      const theatre = theatres.find(t => t.theatreId === theatreId);
+      const territories = theatre.territories;
+      const tById = byId(territories);
+
+      territoryList.innerHTML = '';
+      territories.forEach(t => {
+        const li = document.createElement('li');
+        li.textContent = `${t.id} — ${t.name}`;
+        li.style.cursor = 'pointer';
+        li.onclick = () => showTerritory(theatre, t);
+        territoryList.appendChild(li);
+      });
+
+      function showTerritory(theatre, terr) {
+        const adj = theatre.adjacency?.[terr.id] || { land: [], sea: [] };
+        territoryDetail.innerHTML = `
+          <h3>${terr.id} — ${terr.name}</h3>
+          <p><b>Land:</b> ${(adj.land || []).join(', ') || '—'}</p>
+          <p><b>Sea:</b> ${(adj.sea || []).join(', ') || '—'}</p>
+          <p><b>Shape refs:</b> ${(terr.shapeRefs || []).slice(0, 6).join(', ')}${(terr.shapeRefs||[]).length > 6 ? '…' : ''}</p>
+        `;
+      }
+
+      // default select first territory
+      if (territories[0]) showTerritory(theatre, territories[0]);
+    }
+
+    theatreSelect.onchange = () => showTheatre(theatreSelect.value);
+    showTheatre(theatres[0].theatreId);
+  }
+
+  // bootstrap
+  (async () => {
+    const data = await loadTheatres();
+    renderUI(data);
+  })();
+</script>
+
 </body>
 </html>
