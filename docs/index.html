@@ -439,7 +439,7 @@ let TERRS = [];
 let byId = new Map();
 
 async function loadAppTheatres(){
-  const res = await fetch('./assets/data/theatres_all.json', { cache: 'no-store' });
+  const res = await fetch('data/theatres_all.json', { cache: 'no-store' });
   if(!res.ok) throw new Error(`Failed to load theatres_all.json: ${res.status}`);
   return await res.json();
 }
