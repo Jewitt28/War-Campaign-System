@@ -882,23 +882,38 @@ function refreshPanel(id){
   document.getElementById("pId").textContent = t.id;
 
   // adjacency list
-  const adjList = document.getElementById("adjList");
-  if(!t.adj || !t.adj.length) adjList.textContent = "None";
-  else{
-    adjList.innerHTML = "";
-    t.adj.forEach((nid, i) => {
-      const nt = byId.get(nid);
-      const span = document.createElement("span");
-      span.className = "linkish";
-      span.textContent = nt ? `${nid} — ${nt.name}` : nid;
-      span.onclick = () => {
+ const adjList = document.getElementById("adjList");
+const land = (t.adjLand || []);
+const sea  = (t.adjSea || []);
+
+if(!land.length && !sea.length){
+  adjList.textContent = "None";
+} else {
+  adjList.innerHTML = `
+    <div><span class="pill">Land</span> ${land.map(nid => linkSpan(nid)).join(" • ") || "—"}</div>
+    <div style="margin-top:6px;"><span class="pill">Sea</span> ${sea.map(nid => linkSpan(nid)).join(" • ") || "—"}</div>
+  `;
+
+  // attach click handlers
+  [...land, ...sea].forEach(nid => {
+    const el = adjList.querySelector(`[data-jump="${nid}"]`);
+    if(el){
+      el.onclick = () => {
+        const nt = byId.get(nid);
+        if(!nt) return;
         jump(nt.theatreKey);
         setTimeout(() => openPanel(nid), 250);
       };
-      adjList.appendChild(span);
-      if(i < t.adj.length-1) adjList.appendChild(document.createTextNode(" • "));
-    });
-  }
+    }
+  });
+}
+
+function linkSpan(nid){
+  const nt = byId.get(nid);
+  const label = nt ? `${nid} — ${nt.name}` : nid;
+  return `<span class="linkish" data-jump="${nid}">${escapeHtml(label)}</span>`;
+}
+
 
   // GM fields
   if(modeSel.value === "GM"){
