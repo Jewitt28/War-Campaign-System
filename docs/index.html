@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WAR! Campaign — Strategic Board</title>
+</head>
+<body>
+  <h1>WAR! Campaign System</h1>
+  <div id="svgHost"></div>
+  <script>
+    async function loadSvg() {
+      const res = await fetch('assets/mapchart_world.svg');
+      const text = await res.text();
+      document.getElementById('svgHost').innerHTML = text;
+    }
+    loadSvg();
+  </script>
+</body>
+</html>
