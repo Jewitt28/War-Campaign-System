@@ -1449,6 +1449,26 @@ function escapeHtml(s){
 })();
 
 </script>
+<script>
+const mapObject = document.getElementById("mapObject");
 
+mapObject.addEventListener("load", () => {
+  const svgDoc = mapObject.contentDocument;
+  if (!svgDoc) {
+    console.error("SVG not accessible");
+    return;
+  }
+
+  const svg = svgDoc.querySelector("svg");
+  console.log("SVG ready");
+
+  svg.querySelectorAll("path").forEach(p => {
+    p.style.cursor = "pointer";
+    p.addEventListener("click", () => {
+      console.log("Clicked:", p.id);
+    });
+  });
+});
+</script>
 </body>
 </html>
