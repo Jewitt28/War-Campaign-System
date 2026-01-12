@@ -224,22 +224,22 @@
       <svg id="edges"></svg>
 
       <div id="WE" class="theatre">
-        <div class="theatreHeader"><span>WESTERN EUROPE</span><span class="pill">14</span></div>
+        <div class="theatreHeader"><span>WESTERN EUROPE</span><span class="pill">15</span></div>
         <div class="theatreBody" data-theatre="WE"></div>
       </div>
 
       <div id="EE" class="theatre">
-        <div class="theatreHeader"><span>EASTERN EUROPE</span><span class="pill">14</span></div>
+        <div class="theatreHeader"><span>EASTERN EUROPE</span><span class="pill">15</span></div>
         <div class="theatreBody" data-theatre="EE"></div>
       </div>
 
       <div id="NA" class="theatre">
-        <div class="theatreHeader"><span>NORTH AFRICA</span><span class="pill">14</span></div>
+        <div class="theatreHeader"><span>NORTH AFRICA</span><span class="pill">15</span></div>
         <div class="theatreBody" data-theatre="NA"></div>
       </div>
 
       <div id="PA" class="theatre">
-        <div class="theatreHeader"><span>PACIFIC</span><span class="pill">14</span></div>
+        <div class="theatreHeader"><span>PACIFIC</span><span class="pill">15</span></div>
         <div class="theatreBody" data-theatre="PA"></div>
       </div>
     </div>
@@ -400,23 +400,49 @@
   </aside>
 
 <script>
-/** Fixed positions (14 slots) used in every theatre panel */
-const POS14 = [
-  [140,120],[220,90],[320,100],[430,90],
-  [120,200],[220,190],[330,200],[450,190],
-  [140,280],[240,300],[340,290],[440,300],
-  [200,370],[360,370]
+
+/** Fixed positions (15 slots) used in every theatre panel */
+const POS15 = [
+  [140,110],[230,90],[330,95],[440,90],
+  [120,190],[230,185],[340,190],[460,185],
+  [140,270],[245,290],[350,280],[455,290],
+  [200,360],[360,360],
+  [280,410]
 ];
 
 const THEATRE_NAME = {WE:"Western Europe", EE:"Eastern Europe", NA:"North Africa", PA:"Pacific"};
 const OWNER_ICON = {allies:"★", axis:"✚", ussr:"☭", neutral:"●", custom:"⚑"};
 const STORAGE_KEY = "war_board_state_v3";
 
-/** Territories with adjacency (from your prototype extraction) */
-const TERRS = [{"id":"EE-01","name":"Western Poland","theatreKey":"EE","adj":["EE-02"]},{"id":"EE-02","name":"Eastern Poland","theatreKey":"EE","adj":["EE-01","EE-03"]},{"id":"EE-03","name":"Baltic States","theatreKey":"EE","adj":["EE-02","EE-04"]},{"id":"EE-04","name":"Belarus","theatreKey":"EE","adj":["EE-03","EE-05"]},{"id":"EE-05","name":"Ukraine (West)","theatreKey":"EE","adj":["EE-04","EE-06"]},{"id":"EE-06","name":"Ukraine (East)","theatreKey":"EE","adj":["EE-05","EE-07","EE-11"]},{"id":"EE-07","name":"Crimea","theatreKey":"EE","adj":["EE-06","EE-08"]},{"id":"EE-08","name":"Moscow","theatreKey":"EE","adj":["EE-07","EE-09"]},{"id":"EE-09","name":"Leningrad","theatreKey":"EE","adj":["EE-08","EE-10"]},{"id":"EE-10","name":"Smolensk Corridor","theatreKey":"EE","adj":["EE-09","EE-11"]},{"id":"EE-11","name":"Caucasus","theatreKey":"EE","adj":["EE-10","EE-12","EE-06"]},{"id":"EE-12","name":"Stalingrad","theatreKey":"EE","adj":["EE-11","EE-13"]},{"id":"EE-13","name":"Arctic Front","theatreKey":"EE","adj":["EE-12","EE-14"]},{"id":"EE-14","name":"Volga Belt","theatreKey":"EE","adj":["EE-13"]},{"id":"NA-01","name":"Algeria Coast","theatreKey":"NA","adj":["NA-02"]},{"id":"NA-02","name":"Tunis","theatreKey":"NA","adj":["NA-01","NA-03"]},{"id":"NA-03","name":"Tripoli","theatreKey":"NA","adj":["NA-02","NA-04"]},{"id":"NA-04","name":"Benghazi","theatreKey":"NA","adj":["NA-03","NA-05"]},{"id":"NA-05","name":"Tobruk","theatreKey":"NA","adj":["NA-04","NA-06"]},{"id":"NA-06","name":"El Alamein","theatreKey":"NA","adj":["NA-05","NA-07"]},{"id":"NA-07","name":"Alexandria","theatreKey":"NA","adj":["NA-06","NA-08"]},{"id":"NA-08","name":"Western Desert","theatreKey":"NA","adj":["NA-07","NA-09"]},{"id":"NA-09","name":"Southern Desert","theatreKey":"NA","adj":["NA-08","NA-10"]},{"id":"NA-10","name":"Fezzan","theatreKey":"NA","adj":["NA-09","NA-11"]},{"id":"NA-11","name":"Siwa Oasis","theatreKey":"NA","adj":["NA-10","NA-12"]},{"id":"NA-12","name":"Cairo Corridor","theatreKey":"NA","adj":["NA-11","NA-13"]},{"id":"NA-13","name":"Med Sea Lanes","theatreKey":"NA","adj":["NA-12","NA-14"]},{"id":"NA-14","name":"Red Sea Approaches","theatreKey":"NA","adj":["NA-13"]},{"id":"PA-01","name":"Midway","theatreKey":"PA","adj":["PA-02"]},{"id":"PA-02","name":"Wake / Johnston","theatreKey":"PA","adj":["PA-01","PA-03"]},{"id":"PA-03","name":"Marshall Is.","theatreKey":"PA","adj":["PA-02","PA-04"]},{"id":"PA-04","name":"Gilbert Is.","theatreKey":"PA","adj":["PA-03","PA-05"]},{"id":"PA-05","name":"Caroline Is.","theatreKey":"PA","adj":["PA-04","PA-06"]},{"id":"PA-06","name":"Guam (sea lanes)","theatreKey":"PA","adj":["PA-05","PA-07"]},{"id":"PA-07","name":"Mariana Is.","theatreKey":"PA","adj":["PA-06","PA-08"]},{"id":"PA-08","name":"Philippines","theatreKey":"PA","adj":["PA-07","PA-09","PA-13"]},{"id":"PA-09","name":"Solomon Is.","theatreKey":"PA","adj":["PA-08","PA-10"]},{"id":"PA-10","name":"New Guinea","theatreKey":"PA","adj":["PA-09","PA-11"]},{"id":"PA-11","name":"Fiji","theatreKey":"PA","adj":["PA-10","PA-12"]},{"id":"PA-12","name":"N. Australia","theatreKey":"PA","adj":["PA-11","PA-14"]},{"id":"PA-13","name":"Formosa","theatreKey":"PA","adj":["PA-08"]},{"id":"PA-14","name":"Pacific Sea Lanes","theatreKey":"PA","adj":["PA-12"]},{"id":"WE-01","name":"Southern England","theatreKey":"WE","adj":["WE-02"]},{"id":"WE-02","name":"Northern France","theatreKey":"WE","adj":["WE-01","WE-03"]},{"id":"WE-03","name":"Benelux","theatreKey":"WE","adj":["WE-02","WE-04"]},{"id":"WE-04","name":"Western Germany","theatreKey":"WE","adj":["WE-03","WE-05"]},{"id":"WE-05","name":"Berlin Region","theatreKey":"WE","adj":["WE-04","WE-06"]},{"id":"WE-06","name":"Denmark / Norway Sea Lane","theatreKey":"WE","adj":["WE-05","WE-07"]},{"id":"WE-07","name":"Northern Italy","theatreKey":"WE","adj":["WE-06","WE-08"]},{"id":"WE-08","name":"Central Italy","theatreKey":"WE","adj":["WE-07","WE-09"]},{"id":"WE-09","name":"Southern Italy","theatreKey":"WE","adj":["WE-08","WE-10"]},{"id":"WE-10","name":"Iberian Peninsula","theatreKey":"WE","adj":["WE-09","WE-11"]},{"id":"WE-11","name":"Western Mediterranean Coast","theatreKey":"WE","adj":["WE-10","WE-12"]},{"id":"WE-12","name":"Scandinavia (South)","theatreKey":"WE","adj":["WE-11","WE-13"]},{"id":"WE-13","name":"Atlantic Sea Lanes","theatreKey":"WE","adj":["WE-12","WE-14"]},{"id":"WE-14","name":"Alpine Region","theatreKey":"WE","adj":["WE-13"]}];
+/** Territories loaded from assets/data/theatres_all.json */
+let TERRS = [];
+let byId = new Map();
 
-const byId = new Map(TERRS.map(t => [t.id, t]));
+async function loadAppTheatres(){
+  const res = await fetch('./assets/data/theatres_all.json', { cache: 'no-store' });
+  if(!res.ok) throw new Error(`Failed to load theatres_all.json: ${res.status}`);
+  return await res.json();
+}
 
+function buildTerrsFromData(data){
+  const out = [];
+  for(const theatre of data.theatres){
+    for(const terr of theatre.territories){
+      const adj = theatre.adjacency?.[terr.id] || { land: [], sea: [] };
+      const combined = Array.from(new Set([...(adj.land||[]), ...(adj.sea||[])]));
+      out.push({
+        id: terr.id,
+        name: terr.name,
+        theatreKey: theatre.theatreId,
+        adj: combined,
+        adjLand: adj.land || [],
+        adjSea: adj.sea || []
+      });
+    }
+  }
+  out.sort((a,b)=> a.id.localeCompare(b.id));
+  return out;
+}
 const board = document.getElementById("board");
 const edgesSvg = document.getElementById("edges");
 
@@ -431,7 +457,7 @@ const autoAdvSel = document.getElementById("autoAdvSel");
 const turnPill = document.getElementById("turnPill");
 const phasePill = document.getElementById("phasePill");
 
-let state = loadState();
+let state = null;
 let currentId = null;
 
 /* Movement helper state */
@@ -716,7 +742,7 @@ function renderAll(){
     list.sort((a,b)=> a.id.localeCompare(b.id));
 
     list.forEach((t, idx) => {
-      const [x,y] = POS14[idx];
+const [x,y] = POS15[idx] || POS15[POS15.length-1];
       const st = state[t.id];
       const el = document.createElement("div");
       el.className = nodeClassFor(st.owner);
@@ -1266,72 +1292,17 @@ function escapeHtml(s){
 /* -------------------------
    Init
 -------------------------- */
-applyMode();
-populateOrderDropdowns();
-renderAll();
-window.addEventListener("resize", () => redrawEdges());
-</script>
-  <script type="module">
-  async function loadTheatres() {
-    const res = await fetch('./assets/data/theatres_all.json', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Failed to load theatre data: ${res.status}`);
-    return await res.json();
-  }
+(async function bootstrap(){
+  const data = await loadAppTheatres();
+  TERRS = buildTerrsFromData(data);
+  byId = new Map(TERRS.map(t => [t.id, t]));
+  state = loadState();
 
-  function byId(arr) {
-    return Object.fromEntries(arr.map(x => [x.id, x]));
-  }
-
-  function renderUI(data) {
-    const theatres = data.theatres;
-    const theatreSelect = document.getElementById('theatreSelect');
-    const territoryList = document.getElementById('territoryList');
-    const territoryDetail = document.getElementById('territoryDetail');
-
-    theatres.forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t.theatreId;
-      opt.textContent = `${t.theatreId} — ${t.title || t.theatreId}`;
-      theatreSelect.appendChild(opt);
-    });
-
-    function showTheatre(theatreId) {
-      const theatre = theatres.find(t => t.theatreId === theatreId);
-      const territories = theatre.territories;
-      const tById = byId(territories);
-
-      territoryList.innerHTML = '';
-      territories.forEach(t => {
-        const li = document.createElement('li');
-        li.textContent = `${t.id} — ${t.name}`;
-        li.style.cursor = 'pointer';
-        li.onclick = () => showTerritory(theatre, t);
-        territoryList.appendChild(li);
-      });
-
-      function showTerritory(theatre, terr) {
-        const adj = theatre.adjacency?.[terr.id] || { land: [], sea: [] };
-        territoryDetail.innerHTML = `
-          <h3>${terr.id} — ${terr.name}</h3>
-          <p><b>Land:</b> ${(adj.land || []).join(', ') || '—'}</p>
-          <p><b>Sea:</b> ${(adj.sea || []).join(', ') || '—'}</p>
-          <p><b>Shape refs:</b> ${(terr.shapeRefs || []).slice(0, 6).join(', ')}${(terr.shapeRefs||[]).length > 6 ? '…' : ''}</p>
-        `;
-      }
-
-      // default select first territory
-      if (territories[0]) showTerritory(theatre, territories[0]);
-    }
-
-    theatreSelect.onchange = () => showTheatre(theatreSelect.value);
-    showTheatre(theatres[0].theatreId);
-  }
-
-  // bootstrap
-  (async () => {
-    const data = await loadTheatres();
-    renderUI(data);
-  })();
+  applyMode();
+  populateOrderDropdowns();
+  renderAll();
+  window.addEventListener("resize", () => redrawEdges());
+})();
 </script>
 
 </body>
