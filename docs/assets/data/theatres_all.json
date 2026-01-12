@@ -1,0 +1,1592 @@
+{
+  "schemaVersion": "1.0",
+  "theatres": [
+    {
+      "theatreId": "WE",
+      "title": "W. Europe",
+      "territories": [
+        {
+          "id": "WE-01",
+          "name": "Northern England",
+          "shapeRefs": [
+            "United_Kingdom_UK_1-2",
+            "United_Kingdom_UK_20",
+            "United_Kingdom_UK_3-8"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#253494"
+          }
+        },
+        {
+          "id": "WE-02",
+          "name": "Rep of Ireland",
+          "shapeRefs": [
+            "Ireland_IE_1-5"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#084081"
+          }
+        },
+        {
+          "id": "WE-03",
+          "name": "Southern England",
+          "shapeRefs": [
+            "United_Kingdom_UK_10-19",
+            "United_Kingdom_UK_9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#4eb3d3"
+          }
+        },
+        {
+          "id": "WE-04",
+          "name": "Northern France",
+          "shapeRefs": [
+            "France_FR_1",
+            "France_FR_10-15",
+            "France_FR_19",
+            "France_FR_2-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#2b8cbe"
+          }
+        },
+        {
+          "id": "WE-05",
+          "name": "Paris Basin",
+          "shapeRefs": [
+            "France_FR_16-18",
+            "France_FR_20-23",
+            "France_FR_25-29"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#41b6c4"
+          }
+        },
+        {
+          "id": "WE-06",
+          "name": "Vichy France",
+          "shapeRefs": [
+            "France_FR_24",
+            "France_FR_30-43"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#80cdc1"
+          }
+        },
+        {
+          "id": "WE-07",
+          "name": "Norh Spain",
+          "shapeRefs": [
+            "Spain_ES_1",
+            "Spain_ES_10-14",
+            "Spain_ES_18-22",
+            "Spain_ES_28-29",
+            "Spain_ES_3",
+            "Spain_ES_30-31",
+            "Spain_ES_37",
+            "Spain_ES_4-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#bfd3e6"
+          }
+        },
+        {
+          "id": "WE-08",
+          "name": "Portugal",
+          "shapeRefs": [
+            "Portugal_PT_1-8"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#984ea3"
+          }
+        },
+        {
+          "id": "WE-09",
+          "name": "South Spain",
+          "shapeRefs": [
+            "Spain_ES_15-17",
+            "Spain_ES_2",
+            "Spain_ES_23-27",
+            "Spain_ES_32-36"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#8c96c6"
+          }
+        },
+        {
+          "id": "WE-10",
+          "name": "S. Italy",
+          "shapeRefs": [
+            "Italy_IT_1",
+            "Italy_IT_15",
+            "Italy_IT_17-28"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#225ea8"
+          }
+        },
+        {
+          "id": "WE-11",
+          "name": "Apline Regions",
+          "shapeRefs": [
+            "Austria_AT_1-6",
+            "Slovenia_SI_1-3"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#5aae61"
+          }
+        },
+        {
+          "id": "WE-12",
+          "name": "Northern Italy",
+          "shapeRefs": [
+            "Italy_IT_10-14",
+            "Italy_IT_16",
+            "Italy_IT_2-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#1d91c0"
+          }
+        },
+        {
+          "id": "WE-13",
+          "name": "Benelux",
+          "shapeRefs": [
+            "Belgium_BE_1-2",
+            "Belgium_BE_4",
+            "Luxembourg_LU_1",
+            "Netherlands_NL_1-3"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#7bccc4"
+          }
+        },
+        {
+          "id": "WE-14",
+          "name": "West Germany - ruhr",
+          "shapeRefs": [
+            "Belgium_BE_3",
+            "Germany_DE_1",
+            "Germany_DE_11-12",
+            "Germany_DE_16-18",
+            "Germany_DE_2",
+            "Germany_DE_21-22",
+            "Germany_DE_25",
+            "Germany_DE_3",
+            "Germany_DE_6-8"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#023858"
+          }
+        },
+        {
+          "id": "WE-15",
+          "name": "East Germany",
+          "shapeRefs": [
+            "Germany_DE_10",
+            "Germany_DE_13-15",
+            "Germany_DE_19-20",
+            "Germany_DE_23-24",
+            "Germany_DE_26-28",
+            "Germany_DE_4-5",
+            "Germany_DE_9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#01665e"
+          }
+        }
+      ],
+      "mapchartMeta": {
+        "zoomLevel": "4.33",
+        "zoomX": "-1536.07",
+        "zoomY": "-7.96",
+        "legendFont": "Century Gothic",
+        "legendFontColor": "#d9d9d9",
+        "background": "#252525",
+        "borders": "#252525",
+        "areBordersShown": true,
+        "areStateBordersShown": true
+      },
+      "regions": [
+        {
+          "id": "WE-R1",
+          "name": "British Isles",
+          "territories": [
+            "WE-01",
+            "WE-03",
+            "WE-02"
+          ]
+        },
+        {
+          "id": "WE-R2",
+          "name": "Western France",
+          "territories": [
+            "WE-04",
+            "WE-05",
+            "WE-06"
+          ]
+        },
+        {
+          "id": "WE-R3",
+          "name": "Iberian Peninsula",
+          "territories": [
+            "WE-07",
+            "WE-09",
+            "WE-08"
+          ]
+        },
+        {
+          "id": "WE-R4",
+          "name": "Italian Theatre",
+          "territories": [
+            "WE-10",
+            "WE-12",
+            "WE-11"
+          ]
+        },
+        {
+          "id": "WE-R5",
+          "name": "German Heartland",
+          "territories": [
+            "WE-14",
+            "WE-15",
+            "WE-13"
+          ]
+        }
+      ],
+      "adjacency": {
+        "WE-01": {
+          "land": [
+            "WE-03"
+          ],
+          "sea": []
+        },
+        "WE-03": {
+          "land": [
+            "WE-01"
+          ],
+          "sea": [
+            "WE-04",
+            "WE-13",
+            "WE-02"
+          ]
+        },
+        "WE-02": {
+          "land": [],
+          "sea": [
+            "WE-01",
+            "WE-03"
+          ]
+        },
+        "WE-04": {
+          "land": [
+            "WE-05",
+            "WE-13"
+          ],
+          "sea": [
+            "WE-03"
+          ]
+        },
+        "WE-05": {
+          "land": [
+            "WE-04",
+            "WE-06",
+            "WE-14"
+          ],
+          "sea": []
+        },
+        "WE-06": {
+          "land": [
+            "WE-05",
+            "WE-07",
+            "WE-11"
+          ],
+          "sea": [
+            "WE-10"
+          ]
+        },
+        "WE-07": {
+          "land": [
+            "WE-06",
+            "WE-09",
+            "WE-08"
+          ],
+          "sea": []
+        },
+        "WE-09": {
+          "land": [
+            "WE-07",
+            "WE-08"
+          ],
+          "sea": []
+        },
+        "WE-08": {
+          "land": [
+            "WE-07",
+            "WE-09"
+          ],
+          "sea": []
+        },
+        "WE-10": {
+          "land": [
+            "WE-12"
+          ],
+          "sea": [
+            "WE-06"
+          ]
+        },
+        "WE-12": {
+          "land": [
+            "WE-10",
+            "WE-11"
+          ],
+          "sea": []
+        },
+        "WE-11": {
+          "land": [
+            "WE-12",
+            "WE-06",
+            "WE-15"
+          ],
+          "sea": []
+        },
+        "WE-13": {
+          "land": [
+            "WE-04",
+            "WE-14"
+          ],
+          "sea": [
+            "WE-03"
+          ]
+        },
+        "WE-14": {
+          "land": [
+            "WE-13",
+            "WE-15",
+            "WE-05"
+          ],
+          "sea": []
+        },
+        "WE-15": {
+          "land": [
+            "WE-14",
+            "WE-11"
+          ],
+          "sea": []
+        }
+      }
+    },
+    {
+      "theatreId": "NA",
+      "title": "North Africa",
+      "territories": [
+        {
+          "id": "NA-01",
+          "name": "Casablanca, Morocco",
+          "shapeRefs": [
+            "Morocco_MA_17-20",
+            "Morocco_MA_23-27",
+            "Morocco_MA_29-35"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "horizontal3_986ba1_ffffff"
+          }
+        },
+        {
+          "id": "NA-02",
+          "name": "Arzew",
+          "shapeRefs": [
+            "Algeria_DZ_129-131",
+            "Algeria_DZ_135-137",
+            "Algeria_DZ_141-144",
+            "Algeria_DZ_148-151",
+            "Algeria_DZ_156-157"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#009392"
+          }
+        },
+        {
+          "id": "NA-03",
+          "name": "Algiers",
+          "shapeRefs": [
+            "Algeria_DZ_132-134",
+            "Algeria_DZ_138-140",
+            "Algeria_DZ_145-147",
+            "Algeria_DZ_152-155",
+            "Algeria_DZ_158-160"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#cc3333"
+          }
+        },
+        {
+          "id": "NA-04",
+          "name": "Western Desert",
+          "shapeRefs": [
+            "Algeria_DZ_105-113",
+            "Algeria_DZ_115-128",
+            "Algeria_DZ_82-83",
+            "Algeria_DZ_92-97"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#ffffcc"
+          }
+        },
+        {
+          "id": "NA-05",
+          "name": "Tunisia",
+          "shapeRefs": [
+            "Tunisia_TN_1",
+            "Tunisia_TN_10-13",
+            "Tunisia_TN_2-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#f7f7f7"
+          }
+        },
+        {
+          "id": "NA-06",
+          "name": "Tripoli",
+          "shapeRefs": [
+            "Libya_LY_1",
+            "Libya_LY_10-11",
+            "Libya_LY_2-4",
+            "Libya_LY_8-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#bf812d"
+          }
+        },
+        {
+          "id": "NA-07",
+          "name": "Fezzan",
+          "shapeRefs": [
+            "Libya_LY_18-21",
+            "Libya_LY_29-32"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#238b45"
+          }
+        },
+        {
+          "id": "NA-08",
+          "name": "El Agheila",
+          "shapeRefs": [
+            "Libya_LY_12-13",
+            "Libya_LY_22-24",
+            "Libya_LY_33-34"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#bebada"
+          }
+        },
+        {
+          "id": "NA-09",
+          "name": "Southern Desert",
+          "shapeRefs": [
+            "Libya_LY_35",
+            "Libya_LY_40-47",
+            "Libya_LY_51-57",
+            "Libya_LY_64-67"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#feb24c"
+          }
+        },
+        {
+          "id": "NA-10",
+          "name": "Benhgazi",
+          "shapeRefs": [
+            "Libya_LY_14-15",
+            "Libya_LY_25-26",
+            "Libya_LY_36",
+            "Libya_LY_5"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#b9a087"
+          }
+        },
+        {
+          "id": "NA-11",
+          "name": "Tobruk Hinterland",
+          "shapeRefs": [
+            "Libya_LY_27",
+            "Libya_LY_37-39",
+            "Libya_LY_48-50"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#73af48"
+          }
+        },
+        {
+          "id": "NA-12",
+          "name": "Tobruk",
+          "shapeRefs": [
+            "Libya_LY_16-17",
+            "Libya_LY_28",
+            "Libya_LY_6-7"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#ccece6"
+          }
+        },
+        {
+          "id": "NA-13",
+          "name": "Siwa Oasis",
+          "shapeRefs": [
+            "Egypt_EG_47-49",
+            "Egypt_EG_54-56",
+            "Egypt_EG_62-63",
+            "Egypt_EG_70-71"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#cf597e"
+          }
+        },
+        {
+          "id": "NA-14",
+          "name": "El Alamein",
+          "shapeRefs": [
+            "Egypt_EG_52-53",
+            "Egypt_EG_59-61",
+            "Egypt_EG_67-69",
+            "Egypt_EG_75-78"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#ffff33"
+          }
+        },
+        {
+          "id": "NA-15",
+          "name": "Alexandria/Suez Canal",
+          "shapeRefs": [
+            "Egypt_EG_50-51",
+            "Egypt_EG_57-58",
+            "Egypt_EG_64-66",
+            "Egypt_EG_72-74"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "diagonal1_d9b400_535353"
+          }
+        }
+      ],
+      "mapchartMeta": {
+        "zoomLevel": "7.42",
+        "zoomX": "-2719.71",
+        "zoomY": "-721.70",
+        "legendFont": "Century Gothic",
+        "legendFontColor": "#d9d9d9",
+        "background": "#252525",
+        "borders": "#252525",
+        "areBordersShown": true,
+        "areStateBordersShown": true
+      },
+      "regions": [
+        {
+          "id": "NA-R1",
+          "name": "Morocco & Western Algeria",
+          "territories": [
+            "NA-01",
+            "NA-02",
+            "NA-03"
+          ]
+        },
+        {
+          "id": "NA-R2",
+          "name": "Algerian–Tunisian Front",
+          "territories": [
+            "NA-04",
+            "NA-05",
+            "NA-06"
+          ]
+        },
+        {
+          "id": "NA-R3",
+          "name": "Libyan Coast",
+          "territories": [
+            "NA-08",
+            "NA-10",
+            "NA-12"
+          ]
+        },
+        {
+          "id": "NA-R4",
+          "name": "Libyan Interior",
+          "territories": [
+            "NA-07",
+            "NA-09",
+            "NA-11"
+          ]
+        },
+        {
+          "id": "NA-R5",
+          "name": "Egyptian Front",
+          "territories": [
+            "NA-13",
+            "NA-14",
+            "NA-15"
+          ]
+        }
+      ],
+      "adjacency": {
+        "NA-01": {
+          "land": [
+            "NA-02"
+          ],
+          "sea": [
+            "WE-07",
+            "WE-08"
+          ]
+        },
+        "NA-02": {
+          "land": [
+            "NA-01",
+            "NA-03",
+            "NA-04"
+          ],
+          "sea": []
+        },
+        "NA-03": {
+          "land": [
+            "NA-02",
+            "NA-04"
+          ],
+          "sea": []
+        },
+        "NA-04": {
+          "land": [
+            "NA-02",
+            "NA-03",
+            "NA-05",
+            "NA-07"
+          ],
+          "sea": []
+        },
+        "NA-05": {
+          "land": [
+            "NA-04",
+            "NA-06"
+          ],
+          "sea": []
+        },
+        "NA-06": {
+          "land": [
+            "NA-05",
+            "NA-08"
+          ],
+          "sea": []
+        },
+        "NA-08": {
+          "land": [
+            "NA-06",
+            "NA-10"
+          ],
+          "sea": []
+        },
+        "NA-10": {
+          "land": [
+            "NA-08",
+            "NA-12"
+          ],
+          "sea": []
+        },
+        "NA-12": {
+          "land": [
+            "NA-10",
+            "NA-11",
+            "NA-14"
+          ],
+          "sea": []
+        },
+        "NA-07": {
+          "land": [
+            "NA-04",
+            "NA-09"
+          ],
+          "sea": []
+        },
+        "NA-09": {
+          "land": [
+            "NA-07",
+            "NA-11",
+            "NA-13",
+            "NA-08"
+          ],
+          "sea": []
+        },
+        "NA-11": {
+          "land": [
+            "NA-09",
+            "NA-12"
+          ],
+          "sea": []
+        },
+        "NA-13": {
+          "land": [
+            "NA-09",
+            "NA-14"
+          ],
+          "sea": []
+        },
+        "NA-14": {
+          "land": [
+            "NA-12",
+            "NA-13",
+            "NA-15"
+          ],
+          "sea": []
+        },
+        "NA-15": {
+          "land": [
+            "NA-14"
+          ],
+          "sea": []
+        }
+      }
+    },
+    {
+      "theatreId": "EE",
+      "title": "Eastern Europe",
+      "territories": [
+        {
+          "id": "EE-01",
+          "name": "W. Poland",
+          "shapeRefs": [
+            "Poland_PL_1",
+            "Poland_PL_10-11",
+            "Poland_PL_14-16",
+            "Poland_PL_2",
+            "Poland_PL_20-21",
+            "Poland_PL_26",
+            "Poland_PL_3-4",
+            "Poland_PL_8-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#fed976"
+          }
+        },
+        {
+          "id": "EE-02",
+          "name": "E. Poland",
+          "shapeRefs": [
+            "Poland_PL_12-13",
+            "Poland_PL_17-19",
+            "Poland_PL_22-25",
+            "Poland_PL_27-28",
+            "Poland_PL_5-7"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#edad08"
+          }
+        },
+        {
+          "id": "EE-03",
+          "name": "Baltic States",
+          "shapeRefs": [
+            "Estonia_EE_1-5",
+            "Latvia_LV_1-6",
+            "Lithuania_LT_1-5",
+            "Russia_RU_1659-1660"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#984ea3"
+          }
+        },
+        {
+          "id": "EE-04",
+          "name": "W. Ukraine",
+          "shapeRefs": [
+            "Ukraine_UA_1",
+            "Ukraine_UA_10-15",
+            "Ukraine_UA_21-26",
+            "Ukraine_UA_3-7"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#ffff33"
+          }
+        },
+        {
+          "id": "EE-05",
+          "name": "Crimea",
+          "shapeRefs": [
+            "Ukraine_UA_33-36",
+            "Ukraine_UA_40-45"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#009392"
+          }
+        },
+        {
+          "id": "EE-06",
+          "name": "E. Ukraine",
+          "shapeRefs": [
+            "Ukraine_UA_16-19",
+            "Ukraine_UA_2",
+            "Ukraine_UA_20",
+            "Ukraine_UA_27-32",
+            "Ukraine_UA_37-39",
+            "Ukraine_UA_8-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#4c91bf"
+          }
+        },
+        {
+          "id": "EE-07",
+          "name": "Belarus",
+          "shapeRefs": [
+            "Belarus_BY_1",
+            "Belarus_BY_10-19",
+            "Belarus_BY_2",
+            "Belarus_BY_20-21",
+            "Belarus_BY_3-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#8c510a"
+          }
+        },
+        {
+          "id": "EE-08",
+          "name": "Stalingrad Region",
+          "shapeRefs": [
+            "Russia_RU_135-139",
+            "Russia_RU_189-193",
+            "Russia_RU_246-249",
+            "Russia_RU_50",
+            "Russia_RU_59-61",
+            "Russia_RU_69-71",
+            "Russia_RU_92-94"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#525252"
+          }
+        },
+        {
+          "id": "EE-09",
+          "name": "Moscow region",
+          "shapeRefs": [
+            "Russia_RU_250-251",
+            "Russia_RU_312-316",
+            "Russia_RU_381-385",
+            "Russia_RU_454-457",
+            "Russia_RU_526-529",
+            "Russia_RU_600-602",
+            "Russia_RU_676-678"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#800026"
+          }
+        },
+        {
+          "id": "EE-10",
+          "name": "Smolensk Corridor",
+          "shapeRefs": [
+            "Russia_RU_386",
+            "Russia_RU_458-459",
+            "Russia_RU_530-532",
+            "Russia_RU_603-605",
+            "Russia_RU_679-680",
+            "Russia_RU_761-763",
+            "Russia_RU_848"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#013f3f"
+          }
+        },
+        {
+          "id": "EE-11",
+          "name": "Leningrad Region",
+          "shapeRefs": [
+            "Russia_RU_1030-1032",
+            "Russia_RU_533",
+            "Russia_RU_606-607",
+            "Russia_RU_681-683",
+            "Russia_RU_764-766",
+            "Russia_RU_849-852",
+            "Russia_RU_939-942"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#0f8554"
+          }
+        },
+        {
+          "id": "EE-12",
+          "name": "Romania & Bulgaria",
+          "shapeRefs": [
+            "Bulgaria_BG_1-8",
+            "Romania_RO_1",
+            "Romania_RO_10-19",
+            "Romania_RO_2",
+            "Romania_RO_20",
+            "Romania_RO_3-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#edf8b1"
+          }
+        },
+        {
+          "id": "EE-13",
+          "name": "Czechoslovakia",
+          "shapeRefs": [
+            "Czechia_CZ_1-4",
+            "Russia_RU_36",
+            "Slovakia_SK_1-5"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#99d8c9"
+          }
+        },
+        {
+          "id": "EE-14",
+          "name": "Slovenia & Hungary",
+          "shapeRefs": [
+            "Hungary_HU_1-7",
+            "Norway_NO_1",
+            "Norway_NO_10-12",
+            "Norway_NO_2-9",
+            "Slovenia_SI_1-3"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#f46d43"
+          }
+        },
+        {
+          "id": "EE-15",
+          "name": "Orotia/Serbia/bosnia",
+          "shapeRefs": [
+            "Bosnia_and_Herzegovina_BA_1-3",
+            "Croatia_HR_1-4",
+            "Serbia_RS_1-7"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#01665e"
+          }
+        }
+      ],
+      "mapchartMeta": {
+        "zoomLevel": "6.28",
+        "zoomX": "-2555.77",
+        "zoomY": "-582.31",
+        "legendFont": "Century Gothic",
+        "legendFontColor": "#d9d9d9",
+        "background": "#252525",
+        "borders": "#252525",
+        "areBordersShown": true,
+        "areStateBordersShown": true
+      },
+      "adjacency": {
+        "EE-01": {
+          "land": [
+            "EE-02",
+            "EE-13"
+          ],
+          "sea": []
+        },
+        "EE-02": {
+          "land": [
+            "EE-01",
+            "EE-07",
+            "EE-04"
+          ],
+          "sea": []
+        },
+        "EE-07": {
+          "land": [
+            "EE-02",
+            "EE-10",
+            "EE-03"
+          ],
+          "sea": []
+        },
+        "EE-03": {
+          "land": [
+            "EE-07",
+            "EE-11"
+          ],
+          "sea": []
+        },
+        "EE-04": {
+          "land": [
+            "EE-02",
+            "EE-06",
+            "EE-12"
+          ],
+          "sea": []
+        },
+        "EE-06": {
+          "land": [
+            "EE-04",
+            "EE-05",
+            "EE-08"
+          ],
+          "sea": []
+        },
+        "EE-05": {
+          "land": [
+            "EE-06"
+          ],
+          "sea": []
+        },
+        "EE-10": {
+          "land": [
+            "EE-07",
+            "EE-09",
+            "EE-08"
+          ],
+          "sea": []
+        },
+        "EE-09": {
+          "land": [
+            "EE-10",
+            "EE-11"
+          ],
+          "sea": []
+        },
+        "EE-11": {
+          "land": [
+            "EE-09",
+            "EE-03"
+          ],
+          "sea": []
+        },
+        "EE-08": {
+          "land": [
+            "EE-06",
+            "EE-10"
+          ],
+          "sea": []
+        },
+        "EE-13": {
+          "land": [
+            "EE-01",
+            "EE-14"
+          ],
+          "sea": []
+        },
+        "EE-14": {
+          "land": [
+            "EE-13",
+            "EE-15",
+            "EE-12"
+          ],
+          "sea": []
+        },
+        "EE-12": {
+          "land": [
+            "EE-04",
+            "EE-14",
+            "EE-15"
+          ],
+          "sea": []
+        },
+        "EE-15": {
+          "land": [
+            "EE-14",
+            "EE-12"
+          ],
+          "sea": []
+        }
+      }
+    },
+    {
+      "theatreId": "PA",
+      "title": "The Pacific",
+      "territories": [
+        {
+          "id": "PA-01",
+          "name": "North Australia",
+          "shapeRefs": [
+            "Australia_AU_1",
+            "Australia_AU_10-11",
+            "Australia_AU_14-18",
+            "Australia_AU_2",
+            "Australia_AU_25-29",
+            "Australia_AU_3",
+            "Australia_AU_37-39",
+            "Australia_AU_4",
+            "Australia_AU_40-41",
+            "Australia_AU_5",
+            "Australia_AU_50-55",
+            "Australia_AU_6",
+            "Australia_AU_66-69",
+            "Australia_AU_7",
+            "Australia_AU_70-73",
+            "Australia_AU_8",
+            "Australia_AU_86-89",
+            "Australia_AU_9",
+            "Australia_AU_90"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#fb8072"
+          }
+        },
+        {
+          "id": "PA-02",
+          "name": "Fiji/ Pacific Islands",
+          "shapeRefs": [
+            "Fiji_FJ_1",
+            "Vanuatu_VU_1"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#2166ac"
+          }
+        },
+        {
+          "id": "PA-03",
+          "name": "Solomon Islands",
+          "shapeRefs": [
+            "Papua_New_Guinea_PG_15",
+            "Papua_New_Guinea_PG_2",
+            "Papua_New_Guinea_PG_6",
+            "Solomon_Islands_SB_1"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#cab2d6"
+          }
+        },
+        {
+          "id": "PA-04",
+          "name": "East Papa New Ginuea",
+          "shapeRefs": [
+            "Papua_New_Guinea_PG_1",
+            "Papua_New_Guinea_PG_10-14",
+            "Papua_New_Guinea_PG_16-27",
+            "Papua_New_Guinea_PG_3-5",
+            "Papua_New_Guinea_PG_7-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#bf812d"
+          }
+        },
+        {
+          "id": "PA-05",
+          "name": "West Papa N Ginuea",
+          "shapeRefs": [
+            "Indonesia_ID_10-11",
+            "Indonesia_ID_17-20",
+            "Indonesia_ID_22-24",
+            "Indonesia_ID_27-29",
+            "Indonesia_ID_3",
+            "Indonesia_ID_30-31",
+            "Indonesia_ID_37-39",
+            "Indonesia_ID_4",
+            "Indonesia_ID_40-42",
+            "Indonesia_ID_5",
+            "Indonesia_ID_52-53"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#fed976"
+          }
+        },
+        {
+          "id": "PA-06",
+          "name": "Banda Arc",
+          "shapeRefs": [
+            "Indonesia_ID_1",
+            "Indonesia_ID_104",
+            "Indonesia_ID_2",
+            "Indonesia_ID_25",
+            "Indonesia_ID_32-33",
+            "Indonesia_ID_43-46",
+            "Indonesia_ID_54-55",
+            "Indonesia_ID_64-69",
+            "Indonesia_ID_79-80",
+            "Indonesia_ID_91-95",
+            "Timor_Leste_TL_1-2"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#0f8554"
+          }
+        },
+        {
+          "id": "PA-07",
+          "name": "rep of indonesia",
+          "shapeRefs": [
+            "Indonesia_ID_100-103",
+            "Indonesia_ID_105-118",
+            "Indonesia_ID_12-16",
+            "Indonesia_ID_21",
+            "Indonesia_ID_26",
+            "Indonesia_ID_34-36",
+            "Indonesia_ID_47-51",
+            "Indonesia_ID_56-59",
+            "Indonesia_ID_6",
+            "Indonesia_ID_60-63",
+            "Indonesia_ID_7",
+            "Indonesia_ID_70-78",
+            "Indonesia_ID_8",
+            "Indonesia_ID_81-89",
+            "Indonesia_ID_9",
+            "Indonesia_ID_90",
+            "Indonesia_ID_96-99"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#72b38e"
+          }
+        },
+        {
+          "id": "PA-08",
+          "name": "Malaya",
+          "shapeRefs": [
+            "Brunei_BN_1",
+            "Malaysia_MY_1",
+            "Malaysia_MY_10-19",
+            "Malaysia_MY_2",
+            "Malaysia_MY_20-25",
+            "Malaysia_MY_3-9",
+            "Singapore_SG_1"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#810f7c"
+          }
+        },
+        {
+          "id": "PA-09",
+          "name": "Thailand",
+          "shapeRefs": [
+            "Thailand_TH_1",
+            "Thailand_TH_10-19",
+            "Thailand_TH_2",
+            "Thailand_TH_20-29",
+            "Thailand_TH_3",
+            "Thailand_TH_30-34",
+            "Thailand_TH_4-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#9970ab"
+          }
+        },
+        {
+          "id": "PA-10",
+          "name": "North Phillipines",
+          "shapeRefs": [
+            "Philippines_PH_1",
+            "Philippines_PH_10",
+            "Philippines_PH_2-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#de8a5a"
+          }
+        },
+        {
+          "id": "PA-11",
+          "name": "South Phillipines",
+          "shapeRefs": [
+            "Philippines_PH_11-22"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#ca562c"
+          }
+        },
+        {
+          "id": "PA-12",
+          "name": "Vietnam",
+          "shapeRefs": [
+            "Cambodia_KH_1",
+            "Cambodia_KH_10-12",
+            "Cambodia_KH_2-9",
+            "Vietnam_VN_1",
+            "Vietnam_VN_10-19",
+            "Vietnam_VN_2",
+            "Vietnam_VN_20-23",
+            "Vietnam_VN_3-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#ffffb3"
+          }
+        },
+        {
+          "id": "PA-13",
+          "name": "Taiwan",
+          "shapeRefs": [
+            "Taiwan_TW_1-3"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#80cdc1"
+          }
+        },
+        {
+          "id": "PA-14",
+          "name": "South Japan",
+          "shapeRefs": [
+            "Japan_JP_14",
+            "Japan_JP_17",
+            "Japan_JP_20-23",
+            "Japan_JP_25-29"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#e31a1c"
+          }
+        },
+        {
+          "id": "PA-15",
+          "name": "North Japan",
+          "shapeRefs": [
+            "Japan_JP_1",
+            "Japan_JP_10-13",
+            "Japan_JP_15-16",
+            "Japan_JP_18-19",
+            "Japan_JP_2",
+            "Japan_JP_24",
+            "Japan_JP_3-9"
+          ],
+          "source": {
+            "type": "mapchart",
+            "groupKey": "#f7fcfd"
+          }
+        }
+      ],
+      "mapchartMeta": {
+        "zoomLevel": "1.71",
+        "zoomX": "-780.40",
+        "zoomY": "-114.56",
+        "legendFont": "Century Gothic",
+        "legendFontColor": "#d9d9d9",
+        "background": "#252525",
+        "borders": "#252525",
+        "areBordersShown": true,
+        "areStateBordersShown": true
+      },
+      "regions": [
+        {
+          "id": "PA-R1",
+          "name": "Japanese Home Islands",
+          "territories": [
+            "PA-15",
+            "PA-14",
+            "PA-13"
+          ]
+        },
+        {
+          "id": "PA-R2",
+          "name": "South China Sea",
+          "territories": [
+            "PA-08",
+            "PA-09",
+            "PA-12"
+          ]
+        },
+        {
+          "id": "PA-R3",
+          "name": "East Indies",
+          "territories": [
+            "PA-07",
+            "PA-06",
+            "PA-05"
+          ]
+        },
+        {
+          "id": "PA-R4",
+          "name": "Southwest Pacific",
+          "territories": [
+            "PA-04",
+            "PA-03",
+            "PA-02"
+          ]
+        },
+        {
+          "id": "PA-R5",
+          "name": "Australia & Philippines",
+          "territories": [
+            "PA-01",
+            "PA-10",
+            "PA-11"
+          ]
+        }
+      ],
+      "adjacency": {
+        "PA-15": {
+          "land": [
+            "PA-14"
+          ],
+          "sea": [
+            "PA-13",
+            "PA-10"
+          ]
+        },
+        "PA-14": {
+          "land": [
+            "PA-15"
+          ],
+          "sea": [
+            "PA-13",
+            "PA-10"
+          ]
+        },
+        "PA-13": {
+          "land": [],
+          "sea": [
+            "PA-14",
+            "PA-15",
+            "PA-10",
+            "PA-08"
+          ]
+        },
+        "PA-08": {
+          "land": [
+            "PA-09"
+          ],
+          "sea": [
+            "PA-13",
+            "PA-07"
+          ]
+        },
+        "PA-09": {
+          "land": [
+            "PA-08",
+            "PA-12"
+          ],
+          "sea": []
+        },
+        "PA-12": {
+          "land": [
+            "PA-09"
+          ],
+          "sea": [
+            "PA-07"
+          ]
+        },
+        "PA-07": {
+          "land": [],
+          "sea": [
+            "PA-08",
+            "PA-12",
+            "PA-06",
+            "PA-05",
+            "PA-01",
+            "PA-11"
+          ]
+        },
+        "PA-06": {
+          "land": [],
+          "sea": [
+            "PA-07",
+            "PA-05"
+          ]
+        },
+        "PA-05": {
+          "land": [
+            "PA-04"
+          ],
+          "sea": [
+            "PA-06",
+            "PA-07"
+          ]
+        },
+        "PA-04": {
+          "land": [
+            "PA-05"
+          ],
+          "sea": [
+            "PA-03"
+          ]
+        },
+        "PA-03": {
+          "land": [],
+          "sea": [
+            "PA-04",
+            "PA-02"
+          ]
+        },
+        "PA-02": {
+          "land": [],
+          "sea": [
+            "PA-03",
+            "PA-01"
+          ]
+        },
+        "PA-01": {
+          "land": [],
+          "sea": [
+            "PA-02",
+            "PA-07"
+          ]
+        },
+        "PA-10": {
+          "land": [
+            "PA-11"
+          ],
+          "sea": [
+            "PA-13",
+            "PA-14",
+            "PA-15"
+          ]
+        },
+        "PA-11": {
+          "land": [
+            "PA-10"
+          ],
+          "sea": [
+            "PA-07"
+          ]
+        }
+      }
+    }
+  ],
+  "notes": [
+    "WE adjacency includes Portugal land links to both WE-07 and WE-09.",
+    "PA adjacency includes land link between PA-05 and PA-04 (New Guinea).",
+    "EE regions were not locked in chat; omitted to avoid baking the wrong canon."
+  ]
+}
