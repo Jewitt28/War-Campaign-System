@@ -384,13 +384,8 @@
           ],
           "sea": []
         },
-        "WE-15": {
-          "land": [
-            "WE-14",
-            "WE-11"
-          ],
-          "sea": []
-        }
+     "WE-15": { "land": ["WE-14","WE-11","EE-01"], "sea": [] }
+
       }
     },
     {
@@ -1023,14 +1018,8 @@
         "areStateBordersShown": true
       },
       "adjacency": {
-        "EE-01": {
-          "land": [
-            "We-04",
-            "EE-02",
-            "EE-13"            
-          ],
-          "sea": []
-        },
+        "EE-01": { "land": ["EE-02","EE-13","WE-15"], "sea": [] }
+
         "EE-02": {
           "land": [
             "EE-01",
