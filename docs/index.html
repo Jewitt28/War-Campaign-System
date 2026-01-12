@@ -53,6 +53,19 @@
     background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.10)), var(--paper);
     border:3px solid var(--line);
     box-shadow:0 8px 30px rgba(0,0,0,.35);
+    <div id="mapStage">
+  <img id="mapImg" src="./assets/mapchart_world.jpeg" alt="World Map" />
+  <div id="svgHost"></div>
+  <svg id="edges"></svg>
+    #board{ position:relative; width:1600px; height:1100px; }
+#mapStage{ position:absolute; inset:0; }
+#mapImg{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; }
+#svgHost{ position:absolute; inset:0; }
+#svgHost svg{ width:100%; height:100%; }
+#edges{ position:absolute; inset:0; pointer-events:none; z-index:5; }
+
+</div>
+
   }
 
   /* Edges overlay */
@@ -423,6 +436,112 @@ async function loadAppTheatres(){
   if(!res.ok) throw new Error(`Failed to load theatres_all.json: ${res.status}`);
   return await res.json();
 }
+async function loadWorldSvg(){
+  const res = await fetch('./assets/mapchart_world.svg', { cache:'no-store' });
+  if(!res.ok) throw new Error(`Failed to load map SVG: ${res.status}`);
+  const svgText = await res.text();
+  document.getElementById('svgHost').innerHTML = svgText;
+
+  // ensure the injected svg is findable
+  const svg = document.querySelector('#svgHost svg');
+  if(!svg) throw new Error("SVG did not load correctly into #svgHost.");
+
+  // optional: force preserveAspectRatio to match image (usually meet)
+  if(!svg.getAttribute('preserveAspectRatio')){
+    svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+  }
+  return svg;
+}
+
+// Create one clickable "territory group" for all its shapeRefs
+function bindTerritoriesToSvg(){
+  const svg = document.querySelector('#svgHost svg');
+  if(!svg) return;
+
+  // Build map from shapeRef -> path element
+  const shapeToPath = new Map();
+  svg.querySelectorAll('path[id]').forEach(p => shapeToPath.set(p.id, p));
+
+  // Each TERR has shapeRefs; attach dataset + click handlers to those paths
+  for(const t of TERRS){
+    const refs = t.shapeRefs || [];
+    for(const ref of refs){
+      const path = shapeToPath.get(ref);
+      if(!path) continue;
+      path.dataset.territoryId = t.id;
+      path.style.cursor = 'pointer';
+      path.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openPanel(t.id);
+      });
+    }
+  }
+}
+
+// Style fills based on owner + fog, and compute centers for adjacency drawing
+function rerenderTerritoryFills(){
+  const svg = document.querySelector('#svgHost svg');
+  if(!svg) return;
+
+  const mode = modeSel.value;
+  const faction = playerFactionSel.value;
+
+  svg.querySelectorAll('path[data-territory-id]').forEach(p => {
+    const tid = p.dataset.territoryId;
+    const st = state[tid];
+    const owner = st?.owner || 'neutral';
+
+    // basic owner fill (same palette as your nodes)
+    const fillByOwner = {
+      allies: getComputedStyle(document.documentElement).getPropertyValue('--allies').trim(),
+      axis: getComputedStyle(document.documentElement).getPropertyValue('--axis').trim(),
+      ussr: getComputedStyle(document.documentElement).getPropertyValue('--ussr').trim(),
+      custom: getComputedStyle(document.documentElement).getPropertyValue('--custom').trim(),
+      neutral: getComputedStyle(document.documentElement).getPropertyValue('--neutral').trim(),
+    };
+
+    p.style.fill = fillByOwner[owner] || fillByOwner.neutral;
+    p.style.stroke = 'rgba(0,0,0,.35)';
+    p.style.strokeWidth = '1';
+
+    // fog
+    p.style.opacity = '1';
+    if(mode === "PLAYER"){
+      const v = st?.vis?.[faction] || "Unknown";
+      if(v === "Unknown") p.style.opacity = '.25';
+    }
+  });
+}
+
+// Get centroid from combined bboxes of all SVG paths in a territory
+function territoryCenterOnSvg(territoryId){
+  const paths = Array.from(document.querySelectorAll(`#svgHost path[data-territory-id="${territoryId}"]`));
+  if(!paths.length) return null;
+
+  // union bbox
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  for(const p of paths){
+    const b = p.getBBox();
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.width);
+    maxY = Math.max(maxY, b.y + b.height);
+  }
+
+  // Convert SVG coordinates into screen coords:
+  const svg = document.querySelector('#svgHost svg');
+  const pt = svg.createSVGPoint();
+  pt.x = (minX + maxX) / 2;
+  pt.y = (minY + maxY) / 2;
+
+  const ctm = svg.getScreenCTM();
+  if(!ctm) return null;
+  const sp = pt.matrixTransform(ctm);
+
+  // Convert screen -> board local coords (so your edges SVG can draw correctly)
+  const boardRect = board.getBoundingClientRect();
+  return { x: sp.x - boardRect.left, y: sp.y - boardRect.top };
+}
 
 function buildTerrsFromData(data){
   const out = [];
@@ -466,7 +585,7 @@ let moveTo = null;
 
 modeSel.addEventListener("change", () => {
   applyMode();
-  rerenderFog();
+  rerenderTerritoryFills();
   redrawEdges();
   refreshMoveUI();
   refreshHQQuick();
@@ -475,7 +594,7 @@ modeSel.addEventListener("change", () => {
 });
 
 playerFactionSel.addEventListener("change", () => {
-  rerenderFog();
+  rerenderTerritoryFills();
   redrawEdges();
   refreshMoveUI();
   refreshHQQuick();
@@ -647,7 +766,7 @@ function setPhase(newPhase, {manual=false}={}){
   saveState();
   refreshPhaseUI();
   refreshOrdersUI();
-  rerenderFog();
+  rerenderTerritoryFills();
   redrawEdges();
 }
 
@@ -709,7 +828,7 @@ function applyMode(){
 
 function nodeClassFor(owner){ return `node owner-${owner}`; }
 
-function rerenderFog(){
+function rerenderTerritoryFills(){
   const mode = modeSel.value;
   const faction = playerFactionSel.value;
   document.querySelectorAll(".node").forEach(el => {
@@ -759,7 +878,7 @@ const [x,y] = POS15[idx] || POS15[POS15.length-1];
 
   applyMode();
   refreshPhaseUI();
-  rerenderFog();
+  rerenderTerritoryFills();
   redrawEdges();
   refreshHQQuick();
   refreshMoveUI();
@@ -778,11 +897,7 @@ function clearEdges(){
   while(edgesSvg.firstChild) edgesSvg.removeChild(edgesSvg.firstChild);
 }
 function nodeCenter(id){
-  const el = document.querySelector(`.node[data-id="${id}"]`);
-  if(!el) return null;
-  const b = board.getBoundingClientRect();
-  const r = el.getBoundingClientRect();
-  return { x:(r.left-b.left)+r.width/2, y:(r.top-b.top)+r.height/2 };
+   return territoryCenterOnSvg(id);
 }
 function drawLine(aId, bId, cls){
   const a = nodeCenter(aId), b = nodeCenter(bId);
@@ -944,7 +1059,7 @@ function saveTerritory(){
     node.className = nodeClassFor(st.owner);
     node.textContent = OWNER_ICON[st.owner] || "●";
   }
-  rerenderFog();
+  rerenderTerritoryFills();
   redrawEdges();
   refreshHQQuick();
 }
@@ -1313,11 +1428,17 @@ function escapeHtml(s){
   byId = new Map(TERRS.map(t => [t.id, t]));
   state = loadState();
 
+  await loadWorldSvg();
+  bindTerritoriesToSvg();
+
   applyMode();
-  populateOrderDropdowns();
-  renderAll();
+  refreshPhaseUI();
+  rerenderTerritoryFills();
+  redrawEdges();
+
   window.addEventListener("resize", () => redrawEdges());
 })();
+
 </script>
 
 </body>
