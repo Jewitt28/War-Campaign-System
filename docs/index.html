@@ -514,40 +514,38 @@ function bindTerritoriesToSvg(){
 }
 
 // Style fills based on owner + fog, and compute centers for adjacency drawing
-function rerenderSvgFills(){
+function rerenderSvgFills() {
   const svg = document.querySelector('#svgHost svg');
-  if(!svg) return;
-
-  const mode = modeSel.value;
-  const faction = playerFactionSel.value;
+  if (!svg) return;
 
   svg.querySelectorAll('path[data-territory-id]').forEach(p => {
     const tid = p.dataset.territoryId;
-    const st = state[tid];
-    const owner = st?.owner || 'neutral';
+    const st = state?.[tid];
 
-    // basic owner fill (same palette as your nodes)
-    const fillByOwner = {
-      allies: getComputedStyle(document.documentElement).getPropertyValue('--allies').trim(),
-      axis: getComputedStyle(document.documentElement).getPropertyValue('--axis').trim(),
-      ussr: getComputedStyle(document.documentElement).getPropertyValue('--ussr').trim(),
-      custom: getComputedStyle(document.documentElement).getPropertyValue('--custom').trim(),
-      neutral: getComputedStyle(document.documentElement).getPropertyValue('--neutral').trim(),
-    };
+    // IMPORTANT: no state = do NOT overwrite MapChart export colours
+    if (!st) {
+      p.style.opacity = '1';
+      p.classList.remove('fog-unknown');
+      p.style.stroke = '#000';
+      p.style.strokeWidth = '0.3';
+      return;
+    }
 
-    p.style.fill = fillByOwner[owner] || fillByOwner.neutral;
-    p.style.stroke = 'rgba(0,0,0,.35)';
-    p.style.strokeWidth = '1';
-
-    // fog
+    // Now safe to apply ownership colours
+    const owner = st.owner || 'neutral';
+    p.style.fill = ownerToColor(owner);
     p.style.opacity = '1';
     p.classList.remove('fog-unknown');
-    if(mode === "PLAYER"){
-      const v = st?.vis?.[faction] || "Unknown";
-      if(v === "Unknown"){ p.classList.add('fog-unknown'); } else { p.classList.remove('fog-unknown'); }
+
+    // Fog (only if you want it)
+    if (modeSel.value === "PLAYER") {
+      const faction = playerFactionSel.value;
+      const v = st.vis?.[faction] || "Unknown";
+      if (v === "Unknown") p.classList.add('fog-unknown');
     }
   });
 }
+
 
 // Get centroid from combined bboxes of all SVG paths in a territory
 function territoryCenterOnSvg(territoryId){
