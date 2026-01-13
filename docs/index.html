@@ -435,9 +435,7 @@ let byId = new Map();
 async function loadAppTheatres(){
   // Try common locations (repo layouts differ). First hit wins.
   const candidates = [
-    'assets/theatres_all.json',
-    'assets/data/theatres_all.json',
-    'data/theatres_all.json'
+    'theatres_all.json',
   ];
   let lastErr = null;
   for(const url of candidates){
