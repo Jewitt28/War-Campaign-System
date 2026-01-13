@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "1.0",
+  "groups": [
+    {
+      "id": "RG-UK",
+      "name": "United Kingdom",
+      "territories": [
+        "WE-01",
+        "WE-02"
+      ]
+    },
+    {
+      "id": "RG-BRITISH_ISLES",
+      "name": "British Isles",
+      "territories": [
+        "WE-01",
+        "WE-02",
+        "WE-03"
+      ]
+    },
+    {
+      "id": "RG-SCANDINAVIA",
+      "name": "Scandinavia Front",
+      "territories": [
+        "WE-13",
+        "WE-15",
+        "EE-01",
+        "EE-02"
+      ]
+    },
+    {
+      "id": "RG-OVERLORD",
+      "name": "Operation Overlord (Channel Front)",
+      "territories": [
+        "WE-04",
+        "WE-05",
+        "WE-07"
+      ]
+    },
+    {
+      "id": "RG-ITALY",
+      "name": "Italian Campaign",
+      "territories": [
+        "WE-10",
+        "WE-11",
+        "WE-12"
+      ]
+    },
+    {
+      "id": "RG-TORCH",
+      "name": "Operation Torch",
+      "territories": [
+        "NA-01",
+        "NA-02",
+        "NA-03",
+        "NA-04",
+        "NA-05"
+      ]
+    },
+    {
+      "id": "RG-DESERT_WAR",
+      "name": "Western Desert",
+      "territories": [
+        "NA-06",
+        "NA-08",
+        "NA-09",
+        "NA-10",
+        "NA-11",
+        "NA-12",
+        "NA-14",
+        "NA-15"
+      ]
+    },
+    {
+      "id": "RG-DEEP_DESERT",
+      "name": "Deep Desert",
+      "territories": [
+        "NA-07",
+        "NA-13"
+      ]
+    },
+    {
+      "id": "RG-BARBAROSSA_NORTH",
+      "name": "Barbarossa North",
+      "territories": [
+        "EE-01",
+        "EE-02",
+        "EE-03",
+        "EE-04",
+        "EE-05",
+        "EE-06"
+      ]
+    },
+    {
+      "id": "RG-BARBAROSSA_SOUTH",
+      "name": "Barbarossa South",
+      "territories": [
+        "EE-07",
+        "EE-08",
+        "EE-09",
+        "EE-10",
+        "EE-11",
+        "EE-12",
+        "EE-13",
+        "EE-14",
+        "EE-15"
+      ]
+    },
+    {
+      "id": "RG-PACIFIC_RING",
+      "name": "Pacific Ring",
+      "territories": [
+        "PA-01",
+        "PA-02",
+        "PA-03",
+        "PA-04",
+        "PA-05",
+        "PA-06",
+        "PA-07",
+        "PA-08"
+      ]
+    },
+    {
+      "id": "RG-ISLAND_HOPPING",
+      "name": "Island Hopping",
+      "territories": [
+        "PA-09",
+        "PA-10",
+        "PA-11",
+        "PA-12",
+        "PA-13",
+        "PA-14",
+        "PA-15"
+      ]
+    }
+  ]
+}
