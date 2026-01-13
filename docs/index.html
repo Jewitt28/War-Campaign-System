@@ -450,7 +450,7 @@ async function loadAppTheatres(){
   throw new Error(`Failed to load theatres_all.json from any known path. Last error: ${lastErr}`);
 }
 async function loadWorldSvg(){
-  const res = await fetch('mapchart_world.svg', { cache:'no-store' });
+  const res = await fetch('assets/mapchart_world.svg', { cache:'no-store' });
   if(!res.ok) throw new Error(`Failed to load map SVG: ${res.status}`);
   const svgText = await res.text();
   document.getElementById('svgHost').innerHTML = svgText;
