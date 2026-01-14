@@ -79,6 +79,12 @@
   .edgeLine.dim{ stroke: rgba(233,227,215,.12); }
   .edgeLine.strong{ stroke: rgba(233,227,215,.55); stroke-width: 3; }
 
+  
+  /* Theatre focus dimming */
+  #svgHost .dimmed {
+  opacity: 0.12 !important;
+}
+
   .theatre{
     position:absolute; z-index:1;
     display:none;
@@ -228,10 +234,11 @@
     <button onclick="jump('EE')">E. Europe</button>
     <button onclick="jump('NA')">N. Africa</button>
     <button onclick="jump('PA')">Pacific</button>
-
+    <button onclick="resetWorldView()">World</button>
     <button onclick="exportState()">Export</button>
     <button onclick="importState()">Import</button>
     <button onclick="resetState()">Reset</button>
+    
   </div>
 
   <div id="wrap">
@@ -460,10 +467,106 @@ async function loadWorldSvg(){
 
   // ensure the injected svg is findable
   const svg = document.querySelector('#svgHost svg');
+  
   if(!svg) throw new Error("SVG did not load correctly into #svgHost.");
 
   svg.setAttribute('preserveAspectRatio','xMidYMid meet');
   return svg;
+}
+let baseViewBox = null;
+
+function getSvg() {
+  return document.querySelector('#svgHost svg');
+}
+
+function captureBaseViewBox() {
+  const svg = getSvg();
+  if (!svg) return;
+
+  // Ensure a viewBox exists
+  if (!svg.hasAttribute('viewBox')) {
+    const b = svg.getBBox();
+    svg.setAttribute('viewBox', `${b.x} ${b.y} ${b.width} ${b.height}`);
+  }
+  baseViewBox = svg.getAttribute('viewBox');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+}
+
+function resetWorldView() {
+  const svg = getSvg();
+  if (!svg || !baseViewBox) return;
+
+  // Reset zoom
+  svg.setAttribute('viewBox', baseViewBox);
+
+  // Undim everything
+  svg.querySelectorAll('[data-territory-id]').forEach(el => el.classList.remove('dimmed'));
+}
+
+// Returns array of DOM elements belonging to theatre territories
+function theatreElements(theatreId) {
+  const svg = getSvg();
+  if (!svg) return [];
+
+  const ids = TERRS
+    .filter(t => t.theatreId === theatreId)
+    .map(t => t.id);
+
+  const els = [];
+  for (const tid of ids) {
+    svg.querySelectorAll(`[data-territory-id="${tid}"]`).forEach(el => els.push(el));
+  }
+  return els;
+}
+
+function focusTheatre(theatreId) {
+  const svg = getSvg();
+  if (!svg) return;
+
+  // Dim everything first
+  svg.querySelectorAll('[data-territory-id]').forEach(el => el.classList.add('dimmed'));
+
+  // Undim this theatre
+  const els = theatreElements(theatreId);
+  els.forEach(el => el.classList.remove('dimmed'));
+}
+
+function zoomToElements(els, padFrac = 0.12) {
+  const svg = getSvg();
+  if (!svg || !els.length) return;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const el of els) {
+    const b = el.getBBox();
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.width);
+    maxY = Math.max(maxY, b.y + b.height);
+  }
+
+  const w = maxX - minX;
+  const h = maxY - minY;
+  const padX = w * padFrac;
+  const padY = h * padFrac;
+
+  const x = minX - padX;
+  const y = minY - padY;
+  const vw = w + padX * 2;
+  const vh = h + padY * 2;
+
+  svg.setAttribute('viewBox', `${x} ${y} ${vw} ${vh}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+}
+
+// Main: theatre button handler
+function jump(theatreId) {
+  const els = theatreElements(theatreId);
+  if (!els.length) {
+    console.warn('No SVG elements found for theatre', theatreId);
+    return;
+  }
+  focusTheatre(theatreId);
+  zoomToElements(els, 0.12);
 }
 
 // Create one clickable "territory group" for all its shapeRefs
@@ -1476,7 +1579,7 @@ function escapeHtml(s){
 
   await loadWorldSvg();
   bindTerritoriesToSvg();
-
+  captureBaseViewBox();
   applyMode();
   refreshPhaseUI();
   rerenderSvgFills();
