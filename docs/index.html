@@ -1,0 +1,2224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WAR! Campaign — Strategic Board</title>
+
+<style>
+  :root{
+    --bg:#2b2721;
+    --paper:#3a342c;
+    --ink:#e9e3d7;
+    --line:#6b5b3e;
+    --muted:#bdb6a8;
+
+    --allies:#c9b27c;
+    --axis:#666666;
+    --ussr:#b22222;
+    --neutral:#888888;
+    --custom:#d9d9d9;
+
+    --weTint: rgba(201,178,124,.10);
+    --eeTint: rgba(178,34,34,.10);
+    --naTint: rgba(224,176,122,.10);
+    --paTint: rgba(122,160,224,.10);
+  }
+
+  html,body{height:100%; margin:0; background:var(--bg); color:var(--ink); font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial;}
+  #topbar{
+    position:fixed; inset:0 0 auto 0; z-index:1000;
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    padding:10px 12px; background:#1b1b1b; border-bottom:2px solid #444;
+  }
+  #topbar .title{font-weight:700; letter-spacing:1px; margin-right:auto;}
+  #topbar button, #topbar select{
+    background:#222; color:#eee; border:1px solid #555; padding:6px 10px; cursor:pointer;
+  }
+  #topbar button:hover{background:#333;}
+  #topbar .smallLabel{color:var(--muted);font-size:12px;}
+
+  #wrap{
+    position:absolute; top:64px; left:0; right:430px; bottom:0;
+    overflow:auto;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255,255,255,.04), transparent 40%),
+      radial-gradient(circle at 80% 30%, rgba(255,255,255,.03), transparent 45%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.035), rgba(255,255,255,.035) 24px, rgba(255,255,255,.02) 24px, rgba(255,255,255,.02) 48px);
+  }
+  #board{
+    position:relative;
+    width:1600px; height:1100px;
+    margin:30px;
+    background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.10)), var(--paper);
+    border:3px solid var(--line);
+    box-shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+
+  /* World map stage */
+  #mapStage{ position:absolute; inset:0; z-index:1; }
+  #mapImg{
+    position:absolute; inset:0;
+    z-index:1;
+    width:100%; height:100%;
+    object-fit:contain;
+    pointer-events:none;
+    opacity:.25;
+  }
+  #svgHost{ position:absolute; inset:0;z-index: 2; }
+  #svgHost svg{ width:100%; height:100%; display:block; }
+
+  /* Territory boundaries (visible even in grey setup view) */
+  #svgHost [data-territory-id]{
+    stroke: rgba(0,0,0,.85);
+    stroke-width: 0.35;
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* Edges overlay */
+  #edges{
+    position:absolute; inset:0;
+    z-index:3;
+    pointer-events:none;
+  }
+  #edges { background: transparent !important; }
+  #edges rect { fill: none !important; }
+  .edgeLine{ stroke: rgba(233,227,215,.25); stroke-width: 2; }
+  .edgeLine.dim{ stroke: rgba(233,227,215,.12); }
+  .edgeLine.strong{ stroke: rgba(233,227,215,.55); stroke-width: 3; }
+
+  
+  /* Theatre focus dimming */
+  #svgHost .dimmed {
+  opacity: 0.12 !important;
+}
+
+  .theatre{
+    position:absolute; z-index:1;
+    display:none;
+    border:2px dashed rgba(233,227,215,.25);
+    border-radius:10px; overflow:hidden;
+  }
+  .theatreHeader{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 10px;
+    border-bottom:1px solid rgba(233,227,215,.18);
+    background:rgba(0,0,0,.25);
+    font-weight:700; letter-spacing:2px; font-size:13px;
+  }
+  .theatreBody{position:relative; height:100%;}
+
+  #WE{left:40px;  top:40px;  width:740px; height:480px; background:var(--weTint);}
+  #EE{left:820px; top:40px;  width:740px; height:480px; background:var(--eeTint);}
+  #NA{left:40px;  top:560px; width:740px; height:480px; background:var(--naTint);}
+  #PA{left:820px; top:560px; width:740px; height:480px; background:var(--paTint);}
+
+  /* Territory piece */
+  .node{
+    position:absolute;
+    width:28px; height:28px;
+    border-radius:50%;
+    border:2px solid #000;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+    cursor:pointer;
+    user-select:none;
+    box-shadow:0 2px 8px rgba(0,0,0,.35);
+    z-index:3;
+    transition: transform .08s ease, box-shadow .08s ease, outline-color .08s ease;
+  }
+  .node:hover{ transform: translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.45); }
+
+  .owner-allies{background:var(--allies); color:#111;}
+  .owner-axis{background:var(--axis); color:#111;}
+  .owner-ussr{background:var(--ussr); color:#111;}
+  .owner-neutral{background:var(--neutral); color:#111;}
+  .owner-custom{background:var(--custom); color:#111;}
+
+  /* Fog: greyed but still visible */
+  .fog-unknown{ filter: grayscale(1); opacity: .35; }
+
+  /* Selection */
+  .selected{ outline: 3px solid rgba(233,227,215,.70); outline-offset: 2px; }
+  .adjacent{ outline: 3px solid rgba(233,227,215,.35); outline-offset: 2px; }
+
+  /* Right drawer */
+  #panel{
+    position:fixed; top:64px; right:0; bottom:0; width:430px;
+    background:#171717; border-left:2px solid #444;
+    padding:12px; overflow:auto; display:none;
+  }
+
+  /* Panel title readability (no clipping) */
+  #panel{ padding-top:14px; }
+  #panel h2{
+    margin-top:6px;
+    line-height:1.2;
+    white-space:normal;
+    word-break:break-word;
+  }
+
+  #panel h2{margin:0 0 8px 0; font-size:16px;}
+  .meta{color:var(--muted); font-size:12px; margin-bottom:10px;}
+  .row{margin:10px 0;}
+  .row label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px;}
+  .row select, .row textarea, .row input{
+    width:100%; background:#222; color:#eee; border:1px solid #555; padding:6px 8px;
+    box-sizing:border-box;
+  }
+  .row textarea{min-height:70px; resize:vertical;}
+  .pill{
+    display:inline-block; padding:2px 8px; border:1px solid rgba(255,255,255,.15);
+    border-radius:999px; font-size:12px; color:#ddd; background:rgba(0,0,0,.25);
+    margin-right:6px;
+  }
+  .btnRow{display:flex; gap:10px; margin-top:10px;}
+  .btnRow button{flex:1;}
+  .hint{font-size:12px; color:var(--muted); margin-top:10px; line-height:1.4;}
+  .linkish{ color:#e9e3d7; text-decoration:underline; cursor:pointer; }
+  .linkish:hover{ opacity:.85; }
+
+  .grid2{
+    display:grid;
+    grid-template-columns: 90px 1fr;
+    gap:6px 8px;
+    align-items:center;
+  }
+  .grid2 .tag{ font-size:12px; color:var(--muted); }
+
+  .hr{height:1px;background:rgba(255,255,255,.08); margin:14px 0;}
+
+  .orderCard{
+    border:1px solid rgba(255,255,255,.12);
+    background:rgba(0,0,0,.18);
+    padding:8px;
+    border-radius:10px;
+    margin-top:8px;
+  }
+  .orderTop{
+    display:flex; justify-content:space-between; gap:8px; align-items:center;
+    font-size:12px; color:var(--muted);
+  }
+  .orderMain{ margin-top:6px; font-size:13px; }
+  .orderBtns{ display:flex; gap:8px; margin-top:8px; }
+  .orderBtns button{ flex:1; }
+
+  /* Region (group) outlines */
+  .regionBox { fill: rgba(0,0,0,0); stroke: rgba(233,227,215,.45); stroke-width: 2; stroke-dasharray: 8 6; }
+  .regionLabel { fill: rgba(233,227,215,.9); font-weight: 800; letter-spacing: 2px; font-size: 14px; paint-order: stroke; stroke: rgba(0,0,0,.65); stroke-width: 3px; }
+
+
+  /* Territory borders always visible (important with region fills) */
+  #svgHost [data-territory-id]{
+    stroke: rgba(0,0,0,.85);
+    stroke-width: 0.35;
+    vector-effect: non-scaling-stroke;
+  }
+
+
+  /* Region secured indicator */
+  .regionBox.secured { stroke: rgba(255,220,120,.85); stroke-width: 3; filter: drop-shadow(0 0 10px rgba(255,220,120,.25)); }
+  .regionLabel.secured { fill: rgba(255,230,160,.95); }
+
+  /* Homeland marker */
+  .homelandMark { fill: rgba(255,235,180,.95); paint-order: stroke; stroke: rgba(0,0,0,.7); stroke-width: 3px; font-weight: 900; font-size: 16px; pointer-events:none; }
+  .homelandRing { fill: rgba(0,0,0,0); stroke: rgba(255,220,120,.8); stroke-width: 2; filter: drop-shadow(0 0 8px rgba(255,220,120,.25)); pointer-events:none; }
+
+  /* Active effects panel */
+  #effectsPanel{
+    position:absolute;
+    left:14px; bottom:14px;
+    z-index:20;
+    width:420px;
+    max-height:240px;
+    overflow:auto;
+    padding:10px 12px;
+    border:2px solid rgba(233,227,215,.25);
+    background:rgba(0,0,0,.35);
+    border-radius:10px;
+    backdrop-filter: blur(4px);
+    font-size:12px;
+  }
+  #effectsPanel h4{ margin:0 0 8px 0; font-size:12px; letter-spacing:2px; opacity:.9; }
+  #effectsPanel .row{ display:flex; justify-content:space-between; gap:10px; padding:4px 0; border-bottom:1px solid rgba(233,227,215,.12); }
+  #effectsPanel .row:last-child{ border-bottom:none; }
+  #effectsPanel .tag{ opacity:.8; }
+  #effectsPanel .owner{ font-weight:800; letter-spacing:1px; }
+  #effectsPanel .effect{ opacity:.9; }
+
+  /* Theatre lock */
+  #lockWrap{ display:flex; align-items:center; gap:8px; }
+
+
+  .regionBox.contested { stroke: rgba(233,227,215,.55); stroke-width: 2.5; }
+  .regionLabel.contested { fill: rgba(233,227,215,.95); }
+  .regionBox.neutral { stroke: rgba(233,227,215,.25); stroke-width: 2; stroke-dasharray: 10 8; }
+  .regionLabel.neutral { fill: rgba(233,227,215,.70); }
+
+</style>
+</head>
+
+<body>
+  <div id="topbar">
+    <div class="title">WAR! Campaign — Strategic Board</div>
+
+    <span class="pill" id="turnPill">Turn 1</span>
+    <span class="pill" id="phasePill">Strategic</span>
+
+    <span class="smallLabel">Phase</span>
+    <select id="phaseSel">
+      <option value="Strategic">Strategic</option>
+      <option value="Operations">Operations</option>
+      <option value="Resolution">Resolution</option>
+    </select>
+
+    <button id="advanceBtn">Advance Phase</button>
+
+    <span class="smallLabel">Auto-advance turn</span>
+    <select id="autoAdvSel">
+      <option value="on" selected>On</option>
+      <option value="off">Off</option>
+    </select>
+
+    <span class="smallLabel">Mode</span>
+    <select id="modeSel">
+      <option value="GM">GM</option>
+      <option value="PLAYER">Player</option>
+    </select>
+
+    <span class="smallLabel">Player Faction</span>
+    <select id="playerFactionSel">
+      <option value="allies">Allies</option>
+      <option value="axis">Axis</option>
+      <option value="ussr">USSR</option>
+      <option value="custom">Custom</option>
+    </select>
+
+    <span class="smallLabel">Adjacency</span>
+    <select id="adjSel">
+      <option value="off">Off</option>
+      <option value="select" selected>On Select</option>
+      <option value="always">Always</option>
+    </select>
+
+
+    <label class="smallLabel" style="display:flex;align-items:center;gap:6px;margin-left:6px;">
+      <input type="checkbox" id="setupView" checked>
+      Setup view
+    </label>
+    <button onclick="jumpTheatre('WE')">W. Europe</button>
+    <button onclick="jumpTheatre('EE')">E. Europe</button>
+    <button onclick="jumpTheatre('NA')">N. Africa</button>
+    <button onclick="jumpTheatre('PA')">Pacific</button>
+    <button onclick="resetWorldView()">World</button>
+
+  <span style="margin-left:14px; display:flex; gap:8px; align-items:center;">
+    <strong style="letter-spacing:2px; opacity:.85;">ZOOM</strong>
+    <button id="btnZoomIn" title="Zoom in">+</button>
+    <button id="btnZoomOut" title="Zoom out">−</button>
+    <button id="btnZoomReset" title="Fit to active theatres">Fit</button>
+  </span>
+
+    <button onclick="exportState()">Export</button>
+    <button onclick="importState()">Import</button>
+    <button onclick="resetState()">Reset</button>
+    
+  </div>
+
+  <div id="wrap">
+    <div id="board">
+      <div id="mapStage">
+        <div id="svgHost"></div>
+  <div id=\"effectsPanel\" style=\"display:none;\"></div>
+
+        <svg id="edges"></svg>
+      </div>
+<div id="WE" class="theatre">
+        <div class="theatreHeader"><span>WESTERN EUROPE</span><span class="pill">15</span></div>
+        <div class="theatreBody" data-theatre="WE"></div>
+      </div>
+
+      <div id="EE" class="theatre">
+        <div class="theatreHeader"><span>EASTERN EUROPE</span><span class="pill">15</span></div>
+        <div class="theatreBody" data-theatre="EE"></div>
+      </div>
+
+      <div id="NA" class="theatre">
+        <div class="theatreHeader"><span>NORTH AFRICA</span><span class="pill">15</span></div>
+        <div class="theatreBody" data-theatre="NA"></div>
+      </div>
+
+      <div id="PA" class="theatre">
+        <div class="theatreHeader"><span>PACIFIC</span><span class="pill">15</span></div>
+        <div class="theatreBody" data-theatre="PA"></div>
+      </div>
+    </div>
+  </div>
+
+  <aside id="panel">
+    <h2 id="pTitle"></h2>
+    <div class="meta">
+      <span class="pill" id="pTheatre"></span>
+      <span class="pill" id="pId"></span>
+    </div>
+
+    <!-- Faction HQ quick view -->
+    <div class="row">
+      <label>Faction HQ (Quick)</label>
+      <div class="hint" id="hqQuick"></div>
+      <div class="btnRow" id="hqBtns" style="display:none;">
+        <button onclick="gmAdjustResources(+1)">+1 Res</button>
+        <button onclick="gmAdjustResources(-1)">-1 Res</button>
+      </div>
+      <div class="hint" style="margin-top:8px;">
+        Resource collection happens automatically at start of Strategic: +1 per controlled territory (simple baseline).
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="row">
+      <label>Adjacency</label>
+      <div id="adjList" class="hint"></div>
+      <div class="hint">Tip: click a neighbour to jump/highlight.</div>
+    </div>
+
+    <div class="hr"></div>
+
+    <!-- Movement Helper -->
+    <div class="row">
+      <label>Movement Helper</label>
+      <div class="hint">
+        <div><span class="pill">From</span> <span id="mvFrom">—</span></div>
+        <div style="margin-top:6px;"><span class="pill">To</span> <span id="mvTo">—</span></div>
+      </div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button onclick="setMoveFromCurrent()">Set as Origin</button>
+        <button onclick="trySetMoveToCurrent()">Set as Destination</button>
+      </div>
+      <div class="btnRow" style="margin-top:10px;">
+        <button onclick="logMove()">Log Move</button>
+        <button onclick="clearMove()">Clear</button>
+      </div>
+      <div id="mvHint" class="hint"></div>
+      <div id="mvOptions" class="hint" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <!-- Orders -->
+    <div class="row">
+      <label>Orders (Operations Phase)</label>
+      <div class="hint" id="ordersHint"></div>
+
+      <div class="row">
+        <label>General Name</label>
+        <input id="orderGeneral" placeholder="e.g. Gen. Montgomery" />
+      </div>
+
+      <div class="row">
+        <label>Order Type</label>
+        <select id="orderType">
+          <option value="Move">Move</option>
+          <option value="Attack">Attack</option>
+          <option value="Recon">Recon</option>
+          <option value="Withdraw">Withdraw</option>
+          <option value="Bombard">Bombard</option>
+          <option value="Hold">Hold</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>From (use current territory or pick)</label>
+        <select id="orderFrom"></select>
+      </div>
+
+      <div class="row">
+        <label>To (optional; for Move/Attack/Recon/Bombard/Withdraw)</label>
+        <select id="orderTo"></select>
+        <div class="hint" style="margin-top:8px;">Move/Attack/etc must be adjacent. Hold ignores To.</div>
+      </div>
+
+      <div class="row">
+        <label>Condition (optional; 1 binary condition max)</label>
+        <input id="orderCond" placeholder='e.g. "If enemy present, Withdraw; else Move"' />
+      </div>
+
+      <div class="row">
+        <label>Notes</label>
+        <input id="orderNotes" placeholder="Any extra detail for GM." />
+      </div>
+
+      <div class="btnRow">
+        <button onclick="createOrder()">Add Order</button>
+        <button onclick="closePanel()">Close</button>
+      </div>
+
+      <div class="hint" style="margin-top:10px;">
+        Player orders are hidden from other factions until Resolution. After Ops ends, orders lock.
+      </div>
+
+      <div id="ordersList"></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div id="playerInfo" class="row" style="display:none;">
+      <div class="hint">Player view: Unknown territories stay visible but greyed.</div>
+    </div>
+
+    <div id="gmControls" style="display:none;">
+      <div class="row">
+        <label>Owner</label>
+        <select id="ownerSel">
+          <option value="neutral">Neutral</option>
+          <option value="allies">Allies</option>
+          <option value="axis">Axis</option>
+          <option value="ussr">USSR</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label>Visibility (per faction)</label>
+        <div class="grid2">
+          <div class="tag">Allies</div>
+          <select id="visAllies"><option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option></select>
+          <div class="tag">Axis</div>
+          <select id="visAxis"><option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option></select>
+          <div class="tag">USSR</div>
+          <select id="visUSSR"><option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option></select>
+          <div class="tag">Custom</div>
+          <select id="visCustom"><option>Unknown</option><option>Known</option><option>Observed</option><option>Confirmed</option></select>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>GM Notes</label>
+        <textarea id="notes"></textarea>
+      </div>
+
+      <div class="btnRow">
+        <button onclick="saveTerritory()">Save Territory</button>
+        <button onclick="closePanel()">Close</button>
+      </div>
+    </div>
+
+    <div class="hint" style="margin-top:14px;">
+      Icons: ★ Allies, ✚ Axis, ☭ USSR, ⚑ Custom, ● Neutral
+    </div>
+  </aside>
+
+<script>
+
+/** Fixed positions (15 slots) used in every theatre panel */
+const POS15 = [
+  [140,110],[230,90],[330,95],[440,90],
+  [120,190],[230,185],[340,190],[460,185],
+  [140,270],[245,290],[350,280],[455,290],
+  [200,360],[360,360],
+  [280,410]
+];
+
+const THEATRE_NAME = {WE:"Western Europe", EE:"Eastern Europe", NA:"North Africa", PA:"Pacific"};
+const OWNER_ICON = {allies:"★", axis:"✚", ussr:"☭", neutral:"●", custom:"⚑"};
+const HUBS = new Set(["WE-02","WE-08","WE-09","NA-05","NA-15","PA-02","PA-07","PA-15"]);
+const CHOKES = new Map([
+  ["WE-14","Gibraltar"],
+  ["NA-15","Suez"]
+]);
+const STORAGE_KEY = "war_board_state_v3";
+
+/** Territories loaded from theatres_all.json */
+let TERRS = [];
+let byId = new Map();
+
+async function loadAppTheatres(){
+  // Try common locations (repo layouts differ). First hit wins.
+  const candidates = [
+    'theatres_all.json',
+  ];
+  let lastErr = null;
+  for(const url of candidates){
+    try{
+      const res = await fetch(url, { cache: 'no-store' });
+      if(res.ok) return await res.json();
+      lastErr = new Error(`HTTP ${res.status} for ${url}`);
+    }catch(e){
+      lastErr = e;
+    }
+  }
+  throw new Error(`Failed to load theatres_all.json from any known path. Last error: ${lastErr}`);
+}
+async function loadWorldSvg(){
+  const res = await fetch('assets/mapchart_world.svg', { cache:'no-store' });
+  if(!res.ok) throw new Error(`Failed to load map SVG: ${res.status}`);
+  const svgText = await res.text();
+  document.getElementById('svgHost').innerHTML = svgText;
+
+  // ensure the injected svg is findable
+  const svg = document.querySelector('#svgHost svg');
+  
+  if(!svg) throw new Error("SVG did not load correctly into #svgHost.");
+
+  svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+  return svg;
+}
+let baseViewBox = null;
+
+function getSvg() {
+  return document.querySelector('#svgHost svg');
+}
+
+function captureBaseViewBox() {
+  const svg = getSvg();
+  if (!svg) return;
+
+  // Ensure a viewBox exists
+  if (!svg.hasAttribute('viewBox')) {
+    const b = svg.getBBox();
+    svg.setAttribute('viewBox', `${b.x} ${b.y} ${b.width} ${b.height}`);
+  }
+  baseViewBox = svg.getAttribute('viewBox');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+}
+
+function resetWorldView() {
+  const svg = getSvg();
+  if (!svg || !baseViewBox) return;
+
+  focusedTheatre = null;
+
+  const from = getViewBox(svg) || baseViewBox.split(/\\s+/).map(Number);
+  const to = baseViewBox.split(/\\s+/).map(Number);
+  animateViewBox(svg, from, to, 260);
+
+  svg.querySelectorAll('[data-territory-id]').forEach(el => el.classList.remove('dimmed'));
+
+  redrawEdges();
+  redrawRegions();
+}
+
+// Returns array of DOM elements belonging to theatre territories
+function theatreElements(theatreId) {
+  const svg = getSvg();
+  if (!svg) return [];
+
+  const ids = TERRS
+    .filter(t => t.theatreKey === theatreId)
+    .map(t => t.id);
+
+  const els = [];
+  for (const tid of ids) {
+    svg.querySelectorAll(`[data-territory-id="${tid}"]`).forEach(el => els.push(el));
+  }
+  return els;
+}
+
+function focusTheatre(theatreId) {
+  const svg = getSvg();
+  if (!svg) return;
+
+  // Dim everything first
+  svg.querySelectorAll('[data-territory-id]').forEach(el => el.classList.add('dimmed'));
+
+  // Undim this theatre
+  const els = theatreElements(theatreId);
+  els.forEach(el => el.classList.remove('dimmed'));
+}
+
+function zoomToElements(els, padFrac = 0.12) {
+  const svg = getSvg();
+  if (!svg || !els.length) return;
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const el of els) {
+    const b = el.getBBox();
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.width);
+    maxY = Math.max(maxY, b.y + b.height);
+  }
+
+  const w = maxX - minX;
+  const h = maxY - minY;
+  const padX = w * padFrac;
+  const padY = h * padFrac;
+
+  const x = minX - padX;
+  const y = minY - padY;
+  const vw = w + padX * 2;
+  const vh = h + padY * 2;
+
+  svg.setAttribute('viewBox', `${x} ${y} ${vw} ${vh}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+}
+
+// Main: theatre button handler
+
+// ---------- Smooth viewBox animation ----------
+let _vbAnim = null;
+function animateViewBox(svg, from, to, ms=260){
+  if(_vbAnim) cancelAnimationFrame(_vbAnim);
+  const t0 = performance.now();
+  function step(now){
+    const t = Math.min(1, (now - t0) / ms);
+    const ease = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+    const cur = from.map((v,i)=> v + (to[i]-v)*ease);
+    svg.setAttribute('viewBox', cur.join(' '));
+    if(t < 1) _vbAnim = requestAnimationFrame(step);
+  }
+  _vbAnim = requestAnimationFrame(step);
+}
+function getViewBox(svg){
+  const vb = (svg.getAttribute('viewBox') || '').trim();
+  if(!vb) return null;
+  return vb.split(/\s+/).map(Number);
+}
+function zoomToBBoxAnimated(svg, bbox, padFrac=0.12){
+  const padX = bbox.width * padFrac;
+  const padY = bbox.height * padFrac;
+  const to = [bbox.x - padX, bbox.y - padY, bbox.width + padX*2, bbox.height + padY*2];
+  const from = getViewBox(svg) || to;
+  animateViewBox(svg, from, to, 260);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+}
+
+// ---------- Regions (territory groups) overlay ----------
+function getRegionsForTheatre(theatreId){
+  const th = (DATA?.theatres || []).find(t => t.theatreId === theatreId);
+  if(!th) return [];
+  if(Array.isArray(th.regions) && th.regions.length) return th.regions;
+  // default: one region = whole theatre
+  return [{
+    id: theatreId,
+    title: th.title || theatreId,
+    territoryIds: (th.territories||[]).map(x=>x.id),
+  }];
+}
+function elementsForTerritories(ids){
+  const svg = getSvg();
+  if(!svg) return [];
+  const els = [];
+  for(const tid of ids){
+    svg.querySelectorAll(`[data-territory-id="${tid}"]`).forEach(el => els.push(el));
+  }
+  return els;
+}
+function bboxForElements(els){
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for(const el of els){
+    const b = el.getBBox();
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.width);
+    maxY = Math.max(maxY, b.y + b.height);
+  }
+  if(!isFinite(minX)) return null;
+  return { x:minX, y:minY, width:maxX-minX, height:maxY-minY };
+}
+function clearRegionOverlay(){
+  if(!edgesSvg) return;
+  edgesSvg.querySelectorAll('.regionBox, .regionLabel').forEach(n => n.remove());
+}
+function drawRegionBox(bbox, label){
+  const pad = 10;
+  const x = bbox.x - pad, y = bbox.y - pad, w = bbox.width + pad*2, h = bbox.height + pad*2;
+  const r = document.createElementNS("http://www.w3.org/2000/svg","rect");
+  r.setAttribute('x', x); r.setAttribute('y', y);
+  r.setAttribute('width', w); r.setAttribute('height', h);
+  r.setAttribute('rx', 12); r.setAttribute('ry', 12);
+  r.setAttribute('class', 'regionBox');
+  edgesSvg.appendChild(r);
+
+  const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+  t.setAttribute('x', x + 14);
+  t.setAttribute('y', y + 22);
+  t.setAttribute('class', 'regionLabel');
+  t.textContent = label;
+  edgesSvg.appendChild(t);
+}
+
+let focusedTheatre = null;
+function redrawRegions(){
+  const show = document.getElementById('regionsView')?.checked;
+  clearRegionOverlay();
+  if(!show) return;
+
+  const theatres = (DATA?.theatres || []).map(t=>t.theatreId);
+  const list = focusedTheatre ? [focusedTheatre] : theatres;
+
+  for(const thId of list){
+    const regions = getRegionsForTheatre(thId);
+    for(const reg of regions){
+      const els = elementsForTerritories(reg.territoryIds || []);
+      const bb = bboxForElements(els);
+      if(!bb) continue;
+      drawRegionBox(bb, reg.title || reg.id || thId);
+    }
+  }
+}
+
+function jumpTheatre(theatreId) {
+  const els = theatreElements(theatreId);
+  if (!els.length) {
+    console.warn('No SVG elements found for theatre', theatreId);
+    return;
+  }
+  focusedTheatre = theatreId;
+  focusTheatre(theatreId);
+
+  const bb = bboxForElements(els);
+  if (bb) zoomToBBoxAnimated(getSvg(), bb, 0.12);
+
+  redrawEdges();
+  redrawRegions();
+}
+
+// Create one clickable "territory group" for all its shapeRefs
+function bindTerritoriesToSvg(){
+  const svg = document.querySelector('#svgHost svg');
+  if(!svg) return;
+
+  const shapeToPath = new Map();
+  svg.querySelectorAll('path[id], polygon[id]').forEach(p => shapeToPath.set(p.id, p));
+
+  // Expand refs like "France_FR_2-9" into ["France_FR_2",...,"France_FR_9"]
+  function expandShapeRef(ref){
+    const m = ref.match(/^(.*_)(\d+)-(\d+)$/);
+    if(!m) return [ref];
+    const prefix = m[1];
+    const a = parseInt(m[2], 10);
+    const b = parseInt(m[3], 10);
+    if(!Number.isFinite(a) || !Number.isFinite(b)) return [ref];
+    const start = Math.min(a,b), end = Math.max(a,b);
+    const out = [];
+    for(let n=start; n<=end; n++) out.push(prefix + n);
+    return out;
+  }
+
+  for(const t of TERRS){
+    const refs = t.shapeRefs || [];
+    for(const raw of refs){
+      for(const ref of expandShapeRef(raw)){
+        const path = shapeToPath.get(ref);
+        if(!path){
+          console.warn('Missing SVG path for shapeRef:', ref, 'territory:', t.id);
+          continue;
+        }
+        
+        // store original MapChart fill so we can revert for neutral owner
+        if(!path.dataset.baseFill){
+          const base = path.getAttribute('fill') || getComputedStyle(path).fill;
+          path.dataset.baseFill = base;
+        }
+path.setAttribute('data-territory-id', t.id);
+        path.style.cursor = 'pointer';
+
+        // Tooltip (only add once)
+        if(!path.querySelector('title')){
+          const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+          title.textContent = `${t.id} — ${t.name}`;
+          path.appendChild(title);
+        }
+
+        path.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openPanel(t.id);
+        });
+      }
+    }
+  }
+}
+
+// Style fills based on owner + fog, and compute centers for adjacency drawing
+
+// ---------- Region color mapping (Risk-style) ----------
+let TERRITORY_TO_REGION = new Map();   // tid -> region object
+let REGION_BY_ID = new Map();          // regionId -> region object
+
+function buildRegionMaps(){
+  TERRITORY_TO_REGION = new Map();
+  REGION_BY_ID = new Map();
+  for(const th of (DATA?.theatres || [])){
+    for(const reg of (th.regions || [])){
+      if(reg?.id) REGION_BY_ID.set(reg.id, reg);
+      for(const tid of (reg.territoryIds || [])){
+        TERRITORY_TO_REGION.set(tid, reg);
+      }
+    }
+  }
+}
+function regionColorForTerritory(tid){
+  const reg = TERRITORY_TO_REGION.get(tid);
+  return (reg && reg.color) ? reg.color : null;
+}
+
+function rerenderSvgFills() {
+  const svg = getSvg();
+  if(!svg) return;
+
+  const setup = document.getElementById('setupView')?.checked;
+  const neutralGrey = getComputedStyle(document.documentElement).getPropertyValue('--neutral').trim() || '#d1dbdd';
+
+  svg.querySelectorAll('[data-territory-id]').forEach(el => {
+    const tid = el.dataset.territoryId;
+    const owner = (state?.[tid]?.owner) || 'neutral';
+
+    // BASE fill:
+    // - Setup view: neutral grey
+    // - Normal view: region colour (Risk-style)
+    const regionCol = regionColorForTerritory(tid);
+    const baseFill = setup ? neutralGrey : (regionCol || neutralGrey);
+
+    // If owned, show owner colour; else show baseFill
+    el.style.fill = (owner && owner !== 'neutral') ? ownerToColor(owner) : baseFill;
+
+    // Keep borders crisp
+    el.style.opacity = '1';
+  });
+}
+
+
+// Get centroid from combined bboxes of all SVG paths in a territory
+function territoryCenterOnSvg(territoryId){
+  const paths = Array.from(document.querySelectorAll(`#svgHost [data-territory-id="${territoryId}"]`));
+  if(!paths.length) return null;
+
+  // union bbox
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  for(const p of paths){
+    const b = p.getBBox();
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.width);
+    maxY = Math.max(maxY, b.y + b.height);
+  }
+
+  // Convert SVG coordinates into screen coords:
+  const svg = document.querySelector('#svgHost svg');
+  const pt = svg.createSVGPoint();
+  pt.x = (minX + maxX) / 2;
+  pt.y = (minY + maxY) / 2;
+
+  const ctm = svg.getScreenCTM();
+  if(!ctm) return null;
+  const sp = pt.matrixTransform(ctm);
+
+  // Convert screen -> board local coords (so your edges SVG can draw correctly)
+  const boardRect = board.getBoundingClientRect();
+  return { x: sp.x - boardRect.left, y: sp.y - boardRect.top };
+}
+
+function buildTerrsFromData(data){
+  const out = [];
+  for(const theatre of data.theatres){
+    for(const terr of theatre.territories){
+      const adjRaw = theatre.adjacency?.[terr.id];
+
+      // Support adjacency formats:
+      //  - { land:[...], sea:[...] }
+      //  - [ ... ] (treated as land)
+      let land = [], sea = [];
+      if(Array.isArray(adjRaw)){
+        land = adjRaw;
+      } else if(adjRaw && typeof adjRaw === 'object'){
+        land = adjRaw.land || [];
+        sea  = adjRaw.sea  || [];
+      }
+      const combined = Array.from(new Set([...land, ...sea]));
+      const adj = { land, sea };
+      out.push({
+        id: terr.id,
+        name: terr.name,
+        theatreKey: theatre.theatreId,
+        shapeRefs: terr.shapeRefs || [],
+        adj: combined,
+        adjLand: adj.land || [],
+        adjSea: adj.sea || []
+      });
+    }
+  }
+  out.sort((a,b)=> a.id.localeCompare(b.id));
+  return out;
+}
+
+
+function ensureAdjacencyIfMissing(){
+  // If ANY territory already has adjacency, assume real adjacency exists
+  const hasAny = TERRS.some(t => (t.adj && t.adj.length));
+  if(hasAny) return;
+
+  console.warn("No adjacency data found in theatres_all.json; using fallback adjacency (simple theatre chains + a few links).");
+
+  // Group by theatre
+  const groups = {};
+  for(const t of TERRS){
+    (groups[t.theatreKey] ||= []).push(t);
+  }
+  // Chain by sorted id within each theatre: A<->B<->C...
+  for(const key of Object.keys(groups)){
+    const arr = groups[key].slice().sort((a,b)=>a.id.localeCompare(b.id));
+    for(let i=0;i<arr.length;i++){
+      const here = arr[i];
+      const neigh = new Set(here.adj || []);
+      if(i>0) neigh.add(arr[i-1].id);
+      if(i<arr.length-1) neigh.add(arr[i+1].id);
+      here.adj = Array.from(neigh);
+      here.adjLand = Array.from(neigh); // treat as land for now
+      here.adjSea = [];
+    }
+  }
+
+  // A few WW2-flavoured inter-theatre links (treated as sea lanes)
+  function link(a,b){
+    const A = byId.get(a), B = byId.get(b);
+    if(!A || !B) return;
+    if(!A.adj.includes(b)) A.adj.push(b);
+    if(!B.adj.includes(a)) B.adj.push(a);
+    if(!A.adjSea.includes(b)) A.adjSea.push(b);
+    if(!B.adjSea.includes(a)) B.adjSea.push(a);
+  }
+  // Gibraltar / Morocco
+  link("WE-14","NA-01");
+  // Sicily <-> Tunis / Tripoli
+  link("WE-11","NA-05");
+  link("WE-11","NA-06");
+  // Suez lane toward Malaya (strategic route)
+  link("NA-15","PA-07");
+}
+
+const board = document.getElementById("board");
+const edgesSvg = document.getElementById("edges");
+
+const modeSel = document.getElementById("modeSel");
+const playerFactionSel = document.getElementById("playerFactionSel");
+const adjSel = document.getElementById("adjSel");
+
+const phaseSel = document.getElementById("phaseSel");
+const advanceBtn = document.getElementById("advanceBtn");
+const autoAdvSel = document.getElementById("autoAdvSel");
+
+const turnPill = document.getElementById("turnPill");
+const phasePill = document.getElementById("phasePill");
+
+let state = null;
+let currentId = null;
+
+/* Movement helper state */
+let moveFrom = null;
+let moveTo = null;
+
+modeSel.addEventListener("change", () => {
+  applyMode();
+  rerenderSvgFills();
+  rerenderNodeFog();
+  redrawEdges();
+  refreshMoveUI();
+  refreshHQQuick();
+  refreshOrdersUI();
+  refreshPhaseUI();
+});
+
+playerFactionSel.addEventListener("change", () => {
+  rerenderSvgFills();
+  rerenderNodeFog();
+  redrawEdges();
+  refreshMoveUI();
+  refreshHQQuick();
+  refreshOrdersUI();
+});
+
+adjSel.addEventListener("change", () => redrawEdges());
+
+
+const setupViewEl = document.getElementById("setupView");
+setupViewEl?.addEventListener("change", () => {
+  rerenderSvgFills();
+  redrawEdges();
+});
+
+
+phaseSel.addEventListener("change", () => {
+  // Players can't change phase
+  if(modeSel.value !== "GM"){
+    refreshPhaseUI();
+    return;
+  }
+  setPhase(phaseSel.value, {manual:true});
+});
+
+autoAdvSel.addEventListener("change", () => {
+  state._meta.autoAdvanceTurn = (autoAdvSel.value === "on");
+  saveState();
+});
+
+advanceBtn.addEventListener("click", () => {
+  if(modeSel.value !== "GM") return;
+  advancePhase();
+});
+
+function scrollToTheatre(key){
+  document.getElementById(key)?.scrollIntoView({behavior:"smooth", block:"start", inline:"nearest"});
+}
+function defaultMeta(){
+  return {
+    turn: 1,
+    phase: "Strategic",
+    autoAdvanceTurn: true,
+    moveLog: [],
+    orders: {},   // orders[turn][faction] = []
+    factions: {
+      allies:{resources:0},
+      axis:{resources:0},
+      ussr:{resources:0},
+      custom:{resources:0}
+    }
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      // Territory backfill
+      for(const t of TERRS){
+        if(!parsed[t.id]) parsed[t.id] = {};
+        parsed[t.id].owner = parsed[t.id].owner || "neutral";
+        parsed[t.id].vis = parsed[t.id].vis || {allies:"Known", axis:"Known", ussr:"Known", custom:"Known"};
+        parsed[t.id].notes = parsed[t.id].notes || "";
+      }
+      // Meta backfill
+      parsed._meta = parsed._meta || defaultMeta();
+      parsed._meta.turn = typeof parsed._meta.turn === "number" ? parsed._meta.turn : 1;
+      parsed._meta.phase = parsed._meta.phase || "Strategic";
+      parsed._meta.autoAdvanceTurn = (parsed._meta.autoAdvanceTurn !== false);
+      parsed._meta.moveLog = Array.isArray(parsed._meta.moveLog) ? parsed._meta.moveLog : [];
+      parsed._meta.orders = parsed._meta.orders || {};
+      parsed._meta.factions = parsed._meta.factions || defaultMeta().factions;
+      for(const f of ["allies","axis","ussr","custom"]){
+        if(!parsed._meta.factions[f]) parsed._meta.factions[f] = {resources:0};
+        if(typeof parsed._meta.factions[f].resources !== "number") parsed._meta.factions[f].resources = 0;
+      }
+      return parsed;
+    }
+  }catch(e){}
+  const s = {};
+  for(const t of TERRS){
+    s[t.id] = {
+      owner:"neutral",
+      vis:{allies:"Known", axis:"Known", ussr:"Known", custom:"Known"},
+      notes:""
+    };
+  }
+  s._meta = defaultMeta();
+  return s;
+}
+
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function resetState(){
+  if(!confirm("Reset all campaign state on this device?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  state = loadState();
+  closePanel();
+  clearMove();
+  renderAll();
+}
+
+function exportState(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "war_state.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importState(){
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/json";
+  input.onchange = () => {
+    const file = input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const parsed = JSON.parse(reader.result);
+        const fresh = loadState();
+        for(const k of Object.keys(parsed)) fresh[k] = parsed[k];
+        state = fresh;
+        saveState();
+        closePanel();
+        renderAll();
+      }catch(e){
+        alert("Invalid JSON.");
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+/* -------------------------
+   Turn + Phase
+-------------------------- */
+function refreshPhaseUI(){
+  const m = state._meta;
+  turnPill.textContent = `Turn ${m.turn}`;
+  phasePill.textContent = m.phase;
+  phaseSel.value = m.phase;
+  autoAdvSel.value = m.autoAdvanceTurn ? "on" : "off";
+
+  // Only GM can change phase selector
+  phaseSel.disabled = (modeSel.value !== "GM");
+  advanceBtn.disabled = (modeSel.value !== "GM");
+
+  // If Ops ended, lock orders (safety)
+  if(m.phase !== "Operations"){
+    lockOrdersForTurn(m.turn);
+  }
+}
+
+function setPhase(newPhase, {manual=false}={}){
+  const old = state._meta.phase;
+  state._meta.phase = newPhase;
+
+  // Auto resource collection at START of Strategic
+  if(old !== "Strategic" && newPhase === "Strategic"){
+    autoCollectResources();
+  }
+
+  // Lock orders when leaving Operations
+  if(old === "Operations" && newPhase !== "Operations"){
+    lockOrdersForTurn(state._meta.turn);
+  }
+
+  saveState();
+  refreshPhaseUI();
+  refreshOrdersUI();
+  rerenderSvgFills();
+  rerenderNodeFog();
+  redrawEdges();
+}
+
+function advancePhase(){
+  const p = state._meta.phase;
+  if(p === "Strategic") setPhase("Operations", {manual:true});
+  else if(p === "Operations") setPhase("Resolution", {manual:true});
+  else {
+    // Resolution -> Strategic (next turn if auto)
+    if(state._meta.autoAdvanceTurn){
+      state._meta.turn += 1;
+    }
+    setPhase("Strategic", {manual:true});
+  }
+}
+
+function lockOrdersForTurn(turn){
+  const bucket = (state._meta.orders && state._meta.orders[turn]) ? state._meta.orders[turn] : null;
+  if(!bucket) return;
+  for(const f of Object.keys(bucket)){
+    for(const o of bucket[f]){
+      o.status = "locked";
+    }
+  }
+  saveState();
+}
+
+/* Simple baseline: +1 resource per controlled territory */
+function autoCollectResources(){
+  const counts = {allies:0, axis:0, ussr:0, custom:0};
+  for(const t of TERRS){
+    const owner = state[t.id].owner;
+    if(counts[owner] !== undefined) counts[owner] += 1;
+  }
+  for(const f of ["allies","axis","ussr","custom"]){
+    state._meta.factions[f].resources += counts[f];
+  }
+  saveState();
+}
+
+/* GM quick adjust (panel faction = either playerFaction in player mode, or current selector in GM) */
+function gmAdjustResources(delta){
+  if(modeSel.value !== "GM") return;
+  const f = playerFactionSel.value;
+  state._meta.factions[f].resources = Math.max(0, state._meta.factions[f].resources + delta);
+  saveState();
+  refreshHQQuick();
+}
+
+/* -------------------------
+   Ownership + Fog
+-------------------------- */
+function applyMode(){
+  const mode = modeSel.value;
+  document.getElementById("gmControls").style.display = (mode==="GM") ? "block" : "none";
+  document.getElementById("playerInfo").style.display = (mode==="PLAYER") ? "block" : "none";
+  document.getElementById("hqBtns").style.display = (mode==="GM") ? "flex" : "none";
+}
+
+function nodeClassFor(owner){ return `node owner-${owner}`; }
+
+function rerenderNodeFog(){
+  const mode = modeSel.value;
+  const faction = playerFactionSel.value;
+  document.querySelectorAll(".node").forEach(el => {
+    const tid = el.dataset.id;
+    const st = state[tid];
+    el.classList.remove("fog-unknown");
+    if(mode === "PLAYER"){
+      const v = (st && st.vis && st.vis[faction]) ? st.vis[faction] : "Unknown";
+      if(v === "Unknown") el.classList.add("fog-unknown");
+    }
+  });
+  if(currentId) refreshPanel(currentId);
+}
+
+/* -------------------------
+   Render Map
+-------------------------- */
+function renderAll(){
+  document.querySelectorAll(".theatreBody").forEach(b => b.innerHTML = "");
+  clearEdges();
+  clearHighlights();
+  populateOrderDropdowns();
+
+  const byTheatre = {WE:[], EE:[], NA:[], PA:[]};
+  for(const t of TERRS) byTheatre[t.theatreKey].push(t);
+
+  for(const key of Object.keys(byTheatre)){
+    const body = document.querySelector(`.theatreBody[data-theatre="${key}"]`);
+    const list = byTheatre[key];
+    list.sort((a,b)=> a.id.localeCompare(b.id));
+
+    list.forEach((t, idx) => {
+const [x,y] = POS15[idx] || POS15[POS15.length-1];
+      const st = state[t.id];
+      const el = document.createElement("div");
+      el.className = nodeClassFor(st.owner);
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+      el.textContent = OWNER_ICON[st.owner] || "●";
+      el.dataset.id = t.id;
+      el.dataset.theatre = key;
+      el.title = `${t.id} — ${t.name}`;
+      el.addEventListener("click", () => openPanel(t.id));
+      body.appendChild(el);
+    });
+  }
+
+  applyMode();
+  refreshPhaseUI();
+  rerenderSvgFills();
+  rerenderNodeFog();
+  redrawEdges();
+  refreshHQQuick();
+  refreshMoveUI();
+  refreshOrdersUI();
+}
+
+function clearHighlights(){
+  document.querySelectorAll(".node").forEach(n => {
+    n.classList.remove("selected");
+    n.classList.remove("adjacent");
+  });
+}
+
+/* --- Adjacency edges --- */
+function clearEdges(){
+  while(edgesSvg.firstChild) edgesSvg.removeChild(edgesSvg.firstChild);
+}
+function nodeCenter(id){
+   return territoryCenterOnSvg(id);
+}
+
+function drawMarker(tid, kind){
+  const p = nodeCenter(tid);
+  if(!p) return;
+
+  const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  c.setAttribute("cx", p.x);
+  c.setAttribute("cy", p.y);
+  c.setAttribute("r", kind === "hub" ? "6" : "5");
+  c.setAttribute("fill", kind === "hub" ? "rgba(233,227,215,.85)" : "rgba(255,220,120,.85)");
+  c.setAttribute("stroke", "rgba(0,0,0,.85)");
+  c.setAttribute("stroke-width", "1");
+  c.setAttribute("class", kind === "hub" ? "hubMarker" : "chokeMarker");
+  edgesSvg.appendChild(c);
+}
+
+function drawLine(aId, bId, cls){
+  const a = nodeCenter(aId), b = nodeCenter(bId);
+  if(!a || !b) return;
+  const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+  line.setAttribute("x1", a.x); line.setAttribute("y1", a.y);
+  line.setAttribute("x2", b.x); line.setAttribute("y2", b.y);
+  line.setAttribute("class", cls);
+  edgesSvg.appendChild(line);
+}
+function redrawEdges(){
+  edgesSvg.setAttribute("width", board.clientWidth);
+  edgesSvg.setAttribute("height", board.clientHeight);
+  edgesSvg.setAttribute("viewBox", `0 0 ${board.clientWidth} ${board.clientHeight}`);
+
+  const mode = adjSel.value;
+  clearEdges();
+
+  // If anything inserts a background rect, kill it
+  edgesSvg.querySelectorAll("rect").forEach(r => r.setAttribute("fill", "none"));
+
+  // Always show key markers (hubs + chokepoints)
+  HUBS.forEach(id => drawMarker(id, "hub"));
+  for(const [id] of CHOKES) drawMarker(id, "choke");
+
+  if(mode === "off") return;
+
+  if(mode === "always"){
+    const seen = new Set();
+    for(const t of TERRS){
+      for(const n of t.adj){
+        const key = [t.id, n].sort().join("|");
+        if(seen.has(key)) continue;
+        seen.add(key);
+        drawLine(t.id, n, "edgeLine");
+      }
+    }
+    return;
+  }
+  if(currentId) highlightAdjacency(currentId);
+}
+function highlightAdjacency(id){
+  clearEdges();
+  clearHighlights();
+  const t = byId.get(id);
+  if(!t) return;
+
+  const selectedEl = document.querySelector(`.node[data-id="${id}"]`);
+  if(selectedEl) selectedEl.classList.add("selected");
+
+  const mode = modeSel.value;
+  const faction = playerFactionSel.value;
+
+  for(const n of t.adj){
+    const nEl = document.querySelector(`.node[data-id="${n}"]`);
+    if(nEl) nEl.classList.add("adjacent");
+
+    let cls = "edgeLine strong";
+    if(mode === "PLAYER"){
+      const st = state[n];
+      const vis = (st && st.vis && st.vis[faction]) ? st.vis[faction] : "Unknown";
+      if(vis === "Unknown") cls = "edgeLine dim";
+    }
+    drawLine(id, n, cls);
+  }
+}
+
+/* -------------------------
+   Panel
+-------------------------- */
+function openPanel(id){
+  currentId = id;
+  refreshPanel(id);
+  document.getElementById("panel").style.display = "block";
+
+  // Prefill order FROM to selected territory
+  document.getElementById("orderFrom").value = id;
+
+  if(adjSel.value === "select") highlightAdjacency(id);
+  else{
+    clearHighlights();
+    const el = document.querySelector(`.node[data-id="${id}"]`);
+    if(el) el.classList.add("selected");
+  }
+
+  refreshHQQuick();
+  refreshMoveUI();
+  refreshOrdersUI();
+}
+
+function closePanel(){
+  currentId = null;
+  document.getElementById("panel").style.display = "none";
+  clearHighlights();
+  redrawEdges();
+}
+
+function refreshPanel(id){
+  const t = byId.get(id);
+  if(!t) return;
+  const st = state[id];
+
+  document.getElementById("pTitle").textContent = t.name;
+  document.getElementById("pTheatre").textContent = THEATRE_NAME[t.theatreKey];
+  document.getElementById("pId").textContent = t.id;
+
+  // adjacency list
+ const adjList = document.getElementById("adjList");
+const land = (t.adjLand || []);
+const sea  = (t.adjSea || []);
+
+if(!land.length && !sea.length){
+  adjList.textContent = "None";
+} else {
+  adjList.innerHTML = `
+    <div><span class="pill">Land</span> ${land.map(nid => linkSpan(nid)).join(" • ") || "—"}</div>
+    <div style="margin-top:6px;"><span class="pill">Sea</span> ${sea.map(nid => linkSpan(nid)).join(" • ") || "—"}</div>
+  `;
+
+  // attach click handlers
+  [...land, ...sea].forEach(nid => {
+    const el = adjList.querySelector(`[data-jump="${nid}"]`);
+    if(el){
+      el.onclick = () => {
+        const nt = byId.get(nid);
+        if(!nt) return;
+        jumpTheatre(nt.theatreId || nt.theatreKey);
+        setTimeout(() => openPanel(nid), 250);
+      };
+    }
+  });
+}
+
+function linkSpan(nid){
+  const nt = byId.get(nid);
+  const label = nt ? `${nid} — ${nt.name}` : nid;
+  return `<span class="linkish" data-jump="${nid}">${escapeHtml(label)}</span>`;
+}
+
+
+  // GM fields
+  if(modeSel.value === "GM"){
+    document.getElementById("ownerSel").value = st.owner;
+    document.getElementById("visAllies").value = st.vis.allies || "Known";
+    document.getElementById("visAxis").value = st.vis.axis || "Known";
+    document.getElementById("visUSSR").value = st.vis.ussr || "Known";
+    document.getElementById("visCustom").value = st.vis.custom || "Known";
+    document.getElementById("notes").value = st.notes || "";
+  }
+}
+
+function saveTerritory(){
+  if(!currentId) return;
+  const st = state[currentId];
+  st.owner = document.getElementById("ownerSel").value;
+  st.vis = {
+    allies: document.getElementById("visAllies").value,
+    axis: document.getElementById("visAxis").value,
+    ussr: document.getElementById("visUSSR").value,
+    custom: document.getElementById("visCustom").value
+  };
+  st.notes = document.getElementById("notes").value || "";
+  saveState();
+
+  const node = document.querySelector(`.node[data-id="${currentId}"]`);
+  if(node){
+    node.className = nodeClassFor(st.owner);
+    node.textContent = OWNER_ICON[st.owner] || "●";
+  }
+  rerenderSvgFills();
+  rerenderNodeFog();
+  redrawEdges();
+  refreshHQQuick();
+}
+
+/* -------------------------
+   HQ Quick
+-------------------------- */
+function refreshHQQuick(){
+  const f = playerFactionSel.value;
+  const res = state._meta.factions[f].resources;
+
+  let ctrl = 0;
+  for(const t of TERRS){
+    if(state[t.id].owner === f) ctrl++;
+  }
+
+  const phase = state._meta.phase;
+  const turn = state._meta.turn;
+  const who = (modeSel.value === "GM") ? "GM view" : "Player view";
+
+  document.getElementById("hqQuick").innerHTML =
+    `Faction: <b>${f.toUpperCase()}</b> • Resources: <b>${res}</b> • Controlled: <b>${ctrl}</b><br>` +
+    `Turn: <b>${turn}</b> • Phase: <b>${phase}</b> • ${who}`;
+}
+
+/* -------------------------
+   Movement Helper
+-------------------------- */
+function setMoveFromCurrent(){
+  if(!currentId) return;
+  moveFrom = currentId;
+  if(moveTo && !isAdjacent(moveFrom, moveTo)) moveTo = null;
+  refreshMoveUI();
+  if(adjSel.value === "select") highlightAdjacency(moveFrom);
+}
+function trySetMoveToCurrent(){
+  if(!currentId) return;
+  if(!moveFrom){ setMoveFromCurrent(); return; }
+  if(currentId === moveFrom){ moveTo = null; refreshMoveUI(); return; }
+  if(isAdjacent(moveFrom, currentId)){
+    moveTo = currentId;
+    setMoveHint("");
+  } else {
+    setMoveHint(`Not adjacent: ${moveFrom} → ${currentId}. Choose a highlighted neighbour.`);
+    moveTo = null;
+  }
+  refreshMoveUI();
+}
+function isAdjacent(a, b){
+  const ta = byId.get(a);
+  return ta && (ta.adj || []).includes(b);
+}
+function clearMove(){
+  moveFrom = null; moveTo = null;
+  setMoveHint("");
+  refreshMoveUI();
+}
+function setMoveHint(msg){ document.getElementById("mvHint").textContent = msg || ""; }
+
+function refreshMoveUI(){
+  const fromT = moveFrom ? byId.get(moveFrom) : null;
+  const toT = moveTo ? byId.get(moveTo) : null;
+
+  document.getElementById("mvFrom").textContent = fromT ? `${moveFrom} — ${fromT.name}` : "—";
+  document.getElementById("mvTo").textContent = toT ? `${moveTo} — ${toT.name}` : "—";
+
+  const optionsEl = document.getElementById("mvOptions");
+  optionsEl.innerHTML = "";
+
+  if(moveFrom){
+    const ta = byId.get(moveFrom);
+    const title = document.createElement("div");
+    title.className = "hint";
+    title.textContent = "Valid destinations:";
+    optionsEl.appendChild(title);
+
+    const list = document.createElement("div");
+    (ta.adj || []).forEach((nid, i) => {
+      const nt = byId.get(nid);
+      const span = document.createElement("span");
+      span.className = "linkish";
+      span.textContent = `${nid} — ${nt.name}`;
+      span.onclick = () => {
+        moveTo = nid;
+        jumpTheatre(nt.theatreId || nt.theatreKey);
+        setTimeout(() => openPanel(nid), 250);
+        refreshMoveUI();
+      };
+      list.appendChild(span);
+      if(i < ta.adj.length-1) list.appendChild(document.createTextNode(" • "));
+    });
+    optionsEl.appendChild(list);
+
+    if(moveTo && !isAdjacent(moveFrom, moveTo)){
+      moveTo = null;
+      setMoveHint("Destination cleared (not adjacent).");
+    }
+  } else {
+    optionsEl.textContent = "Set an origin to see valid destinations.";
+  }
+}
+
+function logMove(){
+  if(!moveFrom || !moveTo){ setMoveHint("Set both Origin and Destination first."); return; }
+  if(!isAdjacent(moveFrom, moveTo)){ setMoveHint("Invalid move (not adjacent)."); return; }
+
+  if(modeSel.value !== "GM"){
+    setMoveHint("Player mode: move planned (not logged). Switch to GM to log.");
+    return;
+  }
+
+  const entry = { turn: state._meta.turn, from: moveFrom, to: moveTo, ts: new Date().toISOString() };
+  state._meta.moveLog.push(entry);
+  saveState();
+  setMoveHint(`Logged: Turn ${entry.turn} — ${entry.from} → ${entry.to}`);
+}
+
+/* -------------------------
+   Orders System
+-------------------------- */
+function getOrdersBucket(turn){
+  if(!state._meta.orders) state._meta.orders = {};
+  if(!state._meta.orders[turn]){
+    state._meta.orders[turn] = {allies:[], axis:[], ussr:[], custom:[]};
+  } else {
+    // backfill factions
+    for(const f of ["allies","axis","ussr","custom"]){
+      if(!state._meta.orders[turn][f]) state._meta.orders[turn][f] = [];
+    }
+  }
+  return state._meta.orders[turn];
+}
+
+function populateOrderDropdowns(){
+  const fromSel = document.getElementById("orderFrom");
+  const toSel = document.getElementById("orderTo");
+  const ids = TERRS.map(t => t.id).sort();
+
+  fromSel.innerHTML = "";
+  toSel.innerHTML = "";
+
+  for(const id of ids){
+    const t = byId.get(id);
+    const opt1 = document.createElement("option");
+    opt1.value = id;
+    opt1.textContent = `${id} — ${t.name}`;
+    fromSel.appendChild(opt1);
+
+    const opt2 = document.createElement("option");
+    opt2.value = id;
+    opt2.textContent = `${id} — ${t.name}`;
+    toSel.appendChild(opt2);
+  }
+}
+
+function refreshOrdersUI(){
+  const turn = state._meta.turn;
+  const phase = state._meta.phase;
+  const mode = modeSel.value;
+  const pf = playerFactionSel.value;
+
+  const hint = document.getElementById("ordersHint");
+  const canSubmit = (phase === "Operations");
+  if(phase !== "Operations"){
+    hint.textContent = `Current phase is ${phase}. Orders are submitted in Operations. In Resolution, orders are revealed.`;
+  } else {
+    hint.textContent = `Operations Phase: submit secret orders. Orders lock when Ops ends.`;
+  }
+
+  // Disable add order UI if not Ops and not GM
+  const disableInputs = (!canSubmit && mode !== "GM");
+  for(const id of ["orderGeneral","orderType","orderFrom","orderTo","orderCond","orderNotes"]){
+    document.getElementById(id).disabled = disableInputs;
+  }
+
+  renderOrdersList();
+}
+
+function createOrder(){
+  const turn = state._meta.turn;
+  const phase = state._meta.phase;
+  const mode = modeSel.value;
+  const pf = playerFactionSel.value;
+
+  if(phase !== "Operations" && mode !== "GM"){
+    alert("Orders can only be added in Operations Phase (unless GM).");
+    return;
+  }
+
+  const general = document.getElementById("orderGeneral").value.trim() || "Unnamed General";
+  const type = document.getElementById("orderType").value;
+  const from = document.getElementById("orderFrom").value;
+  const to = document.getElementById("orderTo").value;
+  const cond = document.getElementById("orderCond").value.trim();
+  const notes = document.getElementById("orderNotes").value.trim();
+
+  // adjacency validation for relevant types
+  const needsTo = !["Hold"].includes(type);
+  if(needsTo){
+    if(!isAdjacent(from, to)){
+      alert(`Invalid: ${type} requires an adjacent target. ${from} → ${to} is not adjacent.`);
+      return;
+    }
+  }
+
+  // binary condition best-effort: just warn if looks like multiple conditions
+  const bad = /(\bif\b.*\bif\b)|(\bunless\b.*\bunless\b)/i.test(cond);
+  if(cond && bad){
+    if(!confirm("Condition looks complex (multiple conditions). Keep it anyway?")) return;
+  }
+
+  const bucket = getOrdersBucket(turn);
+  const order = {
+    id: cryptoId(),
+    turn,
+    faction: pf,
+    general,
+    type,
+    from,
+    to: needsTo ? to : null,
+    condition: cond || null,
+    notes: notes || null,
+    status: (phase === "Operations") ? "draft" : "locked",
+    submittedAt: new Date().toISOString()
+  };
+  bucket[pf].push(order);
+  saveState();
+  renderOrdersList();
+}
+
+function canViewOrder(o){
+  const mode = modeSel.value;
+  const pf = playerFactionSel.value;
+  const phase = state._meta.phase;
+
+  if(mode === "GM") return true;
+
+  // Player sees own faction orders always (even in Operations)
+  if(o.faction === pf) return true;
+
+  // Enemy orders visible only in Resolution (and later)
+  if(phase === "Resolution") return true;
+
+  return false;
+}
+
+function canEditOrder(o){
+  const mode = modeSel.value;
+  const pf = playerFactionSel.value;
+  const phase = state._meta.phase;
+
+  if(mode === "GM") return true;
+  if(o.faction !== pf) return false;
+  if(phase !== "Operations") return false;
+  if(o.status !== "draft") return false;
+  return true;
+}
+
+function renderOrdersList(){
+  const list = document.getElementById("ordersList");
+  list.innerHTML = "";
+
+  const turn = state._meta.turn;
+  const bucket = getOrdersBucket(turn);
+
+  // Collect orders in display order
+  const all = [];
+  for(const f of ["allies","axis","ussr","custom"]){
+    for(const o of bucket[f]) all.push(o);
+  }
+  // newest first
+  all.sort((a,b) => (b.submittedAt||"").localeCompare(a.submittedAt||""));
+
+  if(all.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "hint";
+    empty.textContent = "No orders yet for this turn.";
+    list.appendChild(empty);
+    return;
+  }
+
+  for(const o of all){
+    if(!canViewOrder(o)) continue;
+
+    const card = document.createElement("div");
+    card.className = "orderCard";
+
+    const top = document.createElement("div");
+    top.className = "orderTop";
+    top.innerHTML = `<span>${o.faction.toUpperCase()} • ${o.general}</span><span>${o.status || "draft"}</span>`;
+    card.appendChild(top);
+
+    const main = document.createElement("div");
+    main.className = "orderMain";
+    const toTxt = o.to ? ` → <b>${o.to}</b>` : "";
+    const condTxt = o.condition ? `<br><span class="pill">IF</span> ${escapeHtml(o.condition)}` : "";
+    const notesTxt = o.notes ? `<br><span class="pill">NOTE</span> ${escapeHtml(o.notes)}` : "";
+    main.innerHTML =
+      `<b>${o.type}</b> from <b>${o.from}</b>${toTxt}` + condTxt + notesTxt;
+    card.appendChild(main);
+
+    const btns = document.createElement("div");
+    btns.className = "orderBtns";
+
+    const jumpBtn = document.createElement("button");
+    jumpBtn.textContent = "Go To";
+    jumpBtn.onclick = () => {
+      const t = byId.get(o.from);
+      jumpTheatre(t.theatreId || t.theatreKey);
+      setTimeout(()=>openPanel(o.from), 250);
+    };
+    btns.appendChild(jumpBtn);
+
+    if(canEditOrder(o)){
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "Delete";
+      delBtn.onclick = () => deleteOrder(o.id);
+      btns.appendChild(delBtn);
+    } else {
+      const ghost = document.createElement("button");
+      ghost.textContent = "Locked";
+      ghost.disabled = true;
+      btns.appendChild(ghost);
+    }
+
+    card.appendChild(btns);
+    list.appendChild(card);
+  }
+}
+
+function deleteOrder(orderId){
+  const turn = state._meta.turn;
+  const bucket = getOrdersBucket(turn);
+  for(const f of ["allies","axis","ussr","custom"]){
+    const idx = bucket[f].findIndex(o => o.id === orderId);
+    if(idx >= 0){
+      if(!canEditOrder(bucket[f][idx])) return;
+      bucket[f].splice(idx,1);
+      saveState();
+      renderOrdersList();
+      return;
+    }
+  }
+}
+
+function cryptoId(){
+  try{
+    return crypto.randomUUID();
+  }catch(e){
+    return "id-" + Math.random().toString(16).slice(2) + "-" + Date.now();
+  }
+}
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+
+/* -------------------------
+   Init
+-------------------------- */
+(async function bootstrap(){
+  const data = await loadAppTheatres();
+  TERRS = buildTerrsFromData(data);
+  byId = new Map(TERRS.map(t => [t.id, t]));
+  ensureAdjacencyIfMissing();
+  state = loadState();
+
+  await loadWorldSvg();
+  bindTerritoriesToSvg();
+  captureBaseViewBox();
+  
+redrawEdges();
+redrawRegions();
+applyMode();
+  refreshPhaseUI();
+  rerenderSvgFills();
+  rerenderNodeFog();
+  redrawEdges();
+
+  window.addEventListener("resize", () => redrawEdges());
+})();
+
+
+// ===================== Additions: Homeland markers, secured regions, effects panel, theatre lock =====================
+
+function getFactionName(fid){
+  const f = (DATA?.factions || []).find(x => x.id === fid);
+  return f?.name || fid;
+}
+
+function getHomelands(){
+  const list = [];
+  for(const [tid, st] of Object.entries(state || {})){
+    if(st?.homeland) list.push({ territoryId: tid, factionId: st.homeland });
+  }
+  return list;
+}
+
+function clearOverlayMarks(){
+  if(!edgesSvg) return;
+  edgesSvg.querySelectorAll('.homelandMark, .homelandRing').forEach(n => n.remove());
+}
+
+function drawHomelandMarkers(){
+  if(!edgesSvg) return;
+  const homes = getHomelands();
+  for(const h of homes){
+    const c = territoryCenterOnSvg(h.territoryId);
+    if(!c) continue;
+
+    const ring = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    ring.setAttribute('cx', c.x);
+    ring.setAttribute('cy', c.y);
+    ring.setAttribute('r', 10);
+    ring.setAttribute('class','homelandRing');
+    edgesSvg.appendChild(ring);
+
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute('x', c.x);
+    t.setAttribute('y', c.y + 6);
+    t.setAttribute('text-anchor','middle');
+    t.setAttribute('class','homelandMark');
+    t.textContent = "★";
+    edgesSvg.appendChild(t);
+  }
+}
+
+// Region control helper: returns {owner, full}
+function regionControl(reg){
+  const tids = reg.territoryIds || [];
+  if(!tids.length) return { owner:'neutral', full:false };
+  const counts = {};
+  for(const tid of tids){
+    const owner = (state?.[tid]?.owner) || 'neutral';
+    counts[owner] = (counts[owner] || 0) + 1;
+  }
+  // pick dominant non-neutral
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  let owner = entries.length ? entries[0][0] : 'neutral';
+  let cnt = entries.length ? entries[0][1] : 0;
+  if(owner === 'neutral' && entries.length > 1){
+    owner = entries[1][0]; cnt = entries[1][1];
+  }
+  const full = owner !== 'neutral' && cnt === tids.length;
+  return { owner, full };
+}
+
+
+// ---------- Region status: neutral vs contested vs secured ----------
+function regionStatus(reg){
+  const tids = reg.territoryIds || [];
+  if(!tids.length) return { status:'neutral', owner:'neutral', full:false };
+
+  const counts = {};
+  for(const tid of tids){
+    const owner = (state?.[tid]?.owner) || 'neutral';
+    counts[owner] = (counts[owner] || 0) + 1;
+  }
+  const nonNeutralOwners = Object.keys(counts).filter(o => o !== 'neutral' && counts[o] > 0);
+
+  if(nonNeutralOwners.length === 0){
+    return { status:'neutral', owner:'neutral', full:false };
+  }
+  if(nonNeutralOwners.length > 1){
+    return { status:'contested', owner:'contested', full:false };
+  }
+  const owner = nonNeutralOwners[0];
+  const full = counts[owner] === tids.length;
+  return { status: full ? 'secured' : 'contested', owner, full };
+}
+
+
+// Patch redrawRegions to mark secured regions
+
+const _origRedrawRegions2 = redrawRegions;
+redrawRegions = function(){
+  _origRedrawRegions2();
+
+  const show = document.getElementById('regionsView')?.checked;
+  if(!show || !edgesSvg) return;
+
+  const boxes = Array.from(edgesSvg.querySelectorAll('rect.regionBox'));
+  const labels = Array.from(edgesSvg.querySelectorAll('text.regionLabel'));
+
+  // clear status classes
+  boxes.forEach(b => b.classList.remove('secured','contested','neutral'));
+  labels.forEach(l => l.classList.remove('secured','contested','neutral'));
+
+  let idx = 0;
+  const theatreIds = (focusedTheatre ? [focusedTheatre] : (DATA?.theatres||[]).map(t=>t.theatreId));
+  for(const thId of theatreIds){
+    const th = (DATA?.theatres||[]).find(t=>t.theatreId===thId);
+    for(const reg of (th?.regions || [])){
+      const st = regionStatus(reg);
+      if(boxes[idx]) boxes[idx].classList.add(st.status);
+      if(labels[idx]) labels[idx].classList.add(st.status);
+      idx += 1;
+    }
+  }
+};
+
+
+// Effects panel: show active full-control bonuses + homeland-region bonus
+
+function computeContestedRegions(){
+  const list = [];
+  for(const th of (DATA?.theatres || [])){
+    if(!activeTheatres?.has(th.theatreId)) continue;
+    for(const reg of (th.regions || [])){
+      const st = regionStatus(reg);
+      if(st.status === 'contested'){
+        list.push({label: reg.title, theatre: th.theatreId});
+      }
+    }
+  }
+  return list;
+}
+
+function computeActiveEffects(){
+  const effects = [];
+
+  // full regions
+  for(const th of (DATA?.theatres || [])){
+    if(!activeTheatres?.has(th.theatreId)) continue;
+    for(const reg of (th.regions || [])){
+      const st = regionControl(reg);
+      if(st.full){
+        effects.push({
+          type:'REGION',
+          owner: st.owner,
+          label: reg.title,
+          effect: reg.fullControlBonus?.effect || ''
+        });
+      }
+    }
+  }
+
+  // homeland-region bonus (per setup rule): if homeland territory still controlled by its faction owner
+  const homes = getHomelands();
+  for(const h of homes){
+    const tid = h.territoryId;
+    const fac = (DATA?.factions || []).find(x=>x.id===h.factionId);
+    const neededOwner = fac?.defaultOwnerKey || 'neutral';
+    const owner = (state?.[tid]?.owner) || 'neutral';
+    if(owner === neededOwner){
+      const reg = TERRITORY_TO_REGION.get(tid);
+      effects.push({
+        type:'HOMELAND',
+        owner: owner,
+        label: `${getFactionName(h.factionId)} Homeland`,
+        effect: '+1 Requisition (Homeland held)'
+      });
+    }
+  }
+
+  return effects;
+}
+
+function renderEffectsPanel(){
+  const panel = document.getElementById('effectsPanel');
+  if(!panel) return;
+  const show = window.__effectsVisible === true;
+  if(!show){ panel.style.display='none'; return; }
+
+  const list = computeActiveEffects();
+  panel.style.display='block';
+
+  let html = `<h4>ACTIVE EFFECTS</h4>`;
+  if(!list.length){
+    html += `<div class="row"><span class="tag">None</span><span class="effect"></span></div>`;
+    panel.innerHTML = html;
+    return;
+  }
+
+  for(const e of list){
+    html += `<div class="row">
+      <span class="tag">${e.type === 'REGION' ? 'REGION' : 'HOME'}</span>
+      <span class="owner">${e.owner}</span>
+      <span class="effect">${e.label}${e.effect ? ' — ' + e.effect : ''}</span>
+    </div>`;
+  }
+  panel.innerHTML = html;
+}
+  const contested = computeContestedRegions();
+  if(contested.length){
+    html += `<h4 style="margin-top:10px;">CONTESTED REGIONS</h4>`;
+    for(const c of contested){
+      html += `<div class="row"><span class="tag">${c.theatre}</span><span class="effect">${c.label}</span></div>`;
+    }
+    panel.innerHTML = html;
+  }
+
+
+// Make sure overlays (regions, edges, homelands) stay aligned
+function redrawAllOverlays(){
+  syncEdgesViewBox?.();
+  redrawEdges();
+  redrawRegions();
+  clearOverlayMarks();
+  drawHomelandMarkers();
+  renderEffectsPanel();
+}
+
+// Patch places that change view/state
+const _origAnimateViewBox = animateViewBox;
+animateViewBox = function(svg, from, to, ms){
+  _origAnimateViewBox(svg, from, to, ms);
+  // edges sync happens in redrawEdges; keep light here
+};
+
+// ---- Theatre Lock ----
+function setTheatreLock(on){
+  localStorage.setItem('WAR_THEATRE_LOCK', on ? '1' : '0');
+  document.querySelectorAll('.thSel').forEach(cb => cb.disabled = !!on);
+}
+function getTheatreLock(){
+  return localStorage.getItem('WAR_THEATRE_LOCK') === '1';
+}
+function initTheatreLock(){
+  const box = document.getElementById('theatreLock');
+  if(!box) return;
+  box.checked = getTheatreLock();
+  setTheatreLock(box.checked);
+  box.addEventListener('change', () => setTheatreLock(box.checked));
+}
+
+// Wire effects toggle
+function initEffectsToggle(){
+  const btn = document.getElementById('btnEffectsToggle');
+  if(!btn) return;
+  window.__effectsVisible = (localStorage.getItem('WAR_EFFECTS_VISIBLE') ?? '1') === '1';
+  btn.textContent = window.__effectsVisible ? 'Effects: ON' : 'Effects: OFF';
+  renderEffectsPanel();
+  btn.addEventListener('click', () => {
+    window.__effectsVisible = !window.__effectsVisible;
+    localStorage.setItem('WAR_EFFECTS_VISIBLE', window.__effectsVisible ? '1' : '0');
+    btn.textContent = window.__effectsVisible ? 'Effects: ON' : 'Effects: OFF';
+    renderEffectsPanel();
+  });
+}
+
+// Extend existing wireSetupUI (if present)
+const _origWireSetupUI = (typeof wireSetupUI === 'function') ? wireSetupUI : null;
+wireSetupUI = function(){
+  if(_origWireSetupUI) _origWireSetupUI();
+  initTheatreLock();
+  initEffectsToggle();
+
+  // After any selection change/redraw, keep overlays updated
+  const _oldSaveState = saveState;
+  saveState = function(){
+    _oldSaveState();
+    redrawAllOverlays();
+  };
+
+  // Also redraw overlays after setup view toggle
+  document.getElementById('setupView')?.addEventListener('change', () => {
+    rerenderSvgFills();
+    redrawAllOverlays();
+  });
+
+  // After theatre changes, update overlays
+  document.querySelectorAll('.thSel').forEach(cb => cb.addEventListener('change', () => {
+    applyActiveTheatres();
+    redrawAllOverlays();
+  }));
+};
+
+// Ensure buildRegionMaps also triggers overlays
+const _origBuildRegionMaps = buildRegionMaps;
+buildRegionMaps = function(){
+  _origBuildRegionMaps();
+  redrawAllOverlays();
+};
+
+
+// ---------- Zoom controls (works even when theatres are locked) ----------
+function zoomBy(factor){
+  const svg = getSvg();
+  if(!svg) return;
+  const vb = getViewBox(svg);
+  if(!vb) return;
+  const [x,y,w,h] = vb;
+  const cx = x + w/2, cy = y + h/2;
+  const nw = w * factor, nh = h * factor;
+  const to = [cx - nw/2, cy - nh/2, nw, nh];
+  animateViewBox(svg, vb, to, 180);
+  syncEdgesViewBox?.();
+}
+function wireZoomUI(){
+  document.getElementById('btnZoomIn')?.addEventListener('click', () => zoomBy(0.85));
+  document.getElementById('btnZoomOut')?.addEventListener('click', () => zoomBy(1.15));
+  document.getElementById('btnZoomReset')?.addEventListener('click', () => { fitWorldToActive(); syncEdgesViewBox?.(); redrawAllOverlays?.(); });
+}
+
+</script>
+</body>
+</html>
