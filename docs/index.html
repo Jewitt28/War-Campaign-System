@@ -437,6 +437,16 @@ const POS15 = [
 const THEATRE_NAME = {WE:"Western Europe", EE:"Eastern Europe", NA:"North Africa", PA:"Pacific"};
 const OWNER_ICON = {allies:"★", axis:"✚", ussr:"☭", neutral:"●", custom:"⚑"};
 const STORAGE_KEY = "war_board_state_v3";
+function ownerToColor(owner) {
+  const palette = {
+    allies: getComputedStyle(document.documentElement).getPropertyValue('--allies').trim() || '#c9b27c',
+    axis:   getComputedStyle(document.documentElement).getPropertyValue('--axis').trim()   || '#666666',
+    ussr:   getComputedStyle(document.documentElement).getPropertyValue('--ussr').trim()   || '#b22222',
+    custom: getComputedStyle(document.documentElement).getPropertyValue('--custom').trim() || '#d9d9d9',
+    neutral:getComputedStyle(document.documentElement).getPropertyValue('--neutral').trim()|| '#888888'
+  };
+  return palette[owner] || palette.neutral;
+}
 
 /** Territories loaded from theatres_all.json */
 let TERRS = [];
@@ -508,9 +518,10 @@ function theatreElements(theatreId) {
   const svg = getSvg();
   if (!svg) return [];
 
-  const ids = TERRS
-    .filter(t => t.theatreId === theatreId)
-    .map(t => t.id);
+const ids = TERRS
+  .filter(t => t.theatreKey === theatreId)
+  .map(t => t.id);
+
 
   const els = [];
   for (const tid of ids) {
@@ -575,7 +586,7 @@ function bindTerritoriesToSvg(){
   if(!svg) return;
 
   const shapeToPath = new Map();
-  svg.querySelectorAll('path[id]').forEach(p => shapeToPath.set(p.id, p));
+svg.querySelectorAll('path[id], polygon[id]').forEach(el => shapeToPath.set(el.id, el));
 
   // Expand refs like "France_FR_2-9" into ["France_FR_2",...,"France_FR_9"]
   function expandShapeRef(ref){
@@ -624,7 +635,7 @@ function rerenderSvgFills() {
   const svg = document.querySelector('#svgHost svg');
   if (!svg) return;
 
-  svg.querySelectorAll('path[data-territory-id]').forEach(p => {
+svg.querySelectorAll('[data-territory-id]').forEach(p => {
     const tid = p.dataset.territoryId;
     const st = state?.[tid];
 
@@ -655,7 +666,7 @@ function rerenderSvgFills() {
 
 // Get centroid from combined bboxes of all SVG paths in a territory
 function territoryCenterOnSvg(territoryId){
-  const paths = Array.from(document.querySelectorAll(`#svgHost path[data-territory-id="${territoryId}"]`));
+const paths = Array.from(document.querySelectorAll(`#svgHost [data-territory-id="${territoryId}"]`));
   if(!paths.length) return null;
 
   // union bbox
@@ -765,9 +776,10 @@ advanceBtn.addEventListener("click", () => {
   advancePhase();
 });
 
-function jump(key){
+function scrollToTheatre(key){
   document.getElementById(key).scrollIntoView({behavior:"smooth", block:"start", inline:"nearest"});
 }
+
 
 function defaultMeta(){
   return {
