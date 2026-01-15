@@ -3694,16 +3694,37 @@ function applyTerritoryBorders(){
 
 
 // Run after any territory save / rerender
-(function(){
-  const _origSave = (typeof saveTerritory === 'function') ? saveTerritory : null;
-  if(_origSave){
-    saveTerritory = function(){
-      _origSave();
+(function(){// ===================== Ensure overlays apply after SVG is actually in DOM =====================
+function onSvgReady(){
+  try{
+    if(typeof applyHybridPlanningFills === 'function'){
       applyHybridPlanningFills();
-      if(typeof renderRegionsPanel === 'function') renderRegionsPanel();
-      /* regions parked */
-    };
-  }
+    }
+  }catch(_){}
+
+  // Regions intentionally parked — no-op but syntactically valid
+  try{
+    if(typeof redrawRegionBorders === 'function'){
+      // intentionally empty
+    }
+  }catch(_){}
+
+  try{
+    const hostSvg =
+      (typeof getSvg === 'function' ? getSvg() : null) ||
+      document.querySelector('#svgHost svg');
+
+    if(hostSvg && window.regionBordersSvg){
+      const vb = hostSvg.getAttribute('viewBox');
+      if(vb) window.regionBordersSvg.setAttribute('viewBox', vb);
+    }
+  }catch(_){}
+}
+
+window.addEventListener('load', () => {
+  setTimeout(onSvgReady, 50);
+});
+
   const _origRer = (typeof rerenderSvgFills === 'function') ? rerenderSvgFills : null;
   if(_origRer){
     rerenderSvgFills = function(){
