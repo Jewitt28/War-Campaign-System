@@ -2422,6 +2422,18 @@ function escapeHtml(s){
     .replaceAll("<","&lt;")
     .replaceAll(">","&gt;");
 }
+function ensureSetupDefaults() {
+  if (!state.mode) state.mode = "PLAY";
+
+  if (!state.factions) state.factions = [];
+
+  if (!state.setup) {
+    state.setup = {
+      active: false,
+      selectedFactionId: null
+    };
+  }
+}
 
 /* -------------------------
    Init
