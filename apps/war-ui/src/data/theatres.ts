@@ -31,8 +31,12 @@ export type NormalizedData = {
   shapeToTerritoryId: Map<string, string>; // svg path id -> territoryId
   theatreToTerritories: Map<TheatreId, string[]>; // theatreId -> territoryIds
 };
+export const withBase = (p: string) =>
+  `${import.meta.env.BASE_URL || "/"}${p}`.replace(/\/{2,}/g, "/");
 
-export async function loadTheatresData(url = "/theatres_all.json"): Promise<NormalizedData> {
+export async function loadTheatresData(
+ url = withBase("theatres_all.json")
+): Promise<NormalizedData> {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load theatres_all.json (${res.status})`);
   const raw = (await res.json()) as TheatreData;
