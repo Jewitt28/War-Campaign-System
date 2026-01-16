@@ -298,21 +298,23 @@ export default function MapBoard({ data: _normalizedData }: MapBoardProps) {
     (svg: SVGSVGElement, hostEl: HTMLDivElement) => wireZoomPanImpl(svg, hostEl, setVb),
     []
   );
-
+  
   useEffect(() => {
-    fetch("/theatres_all.json")
+    const base = import.meta.env.BASE_URL; // "/" locally, "/War-Campaign-System/" on Pages
+    fetch(`${base}/theatres_all.json`)
       .then((r) => r.json())
       .then((j: TheatreData) => setData(j))
       .catch((err) => console.error("Failed to load theatres_all.json", err));
   }, []);
 
   useEffect(() => {
-    if (!data) return;
 
+    if (!data) return;
+const base = import.meta.env.BASE_URL; // "/" locally, "/War-Campaign-System/" on Pages
     let cleanupClicks: null | (() => void) = null;
     let cleanupZoom: null | (() => void) = null;
 
-    fetch("/mapchart_world.svg")
+    fetch(`${base}/mapchart_world.svg`)
       .then((r) => r.text())
       .then((svgText) => {
         if (!svgHostRef.current) return;
@@ -341,7 +343,7 @@ export default function MapBoard({ data: _normalizedData }: MapBoardProps) {
       cleanupZoom?.();
       zoomApiRef.current = null;
     };
-  }, [data, enableTerritoryShapes, wireTerritoryClicks, wireZoomPan]);
+  }, [data, enableTerritoryShapes, wireTerritoryClicks, wireZoomPan, ]);
 
   return (
     <div style={{ display: "flex", height: "100%" }}>
