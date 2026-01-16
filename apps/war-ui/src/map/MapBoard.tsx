@@ -301,7 +301,7 @@ export default function MapBoard({ data: _normalizedData }: MapBoardProps) {
   
   useEffect(() => {
     const base = import.meta.env.BASE_URL; // "/" locally, "/War-Campaign-System/" on Pages
-    fetch(`${base}/theatres_all.json`)
+    fetch(`${base}theatres_all.json`)
       .then((r) => r.json())
       .then((j: TheatreData) => setData(j))
       .catch((err) => console.error("Failed to load theatres_all.json", err));
@@ -314,7 +314,7 @@ const base = import.meta.env.BASE_URL; // "/" locally, "/War-Campaign-System/" o
     let cleanupClicks: null | (() => void) = null;
     let cleanupZoom: null | (() => void) = null;
 
-    fetch(`${base}/mapchart_world.svg`)
+    fetch(`${base}mapchart_world.svg`)
       .then((r) => r.text())
       .then((svgText) => {
         if (!svgHostRef.current) return;
