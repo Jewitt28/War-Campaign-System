@@ -1,6 +1,14 @@
 // src/data/theatres.ts
 export type TheatreId = "WE" | "EE" | "NA" | "PA";
 
+export type TerritoryGroupDef = {
+  id: string;
+  name: string;
+  theatreId: TheatreId;
+  territories: string[];
+  bonus?: string;
+};
+
 export type TheatreData = {
   schemaVersion: string;
   theatres: Array<{
@@ -9,10 +17,14 @@ export type TheatreData = {
     territories: Array<{
       id: string;
       name: string;
-      shapeRefs: string[];
-      adj?: string[];
+      shapeRefs?: string[];
+      traits?: string[];
     }>;
+    adjacency?: Record<string, { land: string[]; sea: string[] }>;
   }>;
+
+  // ✅ single source of truth (these are your “territory groups”)
+  regions?: TerritoryGroupDef[];
 };
 
 export type Territory = {
@@ -26,19 +38,24 @@ export type Territory = {
 
 export type NormalizedData = {
   raw: TheatreData;
+
   territories: Territory[];
   territoryById: Map<string, Territory>;
-  shapeToTerritoryId: Map<string, string>; // svg path id -> territoryId
-  theatreToTerritories: Map<TheatreId, string[]>; // theatreId -> territoryIds
+  shapeToTerritoryId: Map<string, string>;
+  theatreToTerritories: Map<TheatreId, string[]>;
+
+  // ✅ territory groups
+  territoryGroups: TerritoryGroupDef[];
+  territoryGroupById: Map<string, TerritoryGroupDef>;
 };
+
 export const withBase = (p: string) =>
   `${import.meta.env.BASE_URL || "/"}${p}`.replace(/\/{2,}/g, "/");
 
-export async function loadTheatresData(
- url = withBase("theatres_all.json")
-): Promise<NormalizedData> {
+export async function loadTheatresData(url = withBase("theatres_all.json")): Promise<NormalizedData> {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load theatres_all.json (${res.status})`);
+
   const raw = (await res.json()) as TheatreData;
 
   const territories: Territory[] = [];
@@ -48,6 +65,7 @@ export async function loadTheatresData(
 
   for (const th of raw.theatres) {
     const list: string[] = [];
+
     for (const t of th.territories) {
       const terr: Territory = {
         id: t.id,
@@ -55,8 +73,9 @@ export async function loadTheatresData(
         theatreId: th.theatreId,
         theatreTitle: th.title,
         shapeRefs: t.shapeRefs ?? [],
-        adj: t.adj ?? [],
+        adj: Object.values(th.adjacency?.[t.id] ?? { land: [], sea: [] }).flat(),
       };
+
       territories.push(terr);
       territoryById.set(terr.id, terr);
       list.push(terr.id);
@@ -65,8 +84,22 @@ export async function loadTheatresData(
         shapeToTerritoryId.set(shapeId, terr.id);
       }
     }
+
     theatreToTerritories.set(th.theatreId, list);
   }
 
-  return { raw, territories, territoryById, shapeToTerritoryId, theatreToTerritories };
+  // ✅ normalize territory groups from raw.regions
+  const territoryGroups = (raw.regions ?? []) as TerritoryGroupDef[];
+  const territoryGroupById = new Map<string, TerritoryGroupDef>();
+  for (const g of territoryGroups) territoryGroupById.set(g.id, g);
+
+  return {
+    raw,
+    territories,
+    territoryById,
+    shapeToTerritoryId,
+    theatreToTerritories,
+    territoryGroups,
+    territoryGroupById,
+  };
 }

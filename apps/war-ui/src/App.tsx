@@ -19,7 +19,7 @@ export default function App() {
       </div>
 
       <div style={{ border: "1px solid rgba(255,255,255,.15)", borderRadius: 8, overflow: "hidden" }}>
-        <MapBoard data={data} />
+        <MapBoard />
       </div>
     </div>
   );

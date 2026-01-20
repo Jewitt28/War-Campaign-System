@@ -1,7 +1,22 @@
 // src/setup/SetupPanel.tsx
-import { useState } from "react";
-import { useCampaignStore } from "../store/useCampaignStore";
+import React, { useEffect, useMemo, useState } from "react";
+import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
 import { getSelectedFactionKey } from "./SetupRules";
+
+import { loadTheatresData } from "../data/theatres";
+import type { RegionDef } from "../data/regions";
+
+function getFactionLabel(fk: string, customs: Array<{ id: string; name: string }>) {
+  if (fk === "allies") return "Allies";
+  if (fk === "axis") return "Axis";
+  if (fk === "ussr") return "USSR";
+  if (fk.startsWith("custom:")) {
+    const id = fk.slice("custom:".length);
+    const c = customs.find((x) => x.id === id);
+    return c?.name ?? `Custom (${id.slice(0, 6)})`;
+  }
+  return fk;
+}
 
 export default function SetupPanel() {
   const {
@@ -16,21 +31,78 @@ export default function SetupPanel() {
     selectedCustomId,
     selectCustomFaction,
     homelands,
+    setHomeland,
+    setSelectedTerritory,
     resetAll,
   } = useCampaignStore();
 
   const [customName, setCustomName] = useState("");
   const [customColor, setCustomColor] = useState("#6aa84f");
+  const [territoryNameById, setTerritoryNameById] = useState<Record<string, string>>({});
 
   const locked = mode === "PLAY";
-  const selectedKey = getSelectedFactionKey();
+  const selectedKey = getSelectedFactionKey(); // from SetupRules (uses store state)
+
+  // Regions (from region_groups.json)
+  const [regionGroups, setRegionGroups] = useState<RegionDef[]>([]);
+  const [regionId, setRegionId] = useState<string>("");
+  const setRegions = useCampaignStore((s) => s.setRegions);
+  const setSelectedRegion = useCampaignStore((s) => s.setSelectedRegion);
+  const autoSetupWorld = useCampaignStore((s) => s.autoSetupWorld);
+
+  // Store the user's last chosen territory id (may become invalid when region changes)
+  const [regionTerritoryId, setRegionTerritoryId] = useState<string>("");
+
+useEffect(() => {
+  loadTheatresData()
+    .then((td) => {
+      const map: Record<string, string> = {};
+      for (const th of td.raw.theatres ?? []) {
+        for (const t of th.territories ?? []) map[t.id] = t.name;
+      }
+      setTerritoryNameById(map);
+
+      const groups = td.territoryGroups ?? [];
+      setRegionGroups(groups);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setRegions(groups as any);
+
+      const first = groups[0];
+      if (first) {
+        setRegionId(first.id);
+        setSelectedRegion(first.id);
+        const firstTid = first.territories?.[0] ?? "";
+        setRegionTerritoryId(firstTid);
+        if (firstTid) setSelectedTerritory(firstTid);
+      }
+    })
+    .catch((e) => console.error("Failed to load theatres data", e));
+}, [setRegions, setSelectedRegion, setSelectedTerritory]);
+
+
+  const activeRegion = useMemo(
+    () => regionGroups.find((g) => g.id === regionId) ?? null,
+    [regionGroups, regionId]
+  );
+
+  // Derived safe territory id (no setState needed)
+  const safeRegionTerritoryId = useMemo(() => {
+    const list = activeRegion?.territories ?? [];
+    if (list.length === 0) return "";
+    if (list.includes(regionTerritoryId)) return regionTerritoryId;
+    return list[0]; // fallback to first territory in region
+  }, [activeRegion, regionTerritoryId]);
+
+  const canSetHomeland = !!selectedKey && !!safeRegionTerritoryId;
 
   return (
     <div style={{ padding: 12, border: "1px solid rgba(255,255,255,.15)", borderRadius: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
         <div>
           <div style={{ fontWeight: 800 }}>Setup</div>
-          <div style={{ fontSize: 12, opacity: 0.8 }}>Mode: <b>{mode}</b></div>
+          <div style={{ fontSize: 12, opacity: 0.8 }}>
+            Mode: <b>{mode}</b>
+          </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={resetAll}>Reset</button>
@@ -39,14 +111,20 @@ export default function SetupPanel() {
           ) : (
             <button onClick={() => setMode("SETUP")}>Unlock (GM)</button>
           )}
+          <button onClick={() => {
+  autoSetupWorld();
+}}>
+  Lock Setup & Start Game
+</button>
+
         </div>
       </div>
 
       <hr style={{ borderColor: "rgba(255,255,255,.12)" }} />
 
-      <div style={{ opacity: locked ? 0.6 : 1, pointerEvents: locked ? "none" : "auto" as const }}>
+      <div style={{ opacity: locked ? 0.6 : 1, pointerEvents: locked ? ("none" as const) : ("auto" as const) }}>
         <h4 style={{ margin: "8px 0" }}>1) Theatres in play</h4>
-        {(["WE","EE","NA","PA"] as const).map((id) => (
+        {(["WE", "EE", "NA", "PA"] as const).map((id) => (
           <label key={id} style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0" }}>
             <input type="checkbox" checked={activeTheatres[id]} onChange={() => toggleTheatre(id)} />
             <span>{id}</span>
@@ -54,17 +132,17 @@ export default function SetupPanel() {
         ))}
 
         <h4 style={{ margin: "12px 0 8px" }}>2) Pick faction for homeland</h4>
-<select
-  value={selectedSetupFaction ?? ""}
-  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-    const v = e.target.value;
-    if (v === "") return selectSetupFaction(null);
-    if (v === "custom") return selectSetupFaction("custom");
-    if (v === "allies" || v === "axis" || v === "ussr") return selectSetupFaction(v);
-    // fallback (should never happen)
-    selectSetupFaction(null);
-  }}
->
+        <select
+          value={selectedSetupFaction ?? ""}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            const v = e.target.value;
+            if (v === "") return selectSetupFaction(null);
+            if (v === "custom") return selectSetupFaction("custom");
+            if (v === "allies" || v === "axis" || v === "ussr") return selectSetupFaction(v);
+            selectSetupFaction(null);
+          }}
+          style={{ width: "100%" }}
+        >
           <option value="">— Select —</option>
           <option value="allies">Allies</option>
           <option value="axis">Axis</option>
@@ -93,7 +171,9 @@ export default function SetupPanel() {
                 <select value={selectedCustomId ?? ""} onChange={(e) => selectCustomFaction(e.target.value || null)}>
                   <option value="">— Select —</option>
                   {customs.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -101,18 +181,100 @@ export default function SetupPanel() {
           </div>
         )}
 
-        <h4 style={{ margin: "12px 0 8px" }}>3) Click map to set homeland</h4>
+        <h4 style={{ margin: "12px 0 8px" }}>3) Set homeland</h4>
         <div style={{ fontSize: 12, opacity: 0.85 }}>
-          Selected faction key: <b>{selectedKey ?? "none"}</b>
+          Selected faction: <b>{selectedKey ? getFactionLabel(selectedKey, customs) : "none"}</b>
+        </div>
+
+        <div style={{ marginTop: 8, padding: 10, border: "1px solid rgba(255,255,255,.12)", borderRadius: 8 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>Set from Region Group</div>
+
+          {regionGroups.length === 0 ? (
+            <div style={{ fontSize: 12, opacity: 0.8 }}>Loading region groups…</div>
+          ) : (
+            <div style={{ display: "grid", gap: 8 }}>
+              <label style={{ display: "grid", gap: 4 }}>
+                <span style={{ fontSize: 12, opacity: 0.85 }}>Region</span>
+                <select
+                  value={regionId}
+                 onChange={(e) => {
+  const nextRegionId = e.target.value;
+  setRegionId(nextRegionId);
+
+  // highlight region on map
+  setSelectedRegion(nextRegionId);
+
+  const nextRegion = regionGroups.find((g) => g.id === nextRegionId);
+  const firstTid = nextRegion?.territories?.[0] ?? "";
+  setRegionTerritoryId(firstTid);
+
+  // optional: also select territory so map focuses/highlights one territory too
+  if (firstTid) setSelectedTerritory(firstTid);
+}}
+
+                  style={{ width: "100%" }}
+                >
+                  {regionGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={{ display: "grid", gap: 4 }}>
+                <span style={{ fontSize: 12, opacity: 0.85 }}>Territory</span>
+               <select
+                value={safeRegionTerritoryId}
+                onChange={(e) => {
+                  const tid = e.target.value;
+                  setRegionTerritoryId(tid);
+                  setSelectedTerritory(tid); 
+                }}
+                style={{ width: "100%" }}
+>
+
+ {(activeRegion?.territories ?? []).map((tid) => (
+  <option key={tid} value={tid}>
+    {territoryNameById[tid] ? `${territoryNameById[tid]} (${tid})` : tid}
+  </option>
+))}
+
+                </select>
+              </label>
+
+              <button
+                disabled={!canSetHomeland}
+                onClick={() => {
+                  if (!selectedKey) return;
+                  setHomeland(selectedKey as FactionKey, safeRegionTerritoryId);
+                  setSelectedTerritory(safeRegionTerritoryId); 
+                }}
+              >
+                Set Homeland
+              </button>
+
+              <div style={{ fontSize: 12, opacity: 0.75 }}>You can still click the map instead if you prefer.</div>
+            </div>
+          )}
         </div>
 
         <h4 style={{ margin: "12px 0 8px" }}>Homelands</h4>
         <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-          {Object.keys(homelands).length === 0 ? "None set yet." : (
-            Object.entries(homelands).map(([fk, tid]) => <div key={fk}><b>{fk}</b>: {tid}</div>)
+          {Object.keys(homelands).length === 0 ? (
+            "None set yet."
+          ) : (
+            Object.entries(homelands).map(([fk, tid]) => (
+              <div key={fk}>
+                <b>{getFactionLabel(fk, customs)}</b>: {tid}
+              </div>
+            ))
           )}
         </div>
       </div>
     </div>
   );
 }
+
+
+ 
