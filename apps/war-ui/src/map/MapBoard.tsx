@@ -1,19 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { NormalizedData } from "../data/theatres";
-
-type TheatreData = {
-  schemaVersion: string;
-  theatres: Array<{
-    theatreId: string;
-    title: string;
-    territories: Array<{
-      id: string; // e.g. "WE-01"
-      name: string;
-      shapeRefs: string[]; // e.g. ["United_Kingdom_UK_1", ...]
-    }>;
-  }>;
-};
+import { loadTheatresData, withBase, type TheatreData } from "../data/theatres";
+import type { VisibilityLevel } from "../data/visibility";
+import { useCampaignStore } from "../store/useCampaignStore";
 
 type TerritoryInfo = {
   id: string;
@@ -31,11 +20,31 @@ type Selection = {
   clickedShapeId: string;
 };
 
-type MapBoardProps = {
-  data: NormalizedData | null;
+type ViewBox = { x: number; y: number; w: number; h: number };
+type HoverState = { tid: string; x: number; y: number } | null;
+
+
+
+const baseFactionColors: Record<"allies" | "axis" | "ussr", string> = {
+  allies: "#2563eb",
+  axis: "#dc2626",
+  ussr: "#f97316",
 };
 
-type ViewBox = { x: number; y: number; w: number; h: number };
+function getOwnerFill(owner: string, customs: Array<{ id: string; color: string }>) {
+  if (owner === "neutral") return "#6b7280";
+  if (owner === "contested") return "#a855f7";
+
+  if (owner === "allies" || owner === "axis" || owner === "ussr") return baseFactionColors[owner];
+
+  if (owner.startsWith("custom:")) {
+    const id = owner.slice("custom:".length);
+    const c = customs.find((x) => x.id === id);
+    return c?.color ?? "#22c55e";
+  }
+
+  return "#6b7280";
+}
 
 function parseViewBox(svg: SVGSVGElement): ViewBox {
   const vb = svg.getAttribute("viewBox");
@@ -51,11 +60,7 @@ function setViewBox(svg: SVGSVGElement, vb: ViewBox) {
   svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
 }
 
-function wireZoomPanImpl(
-  svg: SVGSVGElement,
-  hostEl: HTMLDivElement,
-  setVbState?: (vb: ViewBox) => void
-) {
+function wireZoomPanImpl(svg: SVGSVGElement, hostEl: HTMLDivElement, setVbState?: (vb: ViewBox) => void) {
   const base = parseViewBox(svg);
   let current = { ...base };
 
@@ -71,7 +76,6 @@ function wireZoomPanImpl(
 
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
-
     const rect = hostEl.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
@@ -114,7 +118,6 @@ function wireZoomPanImpl(
 
   const onMouseMove = (e: MouseEvent) => {
     if (!dragging) return;
-
     const rect = hostEl.getBoundingClientRect();
     const dxPx = e.clientX - start.x;
     const dyPx = e.clientY - start.y;
@@ -152,6 +155,8 @@ function wireZoomPanImpl(
         h: current.h * factor,
       });
     },
+    // ✅ critical: allow external "fit" to stay in sync with zoom/pan state
+    set: (vb: ViewBox) => update(vb),
   };
 
   const cleanup = () => {
@@ -164,18 +169,40 @@ function wireZoomPanImpl(
   return { api, cleanup };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function MapBoard({ data: _normalizedData }: MapBoardProps) {
+export default function MapBoard() {
   const svgHostRef = useRef<HTMLDivElement>(null);
+  const [, setVb] = useState<ViewBox | null>(null);
+const [hover, setHover] = useState<HoverState>(null);
 
-  // Keep for debugging if you want to display it later
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_vb, setVb] = useState<ViewBox | null>(null);
-
-  const zoomApiRef = useRef<null | { reset: () => void; fit: () => void; zoom: (d: "in" | "out") => void }>(null);
+  const zoomApiRef = useRef<null | {
+    reset: () => void;
+    fit: () => void;
+    zoom: (d: "in" | "out") => void;
+    set: (vb: ViewBox) => void;
+  }>(null);
 
   const [data, setData] = useState<TheatreData | null>(null);
   const [selected, setSelected] = useState<Selection | null>(null);
+const viewerMode = useCampaignStore((s: any) => s.viewerMode ?? "PLAYER"); // tolerate missing store field
+const platoonsById = useCampaignStore((s: any) => s.platoonsById ?? {});
+const locksByTerritory = useCampaignStore((s: any) => s.locksByTerritory ?? {});
+const contestsByTerritory = useCampaignStore((s: any) => s.contestsByTerritory ?? {});
+
+  const activeTheatres = useCampaignStore((s) => s.activeTheatres);
+  const selectedTerritoryId = useCampaignStore((s) => s.selectedTerritoryId);
+  const selectedRegionId = useCampaignStore((s) => s.selectedRegionId);
+  const regions = useCampaignStore((s) => s.regions);
+
+  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const intelByTerritory = useCampaignStore((s) => s.intelByTerritory);
+  const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
+  const homelands = useCampaignStore((s) => s.homelands);
+
+  const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
+  const setHomeland = useCampaignStore((s) => s.setHomeland);
+  const applyHomeland = useCampaignStore((s) => s.applyHomeland);
+
+  const didDefaultZoomRef = useRef(false);
 
   const { allowedShapeIds, shapeToTerritory } = useMemo(() => {
     const allowed = new Set<string>();
@@ -183,6 +210,8 @@ export default function MapBoard({ data: _normalizedData }: MapBoardProps) {
 
     if (data) {
       for (const th of data.theatres) {
+        if (!activeTheatres[th.theatreId as keyof typeof activeTheatres]) continue;
+
         for (const t of th.territories) {
           const info: TerritoryInfo = {
             id: t.id,
@@ -201,11 +230,37 @@ export default function MapBoard({ data: _normalizedData }: MapBoardProps) {
     }
 
     return { allowedShapeIds: allowed, shapeToTerritory: map };
-  }, [data]);
+  }, [activeTheatres, data]);
+
+
+const visiblePlatoons = useMemo(() => {
+  const gm = viewerMode === "GM";
+  const platoons = Object.values(platoonsById) as Array<any>;
+  if (!platoons.length) return [];
+
+  if (gm) return platoons;
+
+  // player view: always see own, see enemy only if SCOUTED/FULL in that territory
+  return platoons.filter((p) => {
+    if (p.faction === viewerFaction) return true;
+    const lvl = intelByTerritory[p.territoryId]?.[viewerFaction] ?? "NONE";
+    return lvl === "SCOUTED" || lvl === "FULL";
+  });
+}, [viewerMode, platoonsById, viewerFaction, intelByTerritory]);
+
+const platoonsByTerritory = useMemo(() => {
+  const m = new Map<string, Array<any>>();
+  for (const p of visiblePlatoons) {
+    const list = m.get(p.territoryId) ?? [];
+    list.push(p);
+    m.set(p.territoryId, list);
+  }
+  return m;
+}, [visiblePlatoons]);
 
   const clearSelectionStyles = useCallback((svg: SVGSVGElement) => {
     svg.querySelectorAll<SVGPathElement>("path").forEach((p) => {
-      p.style.opacity = "0.35";
+      p.style.opacity = "0.20";
       p.style.stroke = "#111";
       p.style.strokeWidth = "0.6";
       p.style.cursor = "default";
@@ -213,33 +268,110 @@ export default function MapBoard({ data: _normalizedData }: MapBoardProps) {
     });
   }, []);
 
-  const enableTerritoryShapes = useCallback(
+  const applyFogStyles = useCallback(
     (svg: SVGSVGElement) => {
+      const { viewerFaction, intelByTerritory, ownerByTerritory, customs, homelands, viewerMode } = useCampaignStore.getState();
+      const gm = viewerMode === "GM";
+
       clearSelectionStyles(svg);
 
-      allowedShapeIds.forEach((id) => {
-        const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
+      const homelandId = homelands?.[viewerFaction] ?? null;
+
+      allowedShapeIds.forEach((shapeId) => {
+        const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
         if (!p) return;
 
-        p.style.opacity = "0.9";
+        if (!p.dataset.baseFill) {
+          const attrFill = p.getAttribute("fill");
+          p.dataset.baseFill = attrFill && attrFill !== "none" ? attrFill : "#444";
+        }
+
         p.style.cursor = "pointer";
         p.style.pointerEvents = "auto";
         p.style.stroke = "#1a1a1a";
         p.style.strokeWidth = "0.8";
+
+        const territory = shapeToTerritory.get(shapeId);
+        if (!territory) return;
+
+const level: VisibilityLevel = gm ? "FULL" : (intelByTerritory[territory.id]?.[viewerFaction] ?? "NONE");
+
+        if (level === "NONE") {
+          p.style.opacity = "0.25";
+          p.style.fill = p.dataset.baseFill!;
+        } else if (level === "KNOWN") {
+          p.style.opacity = "0.65";
+          p.style.fill = p.dataset.baseFill!;
+        } else {
+          const owner = ownerByTerritory[territory.id] ?? "neutral";
+          p.style.opacity = "0.85";
+          p.style.fill = getOwnerFill(owner, customs);
+        }
+
+        if (homelandId && territory.id === homelandId) {
+          p.style.opacity = "1";
+          p.style.stroke = "#ffffff";
+          p.style.strokeWidth = "2.6";
+        }
       });
     },
-    [allowedShapeIds, clearSelectionStyles]
+    [clearSelectionStyles, allowedShapeIds, shapeToTerritory]
   );
+
+  // ✅ compute a stable key so we only refit when theatre selection changes
+  const theatresKey = useMemo(
+    () => (["WE", "EE", "NA", "PA"] as const).filter((k) => activeTheatres[k]).join("|"),
+    [activeTheatres]
+  );
+
+  const fitToAllowed = useCallback(
+    (svg: SVGSVGElement) => {
+      const els = Array.from(allowedShapeIds)
+        .map((id) => svg.querySelector<SVGGraphicsElement>(`#${CSS.escape(id)}`))
+        .filter(Boolean) as SVGGraphicsElement[];
+
+      if (els.length === 0) return;
+
+      let bb = els[0].getBBox();
+      let minX = bb.x,
+        minY = bb.y,
+        maxX = bb.x + bb.width,
+        maxY = bb.y + bb.height;
+
+      for (let i = 1; i < els.length; i++) {
+        bb = els[i].getBBox();
+        minX = Math.min(minX, bb.x);
+        minY = Math.min(minY, bb.y);
+        maxX = Math.max(maxX, bb.x + bb.width);
+        maxY = Math.max(maxY, bb.y + bb.height);
+      }
+
+      const pad = 20;
+      const vb: ViewBox = {
+        x: minX - pad,
+        y: minY - pad,
+        w: maxX - minX + pad * 2,
+        h: maxY - minY + pad * 2,
+      };
+
+      // ✅ IMPORTANT: update through zoom/pan API to keep internal state synced
+      if (zoomApiRef.current?.set) zoomApiRef.current.set(vb);
+      else setViewBox(svg, vb); // initial load fallback
+    },
+    [allowedShapeIds]
+  );
+
+  useEffect(() => {
+    const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return;
+
+    applyFogStyles(svg);
+    fitToAllowed(svg);
+  }, [theatresKey, applyFogStyles, fitToAllowed]);
 
   const highlightTerritory = useCallback(
     (svg: SVGSVGElement, territory: TerritoryInfo) => {
-      allowedShapeIds.forEach((id) => {
-        const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
-        if (!p) return;
-        p.style.opacity = "0.35";
-        p.style.stroke = "#222";
-        p.style.strokeWidth = "0.8";
-      });
+      applyFogStyles(svg);
 
       territory.shapeRefs.forEach((id) => {
         const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
@@ -249,72 +381,163 @@ export default function MapBoard({ data: _normalizedData }: MapBoardProps) {
         p.style.strokeWidth = "2";
       });
     },
-    [allowedShapeIds]
+    [applyFogStyles]
   );
 
-  const wireTerritoryClicks = useCallback(
-    (svg: SVGSVGElement) => {
-      const cleanups: Array<() => void> = [];
+  useEffect(() => {
+    const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return;
+    if (!selectedTerritoryId) return;
 
-      allowedShapeIds.forEach((shapeId) => {
-        const path = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
-        if (!path) return;
+    const territory = Array.from(shapeToTerritory.values()).find((t) => t.id === selectedTerritoryId);
+    if (!territory) return;
 
-        const onClick = (e: MouseEvent) => {
-          e.stopPropagation();
+    setSelected({
+      territoryId: territory.id,
+      territoryName: territory.name,
+      theatreId: territory.theatreId,
+      theatreTitle: territory.theatreTitle,
+      clickedShapeId: territory.shapeRefs[0] ?? "",
+    });
 
-          const territory = shapeToTerritory.get(shapeId);
-          if (!territory) return;
+    highlightTerritory(svg, territory);
+  }, [shapeToTerritory, highlightTerritory, selectedTerritoryId]);
 
-          setSelected({
-            territoryId: territory.id,
-            territoryName: territory.name,
-            theatreId: territory.theatreId,
-            theatreTitle: territory.theatreTitle,
-            clickedShapeId: shapeId,
-          });
+  const highlightRegion = useCallback(
+    (svg: SVGSVGElement, territoryIds: string[]) => {
+      applyFogStyles(svg);
 
-          highlightTerritory(svg, territory);
-        };
+      const ids = new Set(territoryIds);
+      for (const info of shapeToTerritory.values()) {
+        if (!ids.has(info.id)) continue;
 
-        path.addEventListener("click", onClick);
-        cleanups.push(() => path.removeEventListener("click", onClick));
-      });
+        for (const shapeId of info.shapeRefs) {
+          const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
+          if (!p) continue;
+          p.style.opacity = "1";
+          p.style.stroke = "#ffd166";
+          p.style.strokeWidth = "1.6";
+        }
+      }
+    },
+    [applyFogStyles, shapeToTerritory]
+  );
 
-      const onSvgClick = () => {
-        setSelected(null);
-        enableTerritoryShapes(svg);
+  useEffect(() => {
+    const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return;
+    if (!selectedRegionId) return;
+
+    const region = regions.find((r) => r.id === selectedRegionId);
+    if (!region) return;
+
+    highlightRegion(svg, region.territories);
+  }, [highlightRegion, regions, selectedRegionId]);
+
+ const wireTerritoryEvents = useCallback(
+  (svg: SVGSVGElement) => {
+    const cleanups: Array<() => void> = [];
+
+    const makeFactionKeyFromSetup = () => {
+      const { selectedSetupFaction, selectedCustomId } = useCampaignStore.getState() as any;
+      if (selectedSetupFaction === "custom") {
+        return selectedCustomId ? (`custom:${selectedCustomId}` as const) : null;
+      }
+      if (selectedSetupFaction) return selectedSetupFaction;
+      return null;
+    };
+
+    allowedShapeIds.forEach((shapeId) => {
+      const path = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
+      if (!path) return;
+
+      const onClick = (e: MouseEvent) => {
+        e.stopPropagation();
+
+        const territory = shapeToTerritory.get(shapeId);
+        if (!territory) return;
+
+        setSelectedTerritory(territory.id);
+
+        const { mode } = useCampaignStore.getState() as any;
+        if (mode === "SETUP") {
+          const fk = makeFactionKeyFromSetup();
+          if (fk) {
+            setHomeland(fk, territory.id);
+            applyHomeland(fk);
+          }
+        }
+
+        setSelected({
+          territoryId: territory.id,
+          territoryName: territory.name,
+          theatreId: territory.theatreId,
+          theatreTitle: territory.theatreTitle,
+          clickedShapeId: shapeId,
+        });
+
+        highlightTerritory(svg, territory);
       };
 
-      svg.addEventListener("click", onSvgClick);
-      cleanups.push(() => svg.removeEventListener("click", onSvgClick));
+      const onEnter = (e: MouseEvent) => {
+        const territory = shapeToTerritory.get(shapeId);
+        if (!territory) return;
+        setHover({ tid: territory.id, x: e.clientX, y: e.clientY });
+      };
 
-      return () => cleanups.forEach((fn) => fn());
-    },
-    [allowedShapeIds, shapeToTerritory, highlightTerritory, enableTerritoryShapes]
-  );
+      const onMove = (e: MouseEvent) => {
+        setHover((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : null));
+      };
+
+      const onLeave = () => setHover(null);
+
+      path.addEventListener("click", onClick);
+      path.addEventListener("mouseenter", onEnter);
+      path.addEventListener("mousemove", onMove);
+      path.addEventListener("mouseleave", onLeave);
+
+      cleanups.push(() => {
+        path.removeEventListener("click", onClick);
+        path.removeEventListener("mouseenter", onEnter);
+        path.removeEventListener("mousemove", onMove);
+        path.removeEventListener("mouseleave", onLeave);
+      });
+    });
+
+    const onSvgClick = () => {
+      setSelected(null);
+      applyFogStyles(svg);
+    };
+
+    svg.addEventListener("click", onSvgClick);
+    cleanups.push(() => svg.removeEventListener("click", onSvgClick));
+
+    return () => cleanups.forEach((fn) => fn());
+  },
+  [allowedShapeIds, shapeToTerritory, setSelectedTerritory, setHomeland, applyHomeland, highlightTerritory, applyFogStyles]
+);
+
 
   const wireZoomPan = useCallback(
     (svg: SVGSVGElement, hostEl: HTMLDivElement) => wireZoomPanImpl(svg, hostEl, setVb),
     []
   );
-  
+
   useEffect(() => {
-    const base = import.meta.env.BASE_URL; // "/" locally, "/War-Campaign-System/" on Pages
-    fetch(`${base}theatres_all.json`)
-      .then((r) => r.json())
-      .then((j: TheatreData) => setData(j))
+    loadTheatresData()
+      .then((nd) => setData(nd.raw))
       .catch((err) => console.error("Failed to load theatres_all.json", err));
   }, []);
 
   useEffect(() => {
-
     if (!data) return;
-const base = import.meta.env.BASE_URL; // "/" locally, "/War-Campaign-System/" on Pages
+
+    const svgUrl = withBase("mapchart_world.svg");
+
     let cleanupClicks: null | (() => void) = null;
     let cleanupZoom: null | (() => void) = null;
 
-    fetch(`${base}mapchart_world.svg`)
+    fetch(svgUrl)
       .then((r) => r.text())
       .then((svgText) => {
         if (!svgHostRef.current) return;
@@ -326,15 +549,25 @@ const base = import.meta.env.BASE_URL; // "/" locally, "/War-Campaign-System/" o
 
         svg.setAttribute("width", "100%");
         svg.setAttribute("height", "100%");
+        svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
         svg.style.display = "block";
 
-        enableTerritoryShapes(svg);
-        cleanupClicks = wireTerritoryClicks(svg);
+        applyFogStyles(svg);
+        cleanupClicks = wireTerritoryEvents(svg);
 
         const hostEl = svgHostRef.current!;
         const { api, cleanup } = wireZoomPan(svg, hostEl);
         zoomApiRef.current = api;
         cleanupZoom = cleanup;
+
+        // ✅ IMPORTANT: fit through zoom api so wheel/drag doesn't "snap back"
+        fitToAllowed(svg);
+
+        if (!didDefaultZoomRef.current) {
+          didDefaultZoomRef.current = true;
+          api.zoom("in");
+          api.zoom("in");
+        }
       })
       .catch((err) => console.error("Failed to load SVG", err));
 
@@ -343,42 +576,151 @@ const base = import.meta.env.BASE_URL; // "/" locally, "/War-Campaign-System/" o
       cleanupZoom?.();
       zoomApiRef.current = null;
     };
-  }, [data, enableTerritoryShapes, wireTerritoryClicks, wireZoomPan, ]);
+  }, [data, applyFogStyles, wireTerritoryEvents, wireZoomPan, fitToAllowed]);
+
+  useEffect(() => {
+    const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return;
+
+    if (selected) {
+      const territory = Array.from(shapeToTerritory.values()).find((t) => t.id === selected.territoryId);
+      if (territory) highlightTerritory(svg, territory);
+      else applyFogStyles(svg);
+    } else {
+      applyFogStyles(svg);
+    }
+  }, [viewerFaction, intelByTerritory, ownerByTerritory, homelands, selected, shapeToTerritory, applyFogStyles, highlightTerritory]);
 
   return (
-    <div style={{ display: "flex", height: "100%" }}>
-      <div
-        ref={svgHostRef}
-        style={{
-          flex: 1,
-          background: "#3a372f",
-          overflow: "hidden",
-        }}
-      />
+    <div style={{ display: "flex", height: "100%", minHeight: 0 }}>
+      {/* MAP */}
+      <div style={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0 }}>
+        
+        <div
+          ref={svgHostRef}
+          style={{
+            height: "100%",
+            minHeight: 0,
+            background: "#3a372f",
+            overflow: "hidden",
+          }}
+        />
 
-      <div
-        style={{
-          width: 320,
-          padding: 12,
-          borderLeft: "1px solid #555",
-          background: "#2b2923",
-          color: "#eee",
-          fontSize: 14,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Selection</h3>
-
-        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        {/* Overlay controls */}
+        <div
+          style={{
+            position: "absolute",
+            top: 10,
+            left: 10,
+            display: "flex",
+            gap: 6,
+            padding: 8,
+            background: "rgba(0,0,0,.35)",
+            border: "1px solid rgba(255,255,255,.15)",
+            borderRadius: 8,
+            zIndex: 5,
+          }}
+        >
           <button onClick={() => zoomApiRef.current?.zoom("in")}>+</button>
           <button onClick={() => zoomApiRef.current?.zoom("out")}>-</button>
           <button onClick={() => zoomApiRef.current?.fit()}>Fit</button>
           <button onClick={() => zoomApiRef.current?.reset()}>Reset</button>
         </div>
+        
+{/* Hover tooltip */}
+{hover && (() => {
+  const tid = hover.tid;
+  const terr = Array.from(shapeToTerritory.values()).find((t) => t.id === tid);
+  if (!terr) return null;
 
-        <div style={{ fontSize: 12, opacity: 0.8 }}>
+  const owner = ownerByTerritory[tid] ?? "neutral";
+  const locked = !!locksByTerritory[tid];
+  const contest = contestsByTerritory[tid];
+
+  const gm = viewerMode === "GM";
+  const level: VisibilityLevel = gm ? "FULL" : (intelByTerritory[tid]?.[viewerFaction] ?? "NONE");
+
+  const platoons = platoonsByTerritory.get(tid) ?? [];
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: hover.x + 12,
+        top: hover.y + 12,
+        zIndex: 20,
+        background: "rgba(0,0,0,.78)",
+        border: "1px solid rgba(255,255,255,.18)",
+        borderRadius: 10,
+        padding: "8px 10px",
+        fontSize: 12,
+        maxWidth: 280,
+        pointerEvents: "none",
+      }}
+    >
+      
+      <div style={{ fontWeight: 800, marginBottom: 4 }}>
+        {terr.name} <span style={{ opacity: 0.75 }}>({tid})</span>
+      </div>
+      <div style={{ opacity: 0.9 }}>
+        <b>Owner:</b> {owner}
+      </div>
+      <div style={{ opacity: 0.9 }}>
+        <b>Intel:</b> {level}
+      </div>
+      {locked && <div style={{ opacity: 0.95, marginTop: 4 }}><b>Locked:</b> COMBAT</div>}
+      {contest && (
+        <div style={{ opacity: 0.95, marginTop: 4 }}>
+          <b>Contest:</b> {contest.attackerFaction} vs {contest.defenderFaction} ({contest.status})
+        </div>
+      )}
+
+      {platoons.length > 0 && (
+        <div style={{ marginTop: 6, opacity: 0.95 }}>
+          <b>Platoons:</b>
+          <div style={{ marginTop: 2, opacity: 0.9 }}>
+            {platoons.slice(0, 6).map((p) => (
+              <div key={p.id}>• {p.name} ({p.faction})</div>
+            ))}
+            {platoons.length > 6 && <div>… +{platoons.length - 6} more</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+})()}
+
+        {/* Hint */}
+        <div
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            padding: "6px 8px",
+            background: "rgba(0,0,0,.35)",
+            border: "1px solid rgba(255,255,255,.15)",
+            borderRadius: 8,
+            fontSize: 12,
+            opacity: 0.9,
+            zIndex: 5,
+            pointerEvents: "none",
+          }}
+        >
           Pan: hold <b>Shift</b> + drag (or middle mouse). Wheel to zoom.
         </div>
+      </div>
 
+      {/* INFO PANEL */}
+      <div
+        style={{
+          width: 340,
+          minWidth: 340,
+          maxWidth: 340,
+          padding: 12,
+          borderLeft: "1px solid rgba(255,255,255,.12)",
+          overflow: "auto",
+        }}
+      >
         {!data && <div>Loading theatres…</div>}
 
         {selected ? (
@@ -392,6 +734,11 @@ const base = import.meta.env.BASE_URL; // "/" locally, "/War-Campaign-System/" o
             <div style={{ opacity: 0.8, marginTop: 8 }}>
               <strong>Clicked shape:</strong> {selected.clickedShapeId}
             </div>
+            {useCampaignStore.getState().mode === "SETUP" && (
+              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.85 }}>
+                Setup mode: click sets homeland for selected faction.
+              </div>
+            )}
           </div>
         ) : (
           <div>Click a territory (only your campaign territories are clickable)</div>
