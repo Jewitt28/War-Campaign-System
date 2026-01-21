@@ -1,3 +1,4 @@
+// src/ui/PlayPanel.tsx
 import { useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import type { VisibilityLevel } from "../data/visibility";
@@ -20,9 +21,10 @@ function factionOptions(customs: Array<{ id: string; name: string }>) {
 
 export default function PlayPanel({ data }: Props) {
   const {
-    // viewer / intel
     viewerFaction,
     setViewerFaction,
+    viewerMode,
+    setViewerMode,
     customs,
     selectedTerritoryId,
     setSelectedTerritory,
@@ -32,7 +34,6 @@ export default function PlayPanel({ data }: Props) {
     setIntelLevel,
     bulkSetIntelLevel,
 
-    // mechanics
     phase,
     turnNumber,
     platoonsById,
@@ -47,16 +48,16 @@ export default function PlayPanel({ data }: Props) {
     clearLocksAndContests,
     resolveBattles,
 
-    // log
     turnLog,
   } = useCampaignStore();
 
+  const isGM = viewerMode === "GM";
 
-const pendingContests = useMemo(() => {
-  return Object.values(contestsByTerritory).filter((c) => c?.status === "BATTLE_PENDING") as Contest[];
-}, [contestsByTerritory]);
+  const pendingContests = useMemo(() => {
+    return Object.values(contestsByTerritory).filter((c) => c?.status === "BATTLE_PENDING") as Contest[];
+  }, [contestsByTerritory]);
 
-const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcome>>({});
+  const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcome>>({});
 
   const factions = useMemo(() => factionOptions(customs), [customs]);
 
@@ -70,7 +71,7 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
     return !!ta?.adj?.includes(b);
   };
 
-  // --- territory groups (unchanged from your version) ---
+  // territory groups
   const selectedGroupId = useCampaignStore((s) => s.selectedRegionId);
   const setSelectedGroup = useCampaignStore((s) => s.setSelectedRegion);
   const territoryGroups = useMemo(() => data?.territoryGroups ?? [], [data]);
@@ -81,17 +82,14 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
     return territoryGroups[0].id;
   }, [territoryGroups, selectedGroupId]);
 
-  const activeGroup = useMemo(
-    () => territoryGroups.find((g) => g.id === safeGroupId) ?? null,
-    [territoryGroups, safeGroupId]
-  );
+  const activeGroup = useMemo(() => territoryGroups.find((g) => g.id === safeGroupId) ?? null, [territoryGroups, safeGroupId]);
 
   const applyGroupIntel = (level: VisibilityLevel) => {
     if (!activeGroup) return;
     bulkSetIntelLevel(activeGroup.territories, viewerFaction, level);
   };
 
-  // --- selected territory derived values ---
+  // selected territory derived values
   const owner = selected ? (ownerByTerritory[selected.id] ?? "neutral") : "neutral";
   const level: VisibilityLevel = selected ? (intelByTerritory[selected.id]?.[viewerFaction] ?? "NONE") : "NONE";
 
@@ -103,7 +101,7 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
     return Object.values(platoonsById).filter((p) => p.territoryId === selected.id);
   }, [platoonsById, selected]);
 
-  // --- Order builder UI state ---
+  // Order builder UI state
   const [orderPlatoonId, setOrderPlatoonId] = useState<string>("");
   const [step1, setStep1] = useState<string>("");
   const [step2, setStep2] = useState<string>("");
@@ -117,11 +115,11 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
   const selectedPlatoon = orderPlatoonId ? platoonsById[orderPlatoonId] : undefined;
 
   const step1Options = useMemo(() => {
-    if (!selected || !selectedPlatoon) return [];
+    if (!selectedPlatoon) return [];
     const from = selectedPlatoon.territoryId;
     const t = data?.territoryById.get(from);
     return t?.adj ?? [];
-  }, [data, selected, selectedPlatoon]);
+  }, [data, selectedPlatoon]);
 
   const step2Options = useMemo(() => {
     if (!forcedMarch || !step1) return [];
@@ -134,7 +132,6 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
     if (!step1) return;
 
     const path = forcedMarch && step2 ? [step1, step2] : [step1];
-
     setPlatoonOrderMove(turnNumber, viewerFaction, selectedPlatoon.id, path, forcedMarch);
   };
 
@@ -152,19 +149,40 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
 
       <hr style={{ borderColor: "rgba(255,255,255,.12)" }} />
 
+      {/* Viewer Mode */}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>Viewer Mode</div>
+        <select value={viewerMode} onChange={(e) => setViewerMode(e.target.value as "PLAYER" | "GM")} style={{ width: "100%" }}>
+          <option value="PLAYER">PLAYER</option>
+          <option value="GM">GM</option>
+        </select>
+        {!isGM && (
+          <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+            Player mode: you can draft/submit orders and view intel for <b>{viewerFaction}</b>. GM tools are disabled.
+          </div>
+        )}
+      </div>
+
+      {/* Viewer faction */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>Viewer (Fog of War)</div>
-        <select value={viewerFaction} onChange={(e) => setViewerFaction(e.target.value as FactionKey)} style={{ width: "100%" }}>
+        <select
+          value={viewerFaction}
+          disabled={!isGM}
+          onChange={(e) => setViewerFaction(e.target.value as FactionKey)}
+          style={{ width: "100%" }}
+        >
           {factions.map((f) => (
             <option key={f.key} value={f.key}>
               {f.label}
             </option>
           ))}
         </select>
+        {!isGM && <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>Locked in PLAYER mode.</div>}
       </div>
 
       {/* Territory Groups */}
-      <div style={{ marginBottom: 10 }}>
+      <div style={{ marginBottom: 10, opacity: isGM ? 1 : 0.6 }}>
         <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>Territory Groups</div>
 
         {territoryGroups.length === 0 ? (
@@ -180,10 +198,18 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
             </select>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-              <button onClick={() => applyGroupIntel("NONE")}>Hide</button>
-              <button onClick={() => applyGroupIntel("KNOWN")}>Known</button>
-              <button onClick={() => applyGroupIntel("SCOUTED")}>Scouted</button>
-              <button onClick={() => applyGroupIntel("FULL")}>Full</button>
+              <button disabled={!isGM} onClick={() => applyGroupIntel("NONE")}>
+                Hide
+              </button>
+              <button disabled={!isGM} onClick={() => applyGroupIntel("KNOWN")}>
+                Known
+              </button>
+              <button disabled={!isGM} onClick={() => applyGroupIntel("SCOUTED")}>
+                Scouted
+              </button>
+              <button disabled={!isGM} onClick={() => applyGroupIntel("FULL")}>
+                Full
+              </button>
             </div>
 
             {activeGroup && (
@@ -193,6 +219,7 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
             )}
           </>
         )}
+        {!isGM && <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>GM-only: bulk intel changes.</div>}
       </div>
 
       {selected ? (
@@ -202,9 +229,16 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
             {selected.id} · {selected.theatreTitle}
           </div>
 
-          {/* Combat / lock banner */}
           {(lock || contest) && (
-            <div style={{ marginTop: 8, padding: 8, borderRadius: 8, border: "1px solid rgba(255,255,255,.15)", background: "rgba(0,0,0,.2)" }}>
+            <div
+              style={{
+                marginTop: 8,
+                padding: 8,
+                borderRadius: 8,
+                border: "1px solid rgba(255,255,255,.15)",
+                background: "rgba(0,0,0,.2)",
+              }}
+            >
               <div style={{ fontWeight: 700 }}>Locked: {lock?.reason ?? "—"}</div>
               {contest && (
                 <div style={{ fontSize: 12, opacity: 0.9, marginTop: 4 }}>
@@ -217,6 +251,7 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
           <h4 style={{ margin: "12px 0 8px" }}>Owner</h4>
           <select
             value={owner}
+            disabled={!isGM}
             onChange={(e) => setOwner(selected.id, e.target.value as FactionKey | "neutral" | "contested")}
             style={{ width: "100%" }}
           >
@@ -228,10 +263,12 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
               </option>
             ))}
           </select>
+          {!isGM && <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>GM-only: change owner.</div>}
 
           <h4 style={{ margin: "12px 0 8px" }}>Intel (for viewer)</h4>
           <select
             value={level}
+            disabled={!isGM}
             onChange={(e) => setIntelLevel(selected.id, viewerFaction, e.target.value as VisibilityLevel)}
             style={{ width: "100%" }}
           >
@@ -240,6 +277,7 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
             <option value="SCOUTED">Scouted</option>
             <option value="FULL">Full</option>
           </select>
+          {!isGM && <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>GM-only: change intel.</div>}
 
           <h4 style={{ margin: "12px 0 8px" }}>Platoons in territory</h4>
           {platoonsHere.length === 0 ? (
@@ -323,10 +361,17 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
 
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             <button onClick={() => submitFactionOrders(turnNumber, viewerFaction)}>Submit Orders</button>
-            <button onClick={() => resolveCurrentTurn(isAdjacent)}>Resolve Turn</button>
-            <button onClick={() => nextPhase(isAdjacent)}>Next Phase</button>
-            <button onClick={() => clearLocksAndContests()}>Dev: Clear Locks</button>
+            <button disabled={!isGM} onClick={() => resolveCurrentTurn(isAdjacent)}>
+              Resolve Turn
+            </button>
+            <button disabled={!isGM} onClick={() => nextPhase(isAdjacent)}>
+              Next Phase
+            </button>
+            <button disabled={!isGM} onClick={() => clearLocksAndContests()}>
+              Dev: Clear Locks
+            </button>
           </div>
+          {!isGM && <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>GM-only: resolve/advance/clear.</div>}
 
           <div style={{ marginTop: 8, fontSize: 12, opacity: 0.9 }}>
             <b>Current faction orders:</b>
@@ -364,124 +409,122 @@ const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcom
               </div>
             ))}
       </div>
-      {phase === "BATTLES" && (
-  <>
-    <h4 style={{ margin: "12px 0 8px" }}>Battles (GM)</h4>
 
-    {pendingContests.length === 0 ? (
-      <div style={{ fontSize: 12, opacity: 0.8 }}>No pending battles.</div>
-    ) : (
-      <div style={{ display: "grid", gap: 8 }}>
-        {pendingContests.map((c) => {
-          const current = battleOutcomes[c.id] ?? { contestId: c.id, winner: c.attackerFaction };
-          return (
-            <div key={c.id} style={{ padding: 8, borderRadius: 8, border: "1px solid rgba(255,255,255,.12)" }}>
-              <div style={{ fontWeight: 700 }}>
-                {c.territoryId}: {c.attackerFaction} vs {c.defenderFaction}
-              </div>
+      {/* Battles (GM only) */}
+      {isGM && phase === "BATTLES" && (
+        <>
+          <h4 style={{ margin: "12px 0 8px" }}>Battles (GM)</h4>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                <div>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>Winner</div>
-                  <select
-                    value={current.winner}
-                    onChange={(e) =>
-                      setBattleOutcomes((s) => ({
-                        ...s,
-                        [c.id]: { ...current, winner: e.target.value as FactionKey },
-                      }))
-                    }
-                    style={{ width: "100%" }}
-                  >
-                    <option value={c.attackerFaction}>{c.attackerFaction} (attacker)</option>
-                    <option value={c.defenderFaction}>{c.defenderFaction} (defender)</option>
-                  </select>
-                </div>
+          {pendingContests.length === 0 ? (
+            <div style={{ fontSize: 12, opacity: 0.8 }}>No pending battles.</div>
+          ) : (
+            <div style={{ display: "grid", gap: 8 }}>
+              {pendingContests.map((c) => {
+                const current = battleOutcomes[c.id] ?? { contestId: c.id, winner: c.attackerFaction };
+                return (
+                  <div key={c.id} style={{ padding: 8, borderRadius: 8, border: "1px solid rgba(255,255,255,.12)" }}>
+                    <div style={{ fontWeight: 700 }}>
+                      {c.territoryId}: {c.attackerFaction} vs {c.defenderFaction}
+                    </div>
 
-                <div>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>Quick preset</div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button
-                      onClick={() =>
-                        setBattleOutcomes((s) => ({
-                          ...s,
-                          [c.id]: { ...current, attackerLossPct: 10, defenderLossPct: 25, attackerConditionHit: 0, defenderConditionHit: 1 },
-                        }))
-                      }
-                    >
-                      Minor
-                    </button>
-                    <button
-                      onClick={() =>
-                        setBattleOutcomes((s) => ({
-                          ...s,
-                          [c.id]: { ...current, attackerLossPct: 25, defenderLossPct: 25, attackerConditionHit: 1, defenderConditionHit: 1 },
-                        }))
-                      }
-                    >
-                      Bloody
-                    </button>
-                    <button
-                      onClick={() =>
-                        setBattleOutcomes((s) => ({
-                          ...s,
-                          [c.id]: { ...current, attackerLossPct: 40, defenderLossPct: 10, attackerConditionHit: 2, defenderConditionHit: 0 },
-                        }))
-                      }
-                    >
-                      Pyrrhic
-                    </button>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 12, opacity: 0.85 }}>Winner</div>
+                        <select
+                          value={current.winner}
+                          onChange={(e) =>
+                            setBattleOutcomes((s) => ({
+                              ...s,
+                              [c.id]: { ...current, winner: e.target.value as FactionKey },
+                            }))
+                          }
+                          style={{ width: "100%" }}
+                        >
+                          <option value={c.attackerFaction}>{c.attackerFaction} (attacker)</option>
+                          <option value={c.defenderFaction}>{c.defenderFaction} (defender)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <div style={{ fontSize: 12, opacity: 0.85 }}>Quick preset</div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            onClick={() =>
+                              setBattleOutcomes((s) => ({
+                                ...s,
+                                [c.id]: { ...current, attackerLossPct: 10, defenderLossPct: 25, attackerConditionHit: 0, defenderConditionHit: 1 },
+                              }))
+                            }
+                          >
+                            Minor
+                          </button>
+                          <button
+                            onClick={() =>
+                              setBattleOutcomes((s) => ({
+                                ...s,
+                                [c.id]: { ...current, attackerLossPct: 25, defenderLossPct: 25, attackerConditionHit: 1, defenderConditionHit: 1 },
+                              }))
+                            }
+                          >
+                            Bloody
+                          </button>
+                          <button
+                            onClick={() =>
+                              setBattleOutcomes((s) => ({
+                                ...s,
+                                [c.id]: { ...current, attackerLossPct: 40, defenderLossPct: 10, attackerConditionHit: 2, defenderConditionHit: 0 },
+                              }))
+                            }
+                          >
+                            Pyrrhic
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 12, opacity: 0.85 }}>Attacker loss %</div>
+                        <input
+                          type="number"
+                          value={current.attackerLossPct ?? 0}
+                          onChange={(e) =>
+                            setBattleOutcomes((s) => ({
+                              ...s,
+                              [c.id]: { ...current, attackerLossPct: Number(e.target.value) },
+                            }))
+                          }
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 12, opacity: 0.85 }}>Defender loss %</div>
+                        <input
+                          type="number"
+                          value={current.defenderLossPct ?? 0}
+                          onChange={(e) =>
+                            setBattleOutcomes((s) => ({
+                              ...s,
+                              [c.id]: { ...current, defenderLossPct: Number(e.target.value) },
+                            }))
+                          }
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
-                <div>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>Attacker loss %</div>
-                  <input
-                    type="number"
-                    value={current.attackerLossPct ?? 0}
-                    onChange={(e) =>
-                      setBattleOutcomes((s) => ({
-                        ...s,
-                        [c.id]: { ...current, attackerLossPct: Number(e.target.value) },
-                      }))
-                    }
-                    style={{ width: "100%" }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>Defender loss %</div>
-                  <input
-                    type="number"
-                    value={current.defenderLossPct ?? 0}
-                    onChange={(e) =>
-                      setBattleOutcomes((s) => ({
-                        ...s,
-                        [c.id]: { ...current, defenderLossPct: Number(e.target.value) },
-                      }))
-                    }
-                    style={{ width: "100%" }}
-                  />
-                </div>
-              </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
-    )}
+          )}
 
-    <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-      <button
-        onClick={() => resolveBattles(Object.values(battleOutcomes))}
-        disabled={pendingContests.length === 0}
-      >
-        Resolve Battles
-      </button>
-    </div>
-  </>
-)}
-
+          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            <button onClick={() => resolveBattles(Object.values(battleOutcomes))} disabled={pendingContests.length === 0}>
+              Resolve Battles
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

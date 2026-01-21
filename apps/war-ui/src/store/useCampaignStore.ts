@@ -1,10 +1,11 @@
+// src/store/useCampaignStore.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { VisibilityLevel } from "../data/visibility";
 
 import type { Phase, PlatoonOrder, TerritoryLock, Contest, Platoon, BattleOutcome } from "../domain/types";
 import { resolveTurn } from "../domain/resolveTurn";
-import { resolveBattles } from "../domain/resolveBattles";
+import { resolveBattles as resolveBattlesFn } from "../domain/resolveBattles";
 
 export type BaseFactionKey = "allies" | "axis" | "ussr";
 export type FactionKey = BaseFactionKey | `custom:${string}`;
@@ -63,20 +64,24 @@ export type CampaignState = {
   createCustomFaction: (name: string, color: string) => void;
   selectCustomFaction: (id: string | null) => void;
 
+  // GM can change viewer faction freely.
+  // Player cannot swap faction at all (locks fog-of-war identity).
   setViewerFaction: (f: FactionKey) => void;
+
   setSelectedTerritory: (id: string | null) => void;
 
   setHomeland: (factionKey: FactionKey, territoryId: string) => void;
   applyHomeland: (factionKey: FactionKey) => void;
 
+  // GM-only mutators (enforced)
   setOwner: (territoryId: string, ownerKey: OwnerKey) => void;
-
   setIntelLevel: (territoryId: string, faction: FactionKey, level: VisibilityLevel) => void;
   bulkSetIntelLevel: (territoryIds: string[], faction: FactionKey, level: VisibilityLevel) => void;
 
   addNote: (text: string) => void;
   resetAll: () => void;
 
+  // GM-only
   autoSetupWorld: () => void;
 
   // --- mechanics ---
@@ -88,6 +93,8 @@ export type CampaignState = {
   locksByTerritory: Record<string, TerritoryLock | undefined>;
   contestsByTerritory: Record<string, Contest | undefined>;
 
+  // Players can only create platoons / orders for their own faction.
+  // GM can do anything.
   createPlatoon: (faction: FactionKey, territoryId: string, name?: string) => void;
   setPlatoonOrderMove: (
     turn: number,
@@ -98,16 +105,29 @@ export type CampaignState = {
   ) => void;
   submitFactionOrders: (turn: number, faction: FactionKey) => void;
 
+  // GM-only mechanics
   resolveCurrentTurn: (isAdjacent: (a: string, b: string) => boolean) => void;
   resolveBattles: (outcomes: BattleOutcome[]) => void;
 
   setPhase: (p: Phase) => void;
   nextPhase: (isAdjacent: (a: string, b: string) => boolean) => void;
 
-  clearLocksAndContests: () => void; // handy while battles not implemented
+  clearLocksAndContests: () => void; // dev helper (GM-only)
 };
 
 const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+
+function logNote(text: string): TurnLogEntry {
+  return { ts: Date.now(), type: "NOTE", text };
+}
+
+function requireGM(s: CampaignState) {
+  return s.viewerMode === "GM";
+}
+
+function playerCanActAs(s: CampaignState, faction: FactionKey) {
+  return requireGM(s) || s.viewerFaction === faction;
+}
 
 const initialState: Omit<
   CampaignState,
@@ -199,7 +219,12 @@ export const useCampaignStore = create<CampaignState>()(
 
       selectCustomFaction: (id) => set({ selectedSetupFaction: "custom", selectedCustomId: id }),
 
-      setViewerFaction: (f) => set({ viewerFaction: f }),
+      // GM can swap faction; PLAYER cannot (locks identity)
+      setViewerFaction: (f) =>
+        set((s) => {
+          if (!requireGM(s)) return s;
+          return { viewerFaction: f };
+        }),
 
       setSelectedTerritory: (id) => set({ selectedTerritoryId: id }),
 
@@ -230,17 +255,24 @@ export const useCampaignStore = create<CampaignState>()(
           }
 
           return {
+            // NOTE: applyHomeland is a setup/GM action in practice, but we don't gate it here.
+            // It also serves as the one-time "pick your faction identity" for PLAYER mode.
             viewerFaction: factionKey,
             ownerByTerritory: { ...s.ownerByTerritory, [homelandTid]: factionKey },
             intelByTerritory: nextIntel,
           };
         }),
 
+      // -------- GM-only mutators --------
       setOwner: (territoryId, ownerKey) =>
-        set((s) => ({ ownerByTerritory: { ...s.ownerByTerritory, [territoryId]: ownerKey } })),
+        set((s) => {
+          if (!requireGM(s)) return s;
+          return { ownerByTerritory: { ...s.ownerByTerritory, [territoryId]: ownerKey } };
+        }),
 
       setIntelLevel: (territoryId, faction, level) =>
         set((s) => {
+          if (!requireGM(s)) return s;
           const prev = s.intelByTerritory[territoryId] || {};
           return {
             intelByTerritory: {
@@ -252,6 +284,7 @@ export const useCampaignStore = create<CampaignState>()(
 
       bulkSetIntelLevel: (territoryIds, faction, level) =>
         set((s) => {
+          if (!requireGM(s)) return s;
           const next = { ...s.intelByTerritory };
           for (const id of territoryIds) {
             const prev = next[id] || {};
@@ -260,13 +293,15 @@ export const useCampaignStore = create<CampaignState>()(
           return { intelByTerritory: next };
         }),
 
-      addNote: (text) =>
-        set((s) => ({ turnLog: [{ ts: Date.now(), type: "NOTE", text }, ...s.turnLog] })),
+      // -------- notes / reset --------
+      addNote: (text) => set((s) => ({ turnLog: [logNote(text), ...s.turnLog] })),
 
       resetAll: () => set({ ...initialState }),
 
       autoSetupWorld: () =>
         set((s) => {
+          if (!requireGM(s)) return s;
+
           const factions: FactionKey[] = ["allies", "axis", "ussr", ...s.customs.map((c) => `custom:${c.id}` as const)];
 
           const allTerritories = new Set<string>();
@@ -289,17 +324,19 @@ export const useCampaignStore = create<CampaignState>()(
 
           return {
             mode: "PLAY",
-            viewerFaction: "allies",
             ownerByTerritory: nextOwners,
             intelByTerritory: nextIntel,
             phase: "ORDERS" as const,
             turnNumber: 1,
+            turnLog: [logNote("Auto-setup world: PLAY started"), ...s.turnLog],
           };
         }),
 
-      // -------- mechanics --------
+      // -------- mechanics (players can only act as their own faction) --------
       createPlatoon: (faction, territoryId, name) =>
         set((s) => {
+          if (!playerCanActAs(s, faction)) return s;
+
           const id = uid();
           const next: Platoon = {
             id,
@@ -313,16 +350,22 @@ export const useCampaignStore = create<CampaignState>()(
 
           return {
             platoonsById: { ...s.platoonsById, [id]: next },
-            turnLog: [{ ts: Date.now(), type: "NOTE", text: `Created platoon for ${faction} at ${territoryId}` }, ...s.turnLog],
+            turnLog: [logNote(`Created platoon for ${faction} at ${territoryId}`), ...s.turnLog],
           };
         }),
 
       setPlatoonOrderMove: (turn, faction, platoonId, path, forcedMarch) =>
         set((s) => {
+          if (!playerCanActAs(s, faction)) return s;
+
+          const platoon = s.platoonsById[platoonId];
+          if (!platoon) return s;
+          if (platoon.faction !== faction) return s; // no cross-faction ordering
+
           const byTurn: Record<string, PlatoonOrder[]> = { ...(s.ordersByTurn[turn] ?? {}) };
           const list: PlatoonOrder[] = [...(byTurn[faction] ?? [])];
 
-          const from = s.platoonsById[platoonId]?.territoryId;
+          const from = platoon.territoryId;
 
           const existingIdx = list.findIndex((o) => o.platoonId === platoonId);
           const next: PlatoonOrder = {
@@ -346,18 +389,23 @@ export const useCampaignStore = create<CampaignState>()(
 
       submitFactionOrders: (turn, faction) =>
         set((s) => {
+          if (!playerCanActAs(s, faction)) return s;
+
           const byTurn: Record<string, PlatoonOrder[]> = { ...(s.ordersByTurn[turn] ?? {}) };
           const list: PlatoonOrder[] = (byTurn[faction] ?? []).map((o) => ({ ...o, submittedAt: Date.now() }));
           byTurn[faction] = list;
 
           return {
             ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn },
-            turnLog: [{ ts: Date.now(), type: "NOTE", text: `Orders submitted: ${faction} (Turn ${turn})` }, ...s.turnLog],
+            turnLog: [logNote(`Orders submitted: ${faction} (Turn ${turn})`), ...s.turnLog],
           };
         }),
 
+      // -------- GM-only mechanics --------
       resolveCurrentTurn: (isAdjacent) =>
         set((s) => {
+          if (!requireGM(s)) return s;
+
           const byTurn = s.ordersByTurn[s.turnNumber] ?? {};
           const allOrders = Object.values(byTurn).flat() as PlatoonOrder[];
 
@@ -376,13 +424,15 @@ export const useCampaignStore = create<CampaignState>()(
             ownerByTerritory: nextOwners,
             locksByTerritory: nextLocks,
             contestsByTerritory: nextContests,
-            turnLog: [...log.map((t) => ({ ts: Date.now(), type: "NOTE" as const, text: t })), ...s.turnLog],
+            turnLog: [...log.map((t) => logNote(t)), ...s.turnLog],
           };
         }),
 
       resolveBattles: (outcomes) =>
         set((s) => {
-          const { nextPlatoons, nextOwners, nextLocks, nextContests, log } = resolveBattles({
+          if (!requireGM(s)) return s;
+
+          const { nextPlatoons, nextOwners, nextLocks, nextContests, log } = resolveBattlesFn({
             platoonsById: s.platoonsById,
             ownerByTerritory: s.ownerByTerritory,
             locksByTerritory: s.locksByTerritory,
@@ -395,14 +445,20 @@ export const useCampaignStore = create<CampaignState>()(
             ownerByTerritory: nextOwners,
             locksByTerritory: nextLocks,
             contestsByTerritory: nextContests,
-            turnLog: [...log.map((t) => ({ ts: Date.now(), type: "NOTE" as const, text: t })), ...s.turnLog],
+            turnLog: [...log.map((t) => logNote(t)), ...s.turnLog],
           };
         }),
 
-      setPhase: (p) => set({ phase: p }),
+      setPhase: (p) =>
+        set((s) => {
+          if (!requireGM(s)) return s;
+          return { phase: p };
+        }),
 
       nextPhase: (isAdjacent) =>
         set((s) => {
+          if (!requireGM(s)) return s;
+
           if (s.phase === "SETUP") return { phase: "ORDERS" as const };
           if (s.phase === "ORDERS") return { phase: "RESOLUTION" as const };
 
@@ -426,7 +482,7 @@ export const useCampaignStore = create<CampaignState>()(
               ownerByTerritory: nextOwners,
               locksByTerritory: nextLocks,
               contestsByTerritory: nextContests,
-              turnLog: [...log.map((t) => ({ ts: Date.now(), type: "NOTE" as const, text: t })), ...s.turnLog],
+              turnLog: [...log.map((t) => logNote(t)), ...s.turnLog],
             };
           }
 
@@ -435,14 +491,18 @@ export const useCampaignStore = create<CampaignState>()(
         }),
 
       clearLocksAndContests: () =>
-        set((s) => ({
-          locksByTerritory: {},
-          contestsByTerritory: {},
-          ownerByTerritory: Object.fromEntries(
-            Object.entries(s.ownerByTerritory).map(([tid, o]) => [tid, o === "contested" ? "neutral" : o])
-          ),
-          turnLog: [{ ts: Date.now(), type: "NOTE", text: "Cleared locks/contests (dev helper)" }, ...s.turnLog],
-        })),
+        set((s) => {
+          if (!requireGM(s)) return s;
+
+          return {
+            locksByTerritory: {},
+            contestsByTerritory: {},
+            ownerByTerritory: Object.fromEntries(
+              Object.entries(s.ownerByTerritory).map(([tid, o]) => [tid, o === "contested" ? "neutral" : o])
+            ),
+            turnLog: [logNote("Cleared locks/contests (dev helper)"), ...s.turnLog],
+          };
+        }),
     }),
     { name: "war_campaign_zustand_v2" }
   )

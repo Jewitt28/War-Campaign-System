@@ -5,10 +5,12 @@
   "type": "module",
  "scripts": {
   "dev": "vite",
-  "build": "tsc -b && vite build",
+  "build": "tsc -b && vite build && cp ../../docs/index.html ../../docs/404.html",
+
+  
   "lint": "eslint .",
   "preview": "vite preview",
-  "deploy:ui": "npm run build && git add ../../docs && git commit -m \"Deploy Pages build\" || true && git push"
+"deploy:ui": "npm run build && cd ../.. && git add docs && (git commit -m \"Deploy Pages build\" || echo \"No changes to commit\") && git push"
 },
 
   "dependencies": {

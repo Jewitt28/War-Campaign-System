@@ -3,8 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadTheatresData, withBase, type TheatreData } from "../data/theatres";
 import type { VisibilityLevel } from "../data/visibility";
 import { useCampaignStore } from "../store/useCampaignStore";
-import type { FactionKey, OwnerKey } from "../store/useCampaignStore";
-import type { Platoon, PlatoonOrder, Contest } from "../domain/types";
+import type { Contest } from "../domain/types";
 
 type TerritoryInfo = {
   id: string;
@@ -46,15 +45,6 @@ function getOwnerFill(owner: string, customs: Array<{ id: string; color: string 
   return "#6b7280";
 }
 
-function getFactionStroke(f: string, customs: Array<{ id: string; color: string }>) {
-  if (f === "allies" || f === "axis" || f === "ussr") return baseFactionColors[f];
-  if (f.startsWith("custom:")) {
-    const id = f.slice("custom:".length);
-    return customs.find((x) => x.id === id)?.color ?? "#22c55e";
-  }
-  return "#ffffff";
-}
-
 function parseViewBox(svg: SVGSVGElement): ViewBox {
   const vb = svg.getAttribute("viewBox");
   if (vb) {
@@ -64,11 +54,14 @@ function parseViewBox(svg: SVGSVGElement): ViewBox {
   const bb = svg.getBBox();
   return { x: bb.x, y: bb.y, w: bb.width, h: bb.height };
 }
+
+function setViewBox(svg: SVGSVGElement, vb: ViewBox) {
+  svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+}
+
 function stripSvgBackground(svg: SVGSVGElement) {
-  // 1) kill common inline white backgrounds
   svg.style.background = "transparent";
 
-  // 2) remove or neutralize any full-canvas rects (most common cause)
   const vb = parseViewBox(svg);
   const rects = Array.from(svg.querySelectorAll("rect"));
 
@@ -87,40 +80,14 @@ function stripSvgBackground(svg: SVGSVGElement) {
 
     const looksLikeTopLeft = Math.abs(x - vb.x) < vb.w * 0.05 && Math.abs(y - vb.y) < vb.h * 0.05;
 
-    const looksWhite =
-      fill === "#fff" ||
-      fill === "#ffffff" ||
-      fill === "white" ||
-      fill === "rgb(255,255,255)";
+    const looksWhite = fill === "#fff" || fill === "#ffffff" || fill === "white" || fill === "rgb(255,255,255)";
 
     if (looksLikeFull && looksLikeTopLeft && looksWhite) {
-      // safest: neutralise rather than delete
       r.setAttribute("fill", "none");
       r.style.fill = "none";
       r.style.pointerEvents = "none";
     }
   }
-}
-
-function setViewBox(svg: SVGSVGElement, vb: ViewBox) {
-  svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
-}
-
-function territoryCenter(svg: SVGSVGElement, shapeIds: string[]) {
-  let n = 0;
-  let sx = 0;
-  let sy = 0;
-
-  for (const id of shapeIds) {
-    const el = svg.querySelector<SVGGraphicsElement>(`#${CSS.escape(id)}`);
-    if (!el) continue;
-    const bb = el.getBBox();
-    sx += bb.x + bb.width / 2;
-    sy += bb.y + bb.height / 2;
-    n++;
-  }
-  if (!n) return null;
-  return { x: sx / n, y: sy / n };
 }
 
 function wireZoomPanImpl(svg: SVGSVGElement, hostEl: HTMLDivElement, setVbState?: (vb: ViewBox) => void) {
@@ -232,16 +199,23 @@ function wireZoomPanImpl(svg: SVGSVGElement, hostEl: HTMLDivElement, setVbState?
   return { api, cleanup };
 }
 
-function clamp(n: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, n));
+function isGMEffective(mode: "SETUP" | "PLAY", viewerMode: "PLAYER" | "GM") {
+  // Setup is effectively GM-authority for map interactions / visibility.
+  return mode === "SETUP" || viewerMode === "GM";
+}
+
+function redactByIntel(level: VisibilityLevel) {
+  return {
+    showName: level !== "NONE",
+    showOwner: level === "SCOUTED" || level === "FULL",
+    showCombat: level === "FULL",
+  };
 }
 
 export default function MapBoard() {
   const svgHostRef = useRef<HTMLDivElement>(null);
 
-  // We keep vb because we project SVG coords -> screen coords for overlays.
   const [vb, setVb] = useState<ViewBox | null>(null);
-
   const [hover, setHover] = useState<HoverState>(null);
 
   const zoomApiRef = useRef<null | {
@@ -252,14 +226,14 @@ export default function MapBoard() {
   }>(null);
 
   const [data, setData] = useState<TheatreData | null>(null);
-  const [selected, setSelected] = useState<Selection | null>(null);
+
+  // Tracks the last clicked *shape* for UI display, without storing the whole selection in state.
+  const [lastClickedShapeId, setLastClickedShapeId] = useState<string>("");
 
   // store
+  const mode = useCampaignStore((s) => s.mode);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
-
-  const customs = useCampaignStore((s) => s.customs);
-
   const activeTheatres = useCampaignStore((s) => s.activeTheatres);
 
   const selectedTerritoryId = useCampaignStore((s) => s.selectedTerritoryId);
@@ -268,15 +242,10 @@ export default function MapBoard() {
 
   const intelByTerritory = useCampaignStore((s) => s.intelByTerritory);
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
-  const homelands = useCampaignStore((s) => s.homelands);
-
-  const platoonsById = useCampaignStore((s) => s.platoonsById);
+  // const homelands = useCampaignStore((s) => s.homelands);
 
   const locksByTerritory = useCampaignStore((s) => s.locksByTerritory);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
-
-  const turnNumber = useCampaignStore((s) => s.turnNumber);
-  const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
 
   const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
   const setHomeland = useCampaignStore((s) => s.setHomeland);
@@ -284,7 +253,6 @@ export default function MapBoard() {
 
   const didDefaultZoomRef = useRef(false);
 
-  // derive territories visible in current theatre selection
   const { allowedShapeIds, shapeToTerritory, territoriesById } = useMemo(() => {
     const allowed = new Set<string>();
     const shapeMap = new Map<string, TerritoryInfo>();
@@ -316,30 +284,37 @@ export default function MapBoard() {
     return { allowedShapeIds: allowed, shapeToTerritory: shapeMap, territoriesById: terrMap };
   }, [activeTheatres, data]);
 
-  // Visible platoons rules (GM sees all; player sees own + intel-eligible enemies)
-  const visiblePlatoons = useMemo(() => {
-    const gm = viewerMode === "GM";
-    const platoons = Object.values(platoonsById) as Platoon[];
-    if (!platoons.length) return [];
+  const gmEffective = isGMEffective(mode, viewerMode);
 
-    if (gm) return platoons;
+  const getIntelForTid = useCallback(
+    (tid: string): VisibilityLevel => {
+      if (gmEffective) return "FULL";
+      return intelByTerritory[tid]?.[viewerFaction] ?? "NONE";
+    },
+    [gmEffective, intelByTerritory, viewerFaction]
+  );
 
-    return platoons.filter((p) => {
-      if (p.faction === viewerFaction) return true;
-      const lvl = intelByTerritory[p.territoryId]?.[viewerFaction] ?? "NONE";
-      return lvl === "SCOUTED" || lvl === "FULL";
-    });
-  }, [viewerMode, platoonsById, viewerFaction, intelByTerritory]);
+  // Derived selection (no setState in effect). We only produce a selection if player has intel.
+  const selected: Selection | null = useMemo(() => {
+    if (!selectedTerritoryId) return null;
 
-  const platoonsByTerritory = useMemo(() => {
-    const m = new Map<string, Platoon[]>();
-    for (const p of visiblePlatoons) {
-      const list = m.get(p.territoryId) ?? [];
-      list.push(p);
-      m.set(p.territoryId, list);
-    }
-    return m;
-  }, [visiblePlatoons]);
+    const terr = territoriesById.get(selectedTerritoryId);
+    if (!terr) return null;
+
+    const lvl = getIntelForTid(terr.id);
+    if (!gmEffective && lvl === "NONE") return null;
+
+    const clickedShapeId =
+      lastClickedShapeId && terr.shapeRefs.includes(lastClickedShapeId) ? lastClickedShapeId : terr.shapeRefs[0] ?? "";
+
+    return {
+      territoryId: terr.id,
+      territoryName: terr.name,
+      theatreId: terr.theatreId,
+      theatreTitle: terr.theatreTitle,
+      clickedShapeId,
+    };
+  }, [selectedTerritoryId, territoriesById, gmEffective, getIntelForTid, lastClickedShapeId]);
 
   const clearSelectionStyles = useCallback((svg: SVGSVGElement) => {
     svg.querySelectorAll<SVGPathElement>("path").forEach((p) => {
@@ -353,10 +328,10 @@ export default function MapBoard() {
 
   const applyFogStyles = useCallback(
     (svg: SVGSVGElement) => {
-      const { viewerFaction, intelByTerritory, ownerByTerritory, customs, homelands, viewerMode } =
+      const { viewerFaction, intelByTerritory, ownerByTerritory, customs, homelands, viewerMode, mode } =
         useCampaignStore.getState();
 
-      const gm = viewerMode === "GM";
+      const gm = isGMEffective(mode, viewerMode);
       clearSelectionStyles(svg);
 
       const homelandId = homelands?.[viewerFaction] ?? null;
@@ -370,25 +345,32 @@ export default function MapBoard() {
           p.dataset.baseFill = attrFill && attrFill !== "none" ? attrFill : "#444";
         }
 
-        p.style.cursor = "pointer";
-        p.style.pointerEvents = "auto";
-        p.style.stroke = "#1a1a1a";
-        p.style.strokeWidth = "0.8";
-
         const territory = shapeToTerritory.get(shapeId);
         if (!territory) return;
 
         const level: VisibilityLevel = gm ? "FULL" : (intelByTerritory[territory.id]?.[viewerFaction] ?? "NONE");
 
+        const canInteract = gm || level !== "NONE";
+
+        p.style.cursor = canInteract ? "pointer" : "default";
+        p.style.pointerEvents = canInteract ? "auto" : "none";
+
+        p.style.stroke = "#1a1a1a";
+        p.style.strokeWidth = "0.8";
+
         if (level === "NONE") {
-          p.style.opacity = "0.25";
+          p.style.opacity = "0.18";
           p.style.fill = p.dataset.baseFill!;
         } else if (level === "KNOWN") {
-          p.style.opacity = "0.65";
+          p.style.opacity = "0.55";
           p.style.fill = p.dataset.baseFill!;
+        } else if (level === "SCOUTED") {
+          const owner = ownerByTerritory[territory.id] ?? "neutral";
+          p.style.opacity = "0.72";
+          p.style.fill = getOwnerFill(owner, customs);
         } else {
           const owner = ownerByTerritory[territory.id] ?? "neutral";
-          p.style.opacity = "0.85";
+          p.style.opacity = "0.9";
           p.style.fill = getOwnerFill(owner, customs);
         }
 
@@ -396,13 +378,14 @@ export default function MapBoard() {
           p.style.opacity = "1";
           p.style.stroke = "#ffffff";
           p.style.strokeWidth = "2.6";
+          p.style.pointerEvents = "auto";
+          p.style.cursor = "pointer";
         }
       });
     },
-    [clearSelectionStyles, allowedShapeIds, shapeToTerritory]
+    [allowedShapeIds, clearSelectionStyles, shapeToTerritory]
   );
 
-  // theatre key for refit
   const theatresKey = useMemo(
     () => (["WE", "EE", "NA", "PA"] as const).filter((k) => activeTheatres[k]).join("|"),
     [activeTheatres]
@@ -455,6 +438,9 @@ export default function MapBoard() {
     (svg: SVGSVGElement, territory: TerritoryInfo) => {
       applyFogStyles(svg);
 
+      const lvl = getIntelForTid(territory.id);
+      if (!gmEffective && lvl === "NONE") return;
+
       territory.shapeRefs.forEach((id) => {
         const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
         if (!p) return;
@@ -463,27 +449,8 @@ export default function MapBoard() {
         p.style.strokeWidth = "2";
       });
     },
-    [applyFogStyles]
+    [applyFogStyles, getIntelForTid, gmEffective]
   );
-
-  useEffect(() => {
-    const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
-    if (!svg) return;
-    if (!selectedTerritoryId) return;
-
-    const territory = territoriesById.get(selectedTerritoryId);
-    if (!territory) return;
-
-    setSelected({
-      territoryId: territory.id,
-      territoryName: territory.name,
-      theatreId: territory.theatreId,
-      theatreTitle: territory.theatreTitle,
-      clickedShapeId: territory.shapeRefs[0] ?? "",
-    });
-
-    highlightTerritory(svg, territory);
-  }, [territoriesById, highlightTerritory, selectedTerritoryId]);
 
   const highlightRegion = useCallback(
     (svg: SVGSVGElement, territoryIds: string[]) => {
@@ -492,6 +459,9 @@ export default function MapBoard() {
       const ids = new Set(territoryIds);
       for (const info of territoriesById.values()) {
         if (!ids.has(info.id)) continue;
+
+        const lvl = getIntelForTid(info.id);
+        if (!gmEffective && lvl === "NONE") continue;
 
         for (const shapeId of info.shapeRefs) {
           const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
@@ -502,7 +472,7 @@ export default function MapBoard() {
         }
       }
     },
-    [applyFogStyles, territoriesById]
+    [applyFogStyles, territoriesById, getIntelForTid, gmEffective]
   );
 
   useEffect(() => {
@@ -539,24 +509,22 @@ export default function MapBoard() {
           const territory = shapeToTerritory.get(shapeId);
           if (!territory) return;
 
+          const s = useCampaignStore.getState();
+          const gm = isGMEffective(s.mode, s.viewerMode);
+          const lvl: VisibilityLevel = gm ? "FULL" : (s.intelByTerritory[territory.id]?.[s.viewerFaction] ?? "NONE");
+
+          if (!gm && lvl === "NONE") return;
+
+          setLastClickedShapeId(shapeId);
           setSelectedTerritory(territory.id);
 
-          const { mode } = useCampaignStore.getState();
-          if (mode === "SETUP") {
+          if (s.mode === "SETUP") {
             const fk = makeFactionKeyFromSetup();
             if (fk) {
               setHomeland(fk, territory.id);
               applyHomeland(fk);
             }
           }
-
-          setSelected({
-            territoryId: territory.id,
-            territoryName: territory.name,
-            theatreId: territory.theatreId,
-            theatreTitle: territory.theatreTitle,
-            clickedShapeId: shapeId,
-          });
 
           highlightTerritory(svg, territory);
         };
@@ -587,7 +555,8 @@ export default function MapBoard() {
       });
 
       const onSvgClick = () => {
-        setSelected(null);
+        setLastClickedShapeId("");
+        setSelectedTerritory(null);
         applyFogStyles(svg);
       };
 
@@ -609,9 +578,6 @@ export default function MapBoard() {
       .then((nd) => setData(nd.raw))
       .catch((err) => console.error("Failed to load theatres_all.json", err));
   }, []);
-
-  // Territory centers in SVG coordinates
-  const [territoryCenters, setTerritoryCenters] = useState<Record<string, { x: number; y: number }>>({});
 
   useEffect(() => {
     if (!data) return;
@@ -635,7 +601,7 @@ export default function MapBoard() {
         svg.setAttribute("height", "100%");
         svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
         svg.style.display = "block";
-        
+
         stripSvgBackground(svg);
         applyFogStyles(svg);
         cleanupClicks = wireTerritoryEvents(svg);
@@ -646,14 +612,6 @@ export default function MapBoard() {
         cleanupZoom = cleanup;
 
         fitToAllowed(svg);
-
-        // compute centers for visible territories
-        const nextCenters: Record<string, { x: number; y: number }> = {};
-        for (const t of territoriesById.values()) {
-          const c = territoryCenter(svg, t.shapeRefs);
-          if (c) nextCenters[t.id] = c;
-        }
-        setTerritoryCenters(nextCenters);
 
         if (!didDefaultZoomRef.current) {
           didDefaultZoomRef.current = true;
@@ -668,139 +626,21 @@ export default function MapBoard() {
       cleanupZoom?.();
       zoomApiRef.current = null;
     };
-  }, [data, applyFogStyles, wireTerritoryEvents, wireZoomPan, fitToAllowed, territoriesById]);
+  }, [data, applyFogStyles, wireTerritoryEvents, wireZoomPan, fitToAllowed]);
 
+  // External side-effect only: update DOM styles when selection changes (no setState here).
   useEffect(() => {
     const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
     if (!svg) return;
 
     if (selected) {
-      const territory = territoriesById.get(selected.territoryId);
-      if (territory) highlightTerritory(svg, territory);
+      const terr = territoriesById.get(selected.territoryId);
+      if (terr) highlightTerritory(svg, terr);
       else applyFogStyles(svg);
     } else {
       applyFogStyles(svg);
     }
-  }, [viewerFaction, intelByTerritory, ownerByTerritory, homelands, selected, territoriesById, applyFogStyles, highlightTerritory]);
-
-  // project SVG point -> screen pixel within host
-  const project = useCallback(
-    (pt: { x: number; y: number }) => {
-      const host = svgHostRef.current;
-      if (!host || !vb) return null;
-
-      const rect = host.getBoundingClientRect();
-      return {
-        x: ((pt.x - vb.x) / vb.w) * rect.width,
-        y: ((pt.y - vb.y) / vb.h) * rect.height,
-      };
-    },
-    [vb]
-  );
-
-  // which territory IDs get overlay markers (GM: all visible; Player: >= KNOWN)
-  const markerTerritoryIds = useMemo(() => {
-    const gm = viewerMode === "GM";
-    const ids: string[] = [];
-
-    for (const tid of territoriesById.keys()) {
-      if (gm) {
-        ids.push(tid);
-        continue;
-      }
-      const lvl = intelByTerritory[tid]?.[viewerFaction] ?? "NONE";
-      if (lvl === "NONE") continue;
-      ids.push(tid);
-    }
-    return ids;
-  }, [viewerMode, territoriesById, intelByTerritory, viewerFaction]);
-
-  // --- Movement overlays (current turn) ---
-  type MoveRender = {
-    orderId: string;
-    faction: FactionKey;
-    submitted: boolean;
-    pointsSvg: Array<{ x: number; y: number }>;
-  };
-
-  const moveRenders = useMemo<MoveRender[]>(() => {
-    const byTurn = ordersByTurn[turnNumber] ?? {};
-
-    const factions: FactionKey[] =
-      viewerMode === "GM" ? (Object.keys(byTurn) as FactionKey[]) : ([viewerFaction] as FactionKey[]);
-
-    const renders: MoveRender[] = [];
-
-    for (const f of factions) {
-      const list = (byTurn[f] ?? []) as PlatoonOrder[];
-      for (const o of list) {
-        if (o.type !== "MOVE") continue;
-
-        const path = o.path ?? [];
-        if (!path.length) continue;
-
-        // from can be missing; fall back to current platoon location
-        const fromTid = o.from ?? platoonsById[o.platoonId]?.territoryId;
-        if (!fromTid) continue;
-
-        const chain = [fromTid, ...path];
-
-        // Require centers for all points (otherwise skip)
-        const pointsSvg: Array<{ x: number; y: number }> = [];
-        let ok = true;
-        for (const tid of chain) {
-          const c = territoryCenters[tid];
-          if (!c) {
-            ok = false;
-            break;
-          }
-          pointsSvg.push(c);
-        }
-        if (!ok) continue;
-
-        renders.push({
-          orderId: o.id,
-          faction: f,
-          submitted: !!o.submittedAt,
-          pointsSvg,
-        });
-      }
-    }
-
-    return renders;
-  }, [ordersByTurn, turnNumber, viewerMode, viewerFaction, platoonsById, territoryCenters]);
-
-  // convert movement lines to screen-space paths (fast + stable)
-  const movementPaths = useMemo(() => {
-    if (!vb || !svgHostRef.current) return [];
-
-    const hostRect = svgHostRef.current.getBoundingClientRect();
-
-    const toPx = (p: { x: number; y: number }) => ({
-      x: ((p.x - vb.x) / vb.w) * hostRect.width,
-      y: ((p.y - vb.y) / vb.h) * hostRect.height,
-    });
-
-    return moveRenders
-      .map((m) => {
-        const pts = m.pointsSvg.map(toPx);
-        if (pts.length < 2) return null;
-
-        const d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} ` + pts
-          .slice(1)
-          .map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-          .join(" ");
-
-        return {
-          key: `${m.faction}:${m.orderId}`,
-          faction: m.faction,
-          submitted: m.submitted,
-          d,
-          end: pts[pts.length - 1],
-        };
-      })
-      .filter(Boolean) as Array<{ key: string; faction: FactionKey; submitted: boolean; d: string; end: { x: number; y: number } }>;
-  }, [moveRenders, vb]);
+  }, [selected, territoriesById, applyFogStyles, highlightTerritory]);
 
   return (
     <div style={{ display: "flex", height: "100%", minHeight: 0 }}>
@@ -817,167 +657,7 @@ export default function MapBoard() {
           }}
         />
 
-        {/* Movement overlay (screen-space SVG on top) */}
-        <svg
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 3,
-            pointerEvents: "none",
-          }}
-        >
-          {movementPaths.map((p) => {
-            const stroke = getFactionStroke(p.faction, customs);
-            return (
-              <g key={p.key}>
-                <path
-                  d={p.d}
-                  fill="none"
-                  stroke={stroke}
-                  strokeWidth={2.2}
-                  strokeOpacity={p.submitted ? 0.9 : 0.55}
-                  strokeDasharray={p.submitted ? undefined : "6 6"}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                {/* endpoint dot */}
-                <circle
-                  cx={p.end.x}
-                  cy={p.end.y}
-                  r={3.4}
-                  fill={stroke}
-                  opacity={p.submitted ? 0.95 : 0.6}
-                />
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Marker overlay */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            pointerEvents: "none",
-            zIndex: 4,
-          }}
-        >
-          {markerTerritoryIds.map((tid) => {
-            const c = territoryCenters[tid];
-            if (!c) return null;
-
-            const p = project(c);
-            if (!p || !svgHostRef.current) return null;
-
-            const rect = svgHostRef.current.getBoundingClientRect();
-            const x = clamp(p.x, 10, rect.width - 10);
-            const y = clamp(p.y, 10, rect.height - 10);
-
-            const owner = (ownerByTerritory[tid] ?? "neutral") as OwnerKey;
-            const ownerColor = getOwnerFill(owner, customs);
-
-            const locked = !!locksByTerritory[tid];
-            const contest = contestsByTerritory[tid] as Contest | undefined;
-
-            const homelandId = homelands?.[viewerFaction] ?? null;
-            const isHomeland = homelandId === tid;
-
-            const platoons = platoonsByTerritory.get(tid) ?? [];
-            const friendlyCount = platoons.filter((pl) => pl.faction === viewerFaction).length;
-            const enemyCount = platoons.length - friendlyCount;
-
-            return (
-              <div
-                key={tid}
-                style={{
-                  position: "absolute",
-                  left: x,
-                  top: y,
-                  transform: "translate(-50%, -50%)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                {/* Owner dot */}
-                <div
-                  title={`Owner: ${owner}`}
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 999,
-                    background: ownerColor,
-                    border: isHomeland ? "2px solid #fff" : "1px solid rgba(0,0,0,.45)",
-                    boxShadow: "0 1px 6px rgba(0,0,0,.45)",
-                  }}
-                />
-
-                {/* Status icons */}
-                {(locked || contest) && (
-                  <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-                    {locked && (
-                      <div
-                        title="Locked (combat)"
-                        style={{
-                          fontSize: 11,
-                          padding: "1px 5px",
-                          borderRadius: 999,
-                          background: "rgba(0,0,0,.55)",
-                          border: "1px solid rgba(255,255,255,.18)",
-                          color: "#fff",
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        🔒
-                      </div>
-                    )}
-
-                    {contest && (
-                      <div
-                        title={`Contest: ${contest.attackerFaction} vs ${contest.defenderFaction} (${contest.status})`}
-                        style={{
-                          fontSize: 11,
-                          padding: "1px 5px",
-                          borderRadius: 999,
-                          background: "rgba(0,0,0,.55)",
-                          border: "1px solid rgba(255,255,255,.18)",
-                          color: "#fff",
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        ⚔
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Platoon counts */}
-                {platoons.length > 0 && (
-                  <div
-                    title={
-                      viewerMode === "GM"
-                        ? `Platoons: ${platoons.length}`
-                        : `Platoons (visible): friendly ${friendlyCount}, enemy ${enemyCount}`
-                    }
-                    style={{
-                      fontSize: 11,
-                      padding: "1px 6px",
-                      borderRadius: 999,
-                      background: "rgba(0,0,0,.55)",
-                      border: "1px solid rgba(255,255,255,.18)",
-                      color: "#fff",
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {viewerMode === "GM" ? platoons.length : `${friendlyCount}${enemyCount ? `+${enemyCount}` : ""}`}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Overlay controls */}
+        {/* Controls */}
         <div
           style={{
             position: "absolute",
@@ -1015,10 +695,8 @@ export default function MapBoard() {
             const locked = !!locksByTerritory[tid];
             const contest = contestsByTerritory[tid] as Contest | undefined;
 
-            const gm = viewerMode === "GM";
-            const level: VisibilityLevel = gm ? "FULL" : (intelByTerritory[tid]?.[viewerFaction] ?? "NONE");
-
-            const platoons = platoonsByTerritory.get(tid) ?? [];
+            const level: VisibilityLevel = gmEffective ? "FULL" : (intelByTerritory[tid]?.[viewerFaction] ?? "NONE");
+            const redact = redactByIntel(level);
 
             return (
               <div
@@ -1034,39 +712,38 @@ export default function MapBoard() {
                   fontSize: 12,
                   maxWidth: 280,
                   pointerEvents: "none",
+                  color: "#fff",
                 }}
               >
                 <div style={{ fontWeight: 800, marginBottom: 4 }}>
-                  {terr.name} <span style={{ opacity: 0.75 }}>({tid})</span>
+                  {redact.showName ? (
+                    <>
+                      {terr.name} <span style={{ opacity: 0.75 }}>({tid})</span>
+                    </>
+                  ) : (
+                    <>Unknown territory</>
+                  )}
                 </div>
-                <div style={{ opacity: 0.9 }}>
-                  <b>Owner:</b> {owner}
-                </div>
+
                 <div style={{ opacity: 0.9 }}>
                   <b>Intel:</b> {level}
                 </div>
-                {locked && (
+
+                {redact.showOwner && (
+                  <div style={{ opacity: 0.9 }}>
+                    <b>Owner:</b> {owner}
+                  </div>
+                )}
+
+                {redact.showCombat && locked && (
                   <div style={{ opacity: 0.95, marginTop: 4 }}>
                     <b>Locked:</b> COMBAT
                   </div>
                 )}
-                {contest && (
+
+                {redact.showCombat && contest && (
                   <div style={{ opacity: 0.95, marginTop: 4 }}>
                     <b>Contest:</b> {contest.attackerFaction} vs {contest.defenderFaction} ({contest.status})
-                  </div>
-                )}
-
-                {platoons.length > 0 && (
-                  <div style={{ marginTop: 6, opacity: 0.95 }}>
-                    <b>Platoons:</b>
-                    <div style={{ marginTop: 2, opacity: 0.9 }}>
-                      {platoons.slice(0, 6).map((p) => (
-                        <div key={p.id}>
-                          • {p.name} ({p.faction})
-                        </div>
-                      ))}
-                      {platoons.length > 6 && <div>… +{platoons.length - 6} more</div>}
-                    </div>
                   </div>
                 )}
               </div>
@@ -1108,33 +785,63 @@ export default function MapBoard() {
         {!data && <div>Loading theatres…</div>}
 
         {selected ? (
-          <div style={{ lineHeight: 1.5 }}>
-            <div>
-              <strong>Territory:</strong> {selected.territoryName} ({selected.territoryId})
-            </div>
-            <div>
-              <strong>Theatre:</strong> {selected.theatreTitle} ({selected.theatreId})
-            </div>
-            <div style={{ opacity: 0.8, marginTop: 8 }}>
-              <strong>Clicked shape:</strong> {selected.clickedShapeId}
-            </div>
-            {useCampaignStore.getState().mode === "SETUP" && (
-              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.85 }}>
-                Setup mode: click sets homeland for selected faction.
-              </div>
-            )}
+          (() => {
+            const tid = selected.territoryId;
+            const level: VisibilityLevel = gmEffective ? "FULL" : (intelByTerritory[tid]?.[viewerFaction] ?? "NONE");
+            const redact = redactByIntel(level);
 
-            <div style={{ marginTop: 12, fontSize: 12, opacity: 0.9 }}>
-              <div>
-                <b>Turn:</b> {turnNumber}
+            const owner = ownerByTerritory[tid] ?? "neutral";
+            const locked = !!locksByTerritory[tid];
+            const contest = contestsByTerritory[tid] as Contest | undefined;
+
+            return (
+              <div style={{ lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 800, marginBottom: 6 }}>
+                  {redact.showName ? `${selected.territoryName} (${selected.territoryId})` : "Unknown territory"}
+                </div>
+
+                <div style={{ opacity: 0.9 }}>
+                  <b>Intel:</b> {level}
+                </div>
+
+                {redact.showName && (
+                  <div style={{ opacity: 0.9 }}>
+                    <b>Theatre:</b> {selected.theatreTitle} ({selected.theatreId})
+                  </div>
+                )}
+
+                {redact.showOwner && (
+                  <div style={{ opacity: 0.9, marginTop: 6 }}>
+                    <b>Owner:</b> {owner}
+                  </div>
+                )}
+
+                {redact.showCombat && locked && (
+                  <div style={{ opacity: 0.95, marginTop: 6 }}>
+                    <b>Locked:</b> COMBAT
+                  </div>
+                )}
+
+                {redact.showCombat && contest && (
+                  <div style={{ opacity: 0.95, marginTop: 6 }}>
+                    <b>Contest:</b> {contest.attackerFaction} vs {contest.defenderFaction} ({contest.status})
+                  </div>
+                )}
+
+                <div style={{ opacity: 0.8, marginTop: 10 }}>
+                  <b>Clicked shape:</b> {selected.clickedShapeId}
+                </div>
+
+                {useCampaignStore.getState().mode === "SETUP" && (
+                  <div style={{ marginTop: 8, fontSize: 12, opacity: 0.85 }}>
+                    Setup mode: click sets homeland for selected faction.
+                  </div>
+                )}
               </div>
-              <div>
-                <b>Viewer:</b> {viewerMode} ({viewerFaction})
-              </div>
-            </div>
-          </div>
+            );
+          })()
         ) : (
-          <div>Click a territory (only your campaign territories are clickable)</div>
+          <div>Click a territory (in Player mode you can only click territories you have intel on)</div>
         )}
       </div>
     </div>
