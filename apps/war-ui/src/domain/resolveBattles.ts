@@ -1,3 +1,4 @@
+// src/domain/resolveBattles.ts
 import type { BattleOutcome, Platoon, PlatoonCondition, Contest, TerritoryLock } from "./types";
 import type { OwnerKey } from "../store/useCampaignStore";
 
@@ -60,10 +61,12 @@ export function resolveBattles(args: {
     }
 
     // winner takes territory
-    nextOwners[territoryId] = out.winner;
+    nextOwners[territoryId] = out.winner as OwnerKey;
 
-    // unlock territory
-    delete nextLocks[territoryId];
+    // unlock territory (safe)
+    if (nextLocks[territoryId]) {
+      delete nextLocks[territoryId];
+    }
 
     // mark resolved
     nextContests[territoryId] = { ...c, status: "RESOLVED" };

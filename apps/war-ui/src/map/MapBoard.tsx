@@ -1,3 +1,4 @@
+// apps/war-ui/src/map/MapBoard.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadTheatresData, withBase, type TheatreData } from "../data/theatres";
@@ -13,14 +14,6 @@ type TerritoryInfo = {
   shapeRefs: string[];
 };
 
-type Selection = {
-  territoryId: string;
-  territoryName: string;
-  theatreId: string;
-  theatreTitle: string;
-  clickedShapeId: string;
-};
-
 type ViewBox = { x: number; y: number; w: number; h: number };
 type HoverState = { tid: string; x: number; y: number } | null;
 
@@ -30,10 +23,13 @@ const baseFactionColors: Record<"allies" | "axis" | "ussr", string> = {
   ussr: "#f97316",
 };
 
+// ✅ borders ALWAYS visible (strategy/planning)
+const BORDER_STROKE = "rgba(255,255,255,.55)";
+const BORDER_WIDTH = "1.25";
+
 function getOwnerFill(owner: string, customs: Array<{ id: string; color: string }>) {
   if (owner === "neutral") return "#6b7280";
   if (owner === "contested") return "#a855f7";
-
   if (owner === "allies" || owner === "axis" || owner === "ussr") return baseFactionColors[owner];
 
   if (owner.startsWith("custom:")) {
@@ -41,8 +37,26 @@ function getOwnerFill(owner: string, customs: Array<{ id: string; color: string 
     const c = customs.find((x) => x.id === id);
     return c?.color ?? "#22c55e";
   }
-
   return "#6b7280";
+}
+
+function isGMEffective(mode: "SETUP" | "PLAY", viewerMode: "PLAYER" | "GM") {
+  // Setup is effectively GM-authority for map interactions / visibility.
+  return mode === "SETUP" || viewerMode === "GM";
+}
+
+// v1: what UI elements can be shown at each intel level
+function redactByIntel(level: VisibilityLevel, ownerIsViewer: boolean, gmEffective: boolean) {
+  // GM sees everything, viewer-owned is always FULL.
+  if (gmEffective || ownerIsViewer) {
+    return { showName: true, showOwner: true, showCombat: true };
+  }
+
+  return {
+    showName: level !== "NONE",
+    showOwner: level === "SCOUTED" || level === "FULL",
+    showCombat: level === "FULL",
+  };
 }
 
 function parseViewBox(svg: SVGSVGElement): ViewBox {
@@ -90,18 +104,14 @@ function stripSvgBackground(svg: SVGSVGElement) {
   }
 }
 
-function wireZoomPanImpl(svg: SVGSVGElement, hostEl: HTMLDivElement, setVbState?: (vb: ViewBox) => void) {
+function wireZoomPanImpl(svg: SVGSVGElement, hostEl: HTMLDivElement, onVbChange?: (vb: ViewBox) => void) {
   const base = parseViewBox(svg);
   let current = { ...base };
 
-  (svg as any).__baseViewBox = base;
-  (svg as any).__currentViewBox = current;
-
   const update = (vb: ViewBox) => {
     current = vb;
-    (svg as any).__currentViewBox = current;
     setViewBox(svg, current);
-    setVbState?.(current);
+    onVbChange?.(current);
   };
 
   const onWheel = (e: WheelEvent) => {
@@ -187,6 +197,8 @@ function wireZoomPanImpl(svg: SVGSVGElement, hostEl: HTMLDivElement, setVbState?
       });
     },
     set: (vb: ViewBox) => update(vb),
+    get: () => ({ ...current }),
+    getBase: () => ({ ...base }),
   };
 
   const cleanup = () => {
@@ -199,36 +211,23 @@ function wireZoomPanImpl(svg: SVGSVGElement, hostEl: HTMLDivElement, setVbState?
   return { api, cleanup };
 }
 
-function isGMEffective(mode: "SETUP" | "PLAY", viewerMode: "PLAYER" | "GM") {
-  // Setup is effectively GM-authority for map interactions / visibility.
-  return mode === "SETUP" || viewerMode === "GM";
-}
-
-function redactByIntel(level: VisibilityLevel) {
-  return {
-    showName: level !== "NONE",
-    showOwner: level === "SCOUTED" || level === "FULL",
-    showCombat: level === "FULL",
-  };
-}
-
 export default function MapBoard() {
   const svgHostRef = useRef<HTMLDivElement>(null);
 
   const [vb, setVb] = useState<ViewBox | null>(null);
   const [hover, setHover] = useState<HoverState>(null);
+  const [data, setData] = useState<TheatreData | null>(null);
 
   const zoomApiRef = useRef<null | {
     reset: () => void;
     fit: () => void;
     zoom: (d: "in" | "out") => void;
     set: (vb: ViewBox) => void;
+    get: () => ViewBox;
+    getBase: () => ViewBox;
   }>(null);
 
-  const [data, setData] = useState<TheatreData | null>(null);
-
-  // Tracks the last clicked *shape* for UI display, without storing the whole selection in state.
-  const [lastClickedShapeId, setLastClickedShapeId] = useState<string>("");
+  const didDefaultZoomRef = useRef(false);
 
   // store
   const mode = useCampaignStore((s) => s.mode);
@@ -237,21 +236,24 @@ export default function MapBoard() {
   const activeTheatres = useCampaignStore((s) => s.activeTheatres);
 
   const selectedTerritoryId = useCampaignStore((s) => s.selectedTerritoryId);
-  const selectedRegionId = useCampaignStore((s) => s.selectedRegionId);
-  const regions = useCampaignStore((s) => s.regions);
+  const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
 
   const intelByTerritory = useCampaignStore((s) => s.intelByTerritory);
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
-  // const homelands = useCampaignStore((s) => s.homelands);
-
   const locksByTerritory = useCampaignStore((s) => s.locksByTerritory);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
 
-  const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
-  const setHomeland = useCampaignStore((s) => s.setHomeland);
-  const applyHomeland = useCampaignStore((s) => s.applyHomeland);
+  const customs = useCampaignStore((s) => s.customs);
+  const homelands = useCampaignStore((s) => s.homelands);
 
-  const didDefaultZoomRef = useRef(false);
+  const gmEffective = isGMEffective(mode, viewerMode);
+
+  const theatresKey = useMemo(
+    () => (["WE", "EE", "NA", "PA"] as const).filter((k) => activeTheatres[k]).join("|") || "NONE",
+    [activeTheatres]
+  );
+
+  const vbStorageKey = useMemo(() => `war.map.vb.${theatresKey}`, [theatresKey]);
 
   const { allowedShapeIds, shapeToTerritory, territoriesById } = useMemo(() => {
     const allowed = new Set<string>();
@@ -272,7 +274,6 @@ export default function MapBoard() {
           };
 
           terrMap.set(info.id, info);
-
           for (const shapeId of info.shapeRefs) {
             allowed.add(shapeId);
             shapeMap.set(shapeId, info);
@@ -284,43 +285,67 @@ export default function MapBoard() {
     return { allowedShapeIds: allowed, shapeToTerritory: shapeMap, territoriesById: terrMap };
   }, [activeTheatres, data]);
 
-  const gmEffective = isGMEffective(mode, viewerMode);
+  // ✅ adjacency lookup for active theatres (land+sea)
+  const adjacencyByTerritory = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    if (!data) return m;
 
-  const getIntelForTid = useCallback(
-    (tid: string): VisibilityLevel => {
-      if (gmEffective) return "FULL";
-      return intelByTerritory[tid]?.[viewerFaction] ?? "NONE";
+    for (const th of data.theatres) {
+      if (!activeTheatres[th.theatreId as keyof typeof activeTheatres]) continue;
+      const adj = th.adjacency ?? {};
+      for (const [tid, ls] of Object.entries(adj)) {
+        const set = m.get(tid) ?? new Set<string>();
+        for (const x of ls.land ?? []) set.add(x);
+        for (const x of ls.sea ?? []) set.add(x);
+        m.set(tid, set);
+      }
+    }
+    return m;
+  }, [data, activeTheatres]);
+
+  const isAdjacentToOwned = useCallback(
+    (tid: string) => {
+      // if any owned territory has tid in its adjacency set => KNOWN
+      for (const [ownedTid, owner] of Object.entries(ownerByTerritory)) {
+        if (owner !== viewerFaction) continue;
+        const adj = adjacencyByTerritory.get(ownedTid);
+        if (adj?.has(tid)) return true;
+      }
+      return false;
     },
-    [gmEffective, intelByTerritory, viewerFaction]
+    [adjacencyByTerritory, ownerByTerritory, viewerFaction]
   );
 
-  // Derived selection (no setState in effect). We only produce a selection if player has intel.
-  const selected: Selection | null = useMemo(() => {
-    if (!selectedTerritoryId) return null;
+  // ✅ single “effective” visibility:
+  // GM => FULL
+  // owned => FULL
+  // intelByTerritory => that value
+  // else adjacent-to-owned => KNOWN
+  // else NONE
+  const getEffectiveVisibility = useCallback(
+    (tid: string): VisibilityLevel => {
+      if (gmEffective) return "FULL";
 
-    const terr = territoriesById.get(selectedTerritoryId);
-    if (!terr) return null;
+      const owner = ownerByTerritory[tid] ?? "neutral";
+      if (owner === viewerFaction) return "FULL";
 
-    const lvl = getIntelForTid(terr.id);
-    if (!gmEffective && lvl === "NONE") return null;
+      const intel = intelByTerritory[tid]?.[viewerFaction] ?? "NONE";
+      if (intel !== "NONE") return intel;
 
-    const clickedShapeId =
-      lastClickedShapeId && terr.shapeRefs.includes(lastClickedShapeId) ? lastClickedShapeId : terr.shapeRefs[0] ?? "";
+      if (isAdjacentToOwned(tid)) return "KNOWN";
 
-    return {
-      territoryId: terr.id,
-      territoryName: terr.name,
-      theatreId: terr.theatreId,
-      theatreTitle: terr.theatreTitle,
-      clickedShapeId,
-    };
-  }, [selectedTerritoryId, territoriesById, gmEffective, getIntelForTid, lastClickedShapeId]);
+      return "NONE";
+    },
+    [gmEffective, ownerByTerritory, viewerFaction, intelByTerritory, isAdjacentToOwned]
+  );
 
+  // ✅ Always keep borders on. Use fill/opacity for fog.
   const clearSelectionStyles = useCallback((svg: SVGSVGElement) => {
     svg.querySelectorAll<SVGPathElement>("path").forEach((p) => {
       p.style.opacity = "0.20";
-      p.style.stroke = "#111";
-      p.style.strokeWidth = "0.6";
+      p.style.stroke = BORDER_STROKE;
+      p.style.strokeWidth = BORDER_WIDTH;
+      (p.style as any).vectorEffect = "non-scaling-stroke";
       p.style.cursor = "default";
       p.style.pointerEvents = "none";
     });
@@ -328,10 +353,6 @@ export default function MapBoard() {
 
   const applyFogStyles = useCallback(
     (svg: SVGSVGElement) => {
-      const { viewerFaction, intelByTerritory, ownerByTerritory, customs, homelands, viewerMode, mode } =
-        useCampaignStore.getState();
-
-      const gm = isGMEffective(mode, viewerMode);
       clearSelectionStyles(svg);
 
       const homelandId = homelands?.[viewerFaction] ?? null;
@@ -348,47 +369,74 @@ export default function MapBoard() {
         const territory = shapeToTerritory.get(shapeId);
         if (!territory) return;
 
-        const level: VisibilityLevel = gm ? "FULL" : (intelByTerritory[territory.id]?.[viewerFaction] ?? "NONE");
+        const level = getEffectiveVisibility(territory.id);
+        const canInteract = gmEffective || level !== "NONE";
 
-        const canInteract = gm || level !== "NONE";
+        // ✅ borders always visible
+        p.style.stroke = BORDER_STROKE;
+        p.style.strokeWidth = BORDER_WIDTH;
+        (p.style as any).vectorEffect = "non-scaling-stroke";
 
         p.style.cursor = canInteract ? "pointer" : "default";
         p.style.pointerEvents = canInteract ? "auto" : "none";
 
-        p.style.stroke = "#1a1a1a";
-        p.style.strokeWidth = "0.8";
-
+        // v1 fog fills
         if (level === "NONE") {
-          p.style.opacity = "0.18";
-          p.style.fill = p.dataset.baseFill!;
+          p.style.fillOpacity = "0.78";
+          p.style.fill = "#000";
         } else if (level === "KNOWN") {
-          p.style.opacity = "0.55";
-          p.style.fill = p.dataset.baseFill!;
+          p.style.fillOpacity = "0.45";
+          p.style.fill = "#111";
         } else if (level === "SCOUTED") {
-          const owner = ownerByTerritory[territory.id] ?? "neutral";
-          p.style.opacity = "0.72";
-          p.style.fill = getOwnerFill(owner, customs);
+          p.style.fillOpacity = "0.65";
+          p.style.fill = p.dataset.baseFill!;
         } else {
           const owner = ownerByTerritory[territory.id] ?? "neutral";
-          p.style.opacity = "0.9";
+          p.style.fillOpacity = "0.9";
           p.style.fill = getOwnerFill(owner, customs);
         }
 
+        // homeland ring (still visible even if fogged)
         if (homelandId && territory.id === homelandId) {
           p.style.opacity = "1";
-          p.style.stroke = "#ffffff";
+          p.style.stroke = gmEffective ? "#ffffff" : "rgba(255,255,255,.85)";
           p.style.strokeWidth = "2.6";
+          (p.style as any).vectorEffect = "non-scaling-stroke";
           p.style.pointerEvents = "auto";
           p.style.cursor = "pointer";
         }
       });
     },
-    [allowedShapeIds, clearSelectionStyles, shapeToTerritory]
+    [
+      allowedShapeIds,
+      clearSelectionStyles,
+      shapeToTerritory,
+      getEffectiveVisibility,
+      ownerByTerritory,
+      customs,
+      homelands,
+      viewerFaction,
+      gmEffective,
+    ]
   );
 
-  const theatresKey = useMemo(
-    () => (["WE", "EE", "NA", "PA"] as const).filter((k) => activeTheatres[k]).join("|"),
-    [activeTheatres]
+  const highlightTerritory = useCallback(
+    (svg: SVGSVGElement, territory: TerritoryInfo) => {
+      applyFogStyles(svg);
+
+      const lvl = getEffectiveVisibility(territory.id);
+      if (!gmEffective && lvl === "NONE") return;
+
+      territory.shapeRefs.forEach((id) => {
+        const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
+        if (!p) return;
+        p.style.opacity = "1";
+        p.style.stroke = "#ffffff";
+        p.style.strokeWidth = "2";
+        (p.style as any).vectorEffect = "non-scaling-stroke";
+      });
+    },
+    [applyFogStyles, getEffectiveVisibility, gmEffective]
   );
 
   const fitToAllowed = useCallback(
@@ -421,180 +469,35 @@ export default function MapBoard() {
         h: maxY - minY + pad * 2,
       };
 
-      if (zoomApiRef.current?.set) zoomApiRef.current.set(next);
-      else setViewBox(svg, next);
+      zoomApiRef.current?.set(next);
     },
     [allowedShapeIds]
   );
 
-  useEffect(() => {
-    const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
-    if (!svg) return;
-    applyFogStyles(svg);
-    fitToAllowed(svg);
-  }, [theatresKey, applyFogStyles, fitToAllowed]);
-
-  const highlightTerritory = useCallback(
-    (svg: SVGSVGElement, territory: TerritoryInfo) => {
-      applyFogStyles(svg);
-
-      const lvl = getIntelForTid(territory.id);
-      if (!gmEffective && lvl === "NONE") return;
-
-      territory.shapeRefs.forEach((id) => {
-        const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
-        if (!p) return;
-        p.style.opacity = "1";
-        p.style.stroke = "#ffffff";
-        p.style.strokeWidth = "2";
-      });
-    },
-    [applyFogStyles, getIntelForTid, gmEffective]
-  );
-
-  const highlightRegion = useCallback(
-    (svg: SVGSVGElement, territoryIds: string[]) => {
-      applyFogStyles(svg);
-
-      const ids = new Set(territoryIds);
-      for (const info of territoriesById.values()) {
-        if (!ids.has(info.id)) continue;
-
-        const lvl = getIntelForTid(info.id);
-        if (!gmEffective && lvl === "NONE") continue;
-
-        for (const shapeId of info.shapeRefs) {
-          const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
-          if (!p) continue;
-          p.style.opacity = "1";
-          p.style.stroke = "#ffd166";
-          p.style.strokeWidth = "1.6";
-        }
-      }
-    },
-    [applyFogStyles, territoriesById, getIntelForTid, gmEffective]
-  );
-
-  useEffect(() => {
-    const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
-    if (!svg) return;
-    if (!selectedRegionId) return;
-
-    const region = regions.find((r) => r.id === selectedRegionId);
-    if (!region) return;
-
-    highlightRegion(svg, region.territories);
-  }, [highlightRegion, regions, selectedRegionId]);
-
-  const wireTerritoryEvents = useCallback(
-    (svg: SVGSVGElement) => {
-      const cleanups: Array<() => void> = [];
-
-      const makeFactionKeyFromSetup = () => {
-        const { selectedSetupFaction, selectedCustomId } = useCampaignStore.getState();
-        if (selectedSetupFaction === "custom") {
-          return selectedCustomId ? (`custom:${selectedCustomId}` as const) : null;
-        }
-        if (selectedSetupFaction) return selectedSetupFaction;
-        return null;
-      };
-
-      allowedShapeIds.forEach((shapeId) => {
-        const path = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
-        if (!path) return;
-
-        const onClick = (e: MouseEvent) => {
-          e.stopPropagation();
-
-          const territory = shapeToTerritory.get(shapeId);
-          if (!territory) return;
-
-          const s = useCampaignStore.getState();
-          const gm = isGMEffective(s.mode, s.viewerMode);
-          const lvl: VisibilityLevel = gm ? "FULL" : (s.intelByTerritory[territory.id]?.[s.viewerFaction] ?? "NONE");
-
-          if (!gm && lvl === "NONE") return;
-
-          setLastClickedShapeId(shapeId);
-          setSelectedTerritory(territory.id);
-
-          if (s.mode === "SETUP") {
-            const fk = makeFactionKeyFromSetup();
-            if (fk) {
-              setHomeland(fk, territory.id);
-              applyHomeland(fk);
-            }
-          }
-
-          highlightTerritory(svg, territory);
-        };
-
-        const onEnter = (e: MouseEvent) => {
-          const territory = shapeToTerritory.get(shapeId);
-          if (!territory) return;
-          setHover({ tid: territory.id, x: e.clientX, y: e.clientY });
-        };
-
-        const onMove = (e: MouseEvent) => {
-          setHover((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : null));
-        };
-
-        const onLeave = () => setHover(null);
-
-        path.addEventListener("click", onClick);
-        path.addEventListener("mouseenter", onEnter);
-        path.addEventListener("mousemove", onMove);
-        path.addEventListener("mouseleave", onLeave);
-
-        cleanups.push(() => {
-          path.removeEventListener("click", onClick);
-          path.removeEventListener("mouseenter", onEnter);
-          path.removeEventListener("mousemove", onMove);
-          path.removeEventListener("mouseleave", onLeave);
-        });
-      });
-
-      const onSvgClick = () => {
-        setLastClickedShapeId("");
-        setSelectedTerritory(null);
-        applyFogStyles(svg);
-      };
-
-      svg.addEventListener("click", onSvgClick);
-      cleanups.push(() => svg.removeEventListener("click", onSvgClick));
-
-      return () => cleanups.forEach((fn) => fn());
-    },
-    [allowedShapeIds, shapeToTerritory, setSelectedTerritory, setHomeland, applyHomeland, highlightTerritory, applyFogStyles]
-  );
-
-  const wireZoomPan = useCallback(
-    (svg: SVGSVGElement, hostEl: HTMLDivElement) => wireZoomPanImpl(svg, hostEl, setVb),
-    []
-  );
-
+  // Load theatres data
   useEffect(() => {
     loadTheatresData()
       .then((nd) => setData(nd.raw))
       .catch((err) => console.error("Failed to load theatres_all.json", err));
   }, []);
 
+  // Load and wire SVG
   useEffect(() => {
     if (!data) return;
 
-    const svgUrl = withBase("mapchart_world.svg");
+    const hostEl = svgHostRef.current;
+    if (!hostEl) return;
 
-    let cleanupClicks: null | (() => void) = null;
+    const svgUrl = withBase("mapchart_world.svg");
     let cleanupZoom: null | (() => void) = null;
 
     fetch(svgUrl)
       .then((r) => r.text())
       .then((svgText) => {
-        if (!svgHostRef.current) return;
+        if (!hostEl) return;
 
-        svgHostRef.current.innerHTML = svgText;
-
-        const svg = svgHostRef.current.querySelector("svg");
+        hostEl.innerHTML = svgText;
+        const svg = hostEl.querySelector("svg") as SVGSVGElement | null;
         if (!svg) return;
 
         svg.setAttribute("width", "100%");
@@ -604,246 +507,287 @@ export default function MapBoard() {
 
         stripSvgBackground(svg);
         applyFogStyles(svg);
-        cleanupClicks = wireTerritoryEvents(svg);
 
-        const hostEl = svgHostRef.current!;
-        const { api, cleanup } = wireZoomPan(svg, hostEl);
+        // zoom/pan wiring
+        const { api, cleanup } = wireZoomPanImpl(svg, hostEl, (nextVb) => {
+          setVb(nextVb);
+          try {
+            localStorage.setItem(vbStorageKey, JSON.stringify(nextVb));
+          } catch {
+            // ignore
+          }
+        });
         zoomApiRef.current = api;
         cleanupZoom = cleanup;
 
-        fitToAllowed(svg);
+        // restore persisted viewbox
+        const saved = (() => {
+          try {
+            const raw = localStorage.getItem(vbStorageKey);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw) as ViewBox;
+            if (parsed && [parsed.x, parsed.y, parsed.w, parsed.h].every((n) => typeof n === "number" && Number.isFinite(n))) {
+              return parsed;
+            }
+            return null;
+          } catch {
+            return null;
+          }
+        })();
 
-        if (!didDefaultZoomRef.current) {
-          didDefaultZoomRef.current = true;
-          api.zoom("in");
-          api.zoom("in");
+        if (saved) {
+          api.set(saved);
+        } else {
+          fitToAllowed(svg);
+          if (!didDefaultZoomRef.current) {
+            didDefaultZoomRef.current = true;
+            api.zoom("in");
+            api.zoom("in");
+          }
         }
+
+        // wire click + hover for allowed territories
+        allowedShapeIds.forEach((shapeId) => {
+          const path = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
+          if (!path) return;
+
+          const onClick = (e: MouseEvent) => {
+            e.stopPropagation();
+            const territory = shapeToTerritory.get(shapeId);
+            if (!territory) return;
+
+            const lvl = getEffectiveVisibility(territory.id);
+            if (!gmEffective && lvl === "NONE") return;
+
+            setSelectedTerritory(territory.id);
+            highlightTerritory(svg, territory);
+          };
+
+          const onEnter = (e: MouseEvent) => {
+            const territory = shapeToTerritory.get(shapeId);
+            if (!territory) return;
+            setHover({ tid: territory.id, x: e.clientX, y: e.clientY });
+          };
+
+          const onMove = (e: MouseEvent) => {
+            setHover((h) => (h ? { ...h, x: e.clientX, y: e.clientY } : null));
+          };
+
+          const onLeave = () => setHover(null);
+
+          path.addEventListener("click", onClick);
+          path.addEventListener("mouseenter", onEnter);
+          path.addEventListener("mousemove", onMove);
+          path.addEventListener("mouseleave", onLeave);
+
+          (path as any).__cleanup = () => {
+            path.removeEventListener("click", onClick);
+            path.removeEventListener("mouseenter", onEnter);
+            path.removeEventListener("mousemove", onMove);
+            path.removeEventListener("mouseleave", onLeave);
+          };
+        });
+
+        const onSvgClick = () => {
+          setSelectedTerritory(null);
+          applyFogStyles(svg);
+        };
+        svg.addEventListener("click", onSvgClick);
+
+        (svg as any).__cleanupAll = () => {
+          svg.removeEventListener("click", onSvgClick);
+          svg.querySelectorAll("path").forEach((p) => {
+            const fn = (p as any).__cleanup;
+            if (typeof fn === "function") fn();
+          });
+        };
       })
       .catch((err) => console.error("Failed to load SVG", err));
 
     return () => {
-      cleanupClicks?.();
+      const svg = hostEl.querySelector("svg") as any;
+      if (svg?.__cleanupAll) svg.__cleanupAll();
+
       cleanupZoom?.();
       zoomApiRef.current = null;
     };
-  }, [data, applyFogStyles, wireTerritoryEvents, wireZoomPan, fitToAllowed]);
+  }, [
+    data,
+    theatresKey,
+    vbStorageKey,
+    allowedShapeIds,
+    shapeToTerritory,
+    gmEffective,
+    applyFogStyles,
+    fitToAllowed,
+    getEffectiveVisibility,
+    highlightTerritory,
+    setSelectedTerritory,
+  ]);
 
-  // External side-effect only: update DOM styles when selection changes (no setState here).
+  // When selection changes externally, update highlight
   useEffect(() => {
     const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
     if (!svg) return;
 
-    if (selected) {
-      const terr = territoriesById.get(selected.territoryId);
-      if (terr) highlightTerritory(svg, terr);
-      else applyFogStyles(svg);
-    } else {
+    if (!selectedTerritoryId) {
       applyFogStyles(svg);
+      return;
     }
-  }, [selected, territoriesById, applyFogStyles, highlightTerritory]);
+
+    for (const info of territoriesById.values()) {
+      if (info.id === selectedTerritoryId) {
+        highlightTerritory(svg, info);
+        return;
+      }
+    }
+
+    applyFogStyles(svg);
+  }, [selectedTerritoryId, territoriesById, applyFogStyles, highlightTerritory]);
 
   return (
-    <div style={{ display: "flex", height: "100%", minHeight: 0 }}>
-      {/* MAP */}
-      <div style={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0 }}>
-        <div
-          ref={svgHostRef}
-          style={{
-            height: "100%",
-            minHeight: 0,
-            background: "#3a372f",
-            overflow: "hidden",
-            position: "relative",
-          }}
-        />
+    <div style={{ position: "relative", height: "100%", minHeight: 0 }}>
+      <div
+        ref={svgHostRef}
+        style={{
+          height: "100%",
+          minHeight: 0,
+          background: "#3a372f",
+          overflow: "hidden",
+          position: "relative",
+        }}
+      />
 
-        {/* Controls */}
-        <div
-          style={{
-            position: "absolute",
-            top: 10,
-            left: 10,
-            display: "flex",
-            gap: 6,
-            padding: 8,
-            background: "rgba(0,0,0,.35)",
-            border: "1px solid rgba(255,255,255,.15)",
-            borderRadius: 8,
-            zIndex: 5,
-          }}
-        >
-          <button onClick={() => zoomApiRef.current?.zoom("in")}>+</button>
-          <button onClick={() => zoomApiRef.current?.zoom("out")}>-</button>
-          <button onClick={() => zoomApiRef.current?.fit()}>Fit</button>
-          <button onClick={() => zoomApiRef.current?.reset()}>Reset</button>
-
-          {vb && (
-            <div style={{ marginLeft: 10, fontSize: 11, opacity: 0.85, color: "#fff" }}>
-              VB {vb.w.toFixed(0)}×{vb.h.toFixed(0)}
-            </div>
-          )}
-        </div>
-
-        {/* Hover tooltip */}
-        {hover &&
-          (() => {
-            const tid = hover.tid;
-            const terr = territoriesById.get(tid);
-            if (!terr) return null;
-
-            const owner = ownerByTerritory[tid] ?? "neutral";
-            const locked = !!locksByTerritory[tid];
-            const contest = contestsByTerritory[tid] as Contest | undefined;
-
-            const level: VisibilityLevel = gmEffective ? "FULL" : (intelByTerritory[tid]?.[viewerFaction] ?? "NONE");
-            const redact = redactByIntel(level);
-
-            return (
-              <div
-                style={{
-                  position: "fixed",
-                  left: hover.x + 12,
-                  top: hover.y + 12,
-                  zIndex: 20,
-                  background: "rgba(0,0,0,.78)",
-                  border: "1px solid rgba(255,255,255,.18)",
-                  borderRadius: 10,
-                  padding: "8px 10px",
-                  fontSize: 12,
-                  maxWidth: 280,
-                  pointerEvents: "none",
-                  color: "#fff",
-                }}
-              >
-                <div style={{ fontWeight: 800, marginBottom: 4 }}>
-                  {redact.showName ? (
-                    <>
-                      {terr.name} <span style={{ opacity: 0.75 }}>({tid})</span>
-                    </>
-                  ) : (
-                    <>Unknown territory</>
-                  )}
-                </div>
-
-                <div style={{ opacity: 0.9 }}>
-                  <b>Intel:</b> {level}
-                </div>
-
-                {redact.showOwner && (
-                  <div style={{ opacity: 0.9 }}>
-                    <b>Owner:</b> {owner}
-                  </div>
-                )}
-
-                {redact.showCombat && locked && (
-                  <div style={{ opacity: 0.95, marginTop: 4 }}>
-                    <b>Locked:</b> COMBAT
-                  </div>
-                )}
-
-                {redact.showCombat && contest && (
-                  <div style={{ opacity: 0.95, marginTop: 4 }}>
-                    <b>Contest:</b> {contest.attackerFaction} vs {contest.defenderFaction} ({contest.status})
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-        {/* Hint */}
-        <div
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            padding: "6px 8px",
-            background: "rgba(0,0,0,.35)",
-            border: "1px solid rgba(255,255,255,.15)",
-            borderRadius: 8,
-            fontSize: 12,
-            opacity: 0.9,
-            zIndex: 5,
-            pointerEvents: "none",
-            color: "#fff",
-          }}
-        >
-          Pan: hold <b>Shift</b> + drag (or middle mouse). Wheel to zoom.
-        </div>
-      </div>
-
-      {/* INFO PANEL */}
+      {/* Map controls */}
       <div
         style={{
-          width: 340,
-          minWidth: 340,
-          maxWidth: 340,
-          padding: 12,
-          borderLeft: "1px solid rgba(255,255,255,.12)",
-          overflow: "auto",
+          position: "absolute",
+          top: 10,
+          left: 10,
+          display: "flex",
+          gap: 6,
+          padding: 8,
+          background: "rgba(0,0,0,.35)",
+          border: "1px solid rgba(255,255,255,.15)",
+          borderRadius: 8,
+          zIndex: 5,
         }}
       >
-        {!data && <div>Loading theatres…</div>}
+        <button onClick={() => zoomApiRef.current?.zoom("in")}>+</button>
+        <button onClick={() => zoomApiRef.current?.zoom("out")}>-</button>
+        <button onClick={() => zoomApiRef.current?.fit()}>Fit</button>
+        <button onClick={() => zoomApiRef.current?.reset()}>Reset</button>
 
-        {selected ? (
-          (() => {
-            const tid = selected.territoryId;
-            const level: VisibilityLevel = gmEffective ? "FULL" : (intelByTerritory[tid]?.[viewerFaction] ?? "NONE");
-            const redact = redactByIntel(level);
-
-            const owner = ownerByTerritory[tid] ?? "neutral";
-            const locked = !!locksByTerritory[tid];
-            const contest = contestsByTerritory[tid] as Contest | undefined;
-
-            return (
-              <div style={{ lineHeight: 1.5 }}>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>
-                  {redact.showName ? `${selected.territoryName} (${selected.territoryId})` : "Unknown territory"}
-                </div>
-
-                <div style={{ opacity: 0.9 }}>
-                  <b>Intel:</b> {level}
-                </div>
-
-                {redact.showName && (
-                  <div style={{ opacity: 0.9 }}>
-                    <b>Theatre:</b> {selected.theatreTitle} ({selected.theatreId})
-                  </div>
-                )}
-
-                {redact.showOwner && (
-                  <div style={{ opacity: 0.9, marginTop: 6 }}>
-                    <b>Owner:</b> {owner}
-                  </div>
-                )}
-
-                {redact.showCombat && locked && (
-                  <div style={{ opacity: 0.95, marginTop: 6 }}>
-                    <b>Locked:</b> COMBAT
-                  </div>
-                )}
-
-                {redact.showCombat && contest && (
-                  <div style={{ opacity: 0.95, marginTop: 6 }}>
-                    <b>Contest:</b> {contest.attackerFaction} vs {contest.defenderFaction} ({contest.status})
-                  </div>
-                )}
-
-                <div style={{ opacity: 0.8, marginTop: 10 }}>
-                  <b>Clicked shape:</b> {selected.clickedShapeId}
-                </div>
-
-                {useCampaignStore.getState().mode === "SETUP" && (
-                  <div style={{ marginTop: 8, fontSize: 12, opacity: 0.85 }}>
-                    Setup mode: click sets homeland for selected faction.
-                  </div>
-                )}
-              </div>
-            );
-          })()
-        ) : (
-          <div>Click a territory (in Player mode you can only click territories you have intel on)</div>
+        {vb && (
+          <div style={{ marginLeft: 10, fontSize: 11, opacity: 0.85, color: "#fff" }}>
+            VB {vb.w.toFixed(0)}×{vb.h.toFixed(0)}
+          </div>
         )}
       </div>
+
+      {/* Hint */}
+      <div
+        style={{
+          position: "absolute",
+          top: 10,
+          right: 10,
+          padding: "6px 8px",
+          background: "rgba(0,0,0,.35)",
+          border: "1px solid rgba(255,255,255,.15)",
+          borderRadius: 8,
+          fontSize: 12,
+          opacity: 0.9,
+          zIndex: 5,
+          pointerEvents: "none",
+          color: "#fff",
+        }}
+      >
+        Pan: hold <b>Shift</b> + drag (or middle mouse). Wheel to zoom.
+      </div>
+
+      {/* Hover tooltip (effective intel) */}
+      {hover &&
+        (() => {
+          const tid = hover.tid;
+          const terr = territoriesById.get(tid);
+          if (!terr) return null;
+
+          const owner = ownerByTerritory[tid] ?? "neutral";
+          const ownerIsViewer = owner === viewerFaction;
+          const locked = !!locksByTerritory[tid];
+          const contest = contestsByTerritory[tid] as Contest | undefined;
+
+          const level: VisibilityLevel = getEffectiveVisibility(tid);
+          const redact = redactByIntel(level, ownerIsViewer, gmEffective);
+
+          const isHomeland = (homelands?.[viewerFaction] ?? null) === tid;
+          const accent =
+            viewerFaction === "allies"
+              ? baseFactionColors.allies
+              : viewerFaction === "axis"
+              ? baseFactionColors.axis
+              : viewerFaction === "ussr"
+              ? baseFactionColors.ussr
+              : "rgba(255,255,255,.6)";
+
+          return (
+            <div
+              style={{
+                position: "fixed",
+                left: hover.x + 12,
+                top: hover.y + 12,
+                zIndex: 20,
+                background: "rgba(0,0,0,.80)",
+                border: `1px solid ${isHomeland ? accent : "rgba(255,255,255,.18)"}`,
+                boxShadow: isHomeland ? `0 0 0 2px rgba(0,0,0,.2)` : undefined,
+                borderRadius: 10,
+                padding: "8px 10px",
+                fontSize: 12,
+                maxWidth: 300,
+                pointerEvents: "none",
+                color: "#fff",
+              }}
+            >
+              <div style={{ fontWeight: 800, marginBottom: 4 }}>
+                {redact.showName ? (
+                  <>
+                    {terr.name} <span style={{ opacity: 0.75 }}>({tid})</span>
+                  </>
+                ) : (
+                  <>Unknown territory</>
+                )}
+              </div>
+
+              <div style={{ opacity: 0.9 }}>
+                <b>Intel:</b> {level}
+              </div>
+
+              {redact.showOwner && (
+                <div style={{ opacity: 0.9 }}>
+                  <b>Owner:</b> {owner}
+                </div>
+              )}
+
+              {redact.showCombat && locked && (
+                <div style={{ opacity: 0.95, marginTop: 4 }}>
+                  <b>Locked:</b> COMBAT
+                </div>
+              )}
+
+              {redact.showCombat && contest && (
+                <div style={{ opacity: 0.95, marginTop: 4 }}>
+                  <b>Contest:</b> {contest.attackerFaction} vs {contest.defenderFaction} ({contest.status})
+                </div>
+              )}
+
+              {isHomeland && (
+                <div style={{ marginTop: 6, fontSize: 11, opacity: 0.9 }}>
+                  <b style={{ color: accent }}>Homeland</b>
+                </div>
+              )}
+            </div>
+          );
+        })()}
     </div>
   );
 }

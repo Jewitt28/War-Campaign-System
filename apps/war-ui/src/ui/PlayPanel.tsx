@@ -1,4 +1,3 @@
-// src/ui/PlayPanel.tsx
 import { useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import type { VisibilityLevel } from "../data/visibility";
@@ -21,6 +20,7 @@ function factionOptions(customs: Array<{ id: string; name: string }>) {
 
 export default function PlayPanel({ data }: Props) {
   const {
+    // viewer / intel
     viewerFaction,
     setViewerFaction,
     viewerMode,
@@ -34,6 +34,7 @@ export default function PlayPanel({ data }: Props) {
     setIntelLevel,
     bulkSetIntelLevel,
 
+    // mechanics
     phase,
     turnNumber,
     platoonsById,
@@ -48,6 +49,7 @@ export default function PlayPanel({ data }: Props) {
     clearLocksAndContests,
     resolveBattles,
 
+    // log
     turnLog,
   } = useCampaignStore();
 
@@ -82,7 +84,10 @@ export default function PlayPanel({ data }: Props) {
     return territoryGroups[0].id;
   }, [territoryGroups, selectedGroupId]);
 
-  const activeGroup = useMemo(() => territoryGroups.find((g) => g.id === safeGroupId) ?? null, [territoryGroups, safeGroupId]);
+  const activeGroup = useMemo(
+    () => territoryGroups.find((g) => g.id === safeGroupId) ?? null,
+    [territoryGroups, safeGroupId]
+  );
 
   const applyGroupIntel = (level: VisibilityLevel) => {
     if (!activeGroup) return;
@@ -158,7 +163,7 @@ export default function PlayPanel({ data }: Props) {
         </select>
         {!isGM && (
           <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-            Player mode: you can draft/submit orders and view intel for <b>{viewerFaction}</b>. GM tools are disabled.
+            Player mode: you can draft/submit orders and view intel, but GM tools are disabled.
           </div>
         )}
       </div>
@@ -166,19 +171,13 @@ export default function PlayPanel({ data }: Props) {
       {/* Viewer faction */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>Viewer (Fog of War)</div>
-        <select
-          value={viewerFaction}
-          disabled={!isGM}
-          onChange={(e) => setViewerFaction(e.target.value as FactionKey)}
-          style={{ width: "100%" }}
-        >
+        <select value={viewerFaction} onChange={(e) => setViewerFaction(e.target.value as FactionKey)} style={{ width: "100%" }}>
           {factions.map((f) => (
             <option key={f.key} value={f.key}>
               {f.label}
             </option>
           ))}
         </select>
-        {!isGM && <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>Locked in PLAYER mode.</div>}
       </div>
 
       {/* Territory Groups */}
@@ -198,18 +197,10 @@ export default function PlayPanel({ data }: Props) {
             </select>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-              <button disabled={!isGM} onClick={() => applyGroupIntel("NONE")}>
-                Hide
-              </button>
-              <button disabled={!isGM} onClick={() => applyGroupIntel("KNOWN")}>
-                Known
-              </button>
-              <button disabled={!isGM} onClick={() => applyGroupIntel("SCOUTED")}>
-                Scouted
-              </button>
-              <button disabled={!isGM} onClick={() => applyGroupIntel("FULL")}>
-                Full
-              </button>
+              <button disabled={!isGM} onClick={() => applyGroupIntel("NONE")}>Hide</button>
+              <button disabled={!isGM} onClick={() => applyGroupIntel("KNOWN")}>Known</button>
+              <button disabled={!isGM} onClick={() => applyGroupIntel("SCOUTED")}>Scouted</button>
+              <button disabled={!isGM} onClick={() => applyGroupIntel("FULL")}>Full</button>
             </div>
 
             {activeGroup && (
@@ -229,16 +220,9 @@ export default function PlayPanel({ data }: Props) {
             {selected.id} · {selected.theatreTitle}
           </div>
 
+          {/* Combat / lock banner */}
           {(lock || contest) && (
-            <div
-              style={{
-                marginTop: 8,
-                padding: 8,
-                borderRadius: 8,
-                border: "1px solid rgba(255,255,255,.15)",
-                background: "rgba(0,0,0,.2)",
-              }}
-            >
+            <div style={{ marginTop: 8, padding: 8, borderRadius: 8, border: "1px solid rgba(255,255,255,.15)", background: "rgba(0,0,0,.2)" }}>
               <div style={{ fontWeight: 700 }}>Locked: {lock?.reason ?? "—"}</div>
               {contest && (
                 <div style={{ fontSize: 12, opacity: 0.9, marginTop: 4 }}>
@@ -361,15 +345,9 @@ export default function PlayPanel({ data }: Props) {
 
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             <button onClick={() => submitFactionOrders(turnNumber, viewerFaction)}>Submit Orders</button>
-            <button disabled={!isGM} onClick={() => resolveCurrentTurn(isAdjacent)}>
-              Resolve Turn
-            </button>
-            <button disabled={!isGM} onClick={() => nextPhase(isAdjacent)}>
-              Next Phase
-            </button>
-            <button disabled={!isGM} onClick={() => clearLocksAndContests()}>
-              Dev: Clear Locks
-            </button>
+            <button disabled={!isGM} onClick={() => resolveCurrentTurn(isAdjacent)}>Resolve Turn</button>
+            <button disabled={!isGM} onClick={() => nextPhase(isAdjacent)}>Next Phase</button>
+            <button disabled={!isGM} onClick={() => clearLocksAndContests()}>Dev: Clear Locks</button>
           </div>
           {!isGM && <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>GM-only: resolve/advance/clear.</div>}
 

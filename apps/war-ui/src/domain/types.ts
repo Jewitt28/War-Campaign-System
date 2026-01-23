@@ -13,7 +13,11 @@ export type Platoon = {
   condition: PlatoonCondition;
   strengthPct: number; // 0..100
   mpBase: number;      // default 1
+  traits?: PlatoonTrait[]; // NEW
+  entrenched?: boolean;    // NEW (upgrade #3 uses this)
 };
+
+export type PlatoonTrait = "RECON" | "ENGINEERS" | "MOTORIZED";
 
 export type OrderType = "HOLD" | "MOVE";
 

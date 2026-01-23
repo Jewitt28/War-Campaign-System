@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { VisibilityLevel } from "../data/visibility";
+import type { NationKey } from "../setup/NationDefinitions";
 
 import type { Phase, PlatoonOrder, TerritoryLock, Contest, Platoon, BattleOutcome } from "../domain/types";
 import { resolveTurn } from "../domain/resolveTurn";
@@ -10,13 +11,19 @@ import { resolveBattles as resolveBattlesFn } from "../domain/resolveBattles";
 export type BaseFactionKey = "allies" | "axis" | "ussr";
 export type FactionKey = BaseFactionKey | `custom:${string}`;
 export type OwnerKey = FactionKey | "neutral" | "contested";
+export type SuppliesByFaction = Record<string, number>;
 
 export type Mode = "SETUP" | "PLAY";
 export type ViewerMode = "PLAYER" | "GM";
 
-export type TurnLogEntry =
-  | { ts: number; type: "NOTE"; text: string }
-  | { ts: number; type: "MOVE"; text: string };
+export type TurnLogType = "NOTE" | "MOVE" | "SUPPLY" | "PLATOON" | "ORDERS" | "BATTLE" | "ERROR";
+
+export type TurnLogEntry = {
+  id: string;
+  ts: number;
+  type: TurnLogType;
+  text: string;
+};
 
 type IntelByTerritory = Record<string, Partial<Record<FactionKey, VisibilityLevel>>>;
 
@@ -34,8 +41,18 @@ export type CampaignState = {
   // --- app ---
   mode: Mode;
   activeTheatres: Record<"WE" | "EE" | "NA" | "PA", boolean>;
+
   baseEnabled: Record<BaseFactionKey, boolean>;
 
+  // Nations
+  nationsEnabled: Record<NationKey, boolean>;
+  selectedSetupNation: NationKey | null;
+  selectSetupNation: (n: NationKey | null) => void;
+
+  homelandsByNation: Partial<Record<NationKey, string>>;
+  setNationHomeland: (nation: NationKey, territoryId: string) => void;
+
+  // Existing faction/custom system (kept for now)
   customs: CustomFaction[];
   selectedSetupFaction: BaseFactionKey | "custom" | null;
   selectedCustomId: string | null;
@@ -49,12 +66,12 @@ export type CampaignState = {
   viewerMode: ViewerMode;
   setViewerMode: (m: ViewerMode) => void;
 
+  // v1 homeland storage (bridge)
   homelands: Partial<Record<FactionKey, string>>;
   ownerByTerritory: Record<string, OwnerKey>;
   intelByTerritory: IntelByTerritory;
 
   selectedTerritoryId: string | null;
-
   turnLog: TurnLogEntry[];
 
   setMode: (m: Mode) => void;
@@ -64,16 +81,14 @@ export type CampaignState = {
   createCustomFaction: (name: string, color: string) => void;
   selectCustomFaction: (id: string | null) => void;
 
-  // GM can change viewer faction freely.
-  // Player cannot swap faction at all (locks fog-of-war identity).
   setViewerFaction: (f: FactionKey) => void;
-
   setSelectedTerritory: (id: string | null) => void;
 
+  // v1
   setHomeland: (factionKey: FactionKey, territoryId: string) => void;
   applyHomeland: (factionKey: FactionKey) => void;
 
-  // GM-only mutators (enforced)
+  // GM-only mutators
   setOwner: (territoryId: string, ownerKey: OwnerKey) => void;
   setIntelLevel: (territoryId: string, faction: FactionKey, level: VisibilityLevel) => void;
   bulkSetIntelLevel: (territoryIds: string[], faction: FactionKey, level: VisibilityLevel) => void;
@@ -81,7 +96,6 @@ export type CampaignState = {
   addNote: (text: string) => void;
   resetAll: () => void;
 
-  // GM-only
   autoSetupWorld: () => void;
 
   // --- mechanics ---
@@ -89,36 +103,44 @@ export type CampaignState = {
   turnNumber: number;
 
   platoonsById: Record<string, Platoon>;
-  ordersByTurn: Record<number, Record<string, PlatoonOrder[]>>; // keyed by faction string
+  ordersByTurn: Record<number, Record<string, PlatoonOrder[]>>;
   locksByTerritory: Record<string, TerritoryLock | undefined>;
   contestsByTerritory: Record<string, Contest | undefined>;
 
-  // Players can only create platoons / orders for their own faction.
-  // GM can do anything.
   createPlatoon: (faction: FactionKey, territoryId: string, name?: string) => void;
+
   setPlatoonOrderMove: (
-    turn: number,
-    faction: FactionKey,
-    platoonId: string,
-    path: string[],
-    forcedMarch?: boolean
-  ) => void;
+  turn: number,
+  faction: FactionKey,
+  platoonId: string,
+  path: string[],
+  forcedMarch?: boolean
+) => void;
+
   submitFactionOrders: (turn: number, faction: FactionKey) => void;
 
-  // GM-only mechanics
   resolveCurrentTurn: (isAdjacent: (a: string, b: string) => boolean) => void;
   resolveBattles: (outcomes: BattleOutcome[]) => void;
 
   setPhase: (p: Phase) => void;
   nextPhase: (isAdjacent: (a: string, b: string) => boolean) => void;
 
-  clearLocksAndContests: () => void; // dev helper (GM-only)
+
+  
+  clearLocksAndContests: () => void;
+
+  // Supplies
+  suppliesByFaction: SuppliesByFaction;
+  ensureSupplies: () => void;
+  getSupplies: (faction: string) => number;
+  spendSupplies: (faction: string, amount: number, reason?: string) => boolean;
+  addSupplies: (faction: string, amount: number, reason?: string) => void;
 };
 
 const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
 
-function logNote(text: string): TurnLogEntry {
-  return { ts: Date.now(), type: "NOTE", text };
+function logNote(text: string, type: TurnLogType = "NOTE"): TurnLogEntry {
+  return { ts: Date.now(), type, text, id: uid() };
 }
 
 function requireGM(s: CampaignState) {
@@ -157,10 +179,40 @@ const initialState: Omit<
   | "setPhase"
   | "nextPhase"
   | "clearLocksAndContests"
+  | "selectSetupNation"
+  | "setNationHomeland"
+  | "ensureSupplies"
+  | "getSupplies"
+  | "addSupplies"
+  | "spendSupplies"
 > = {
   mode: "SETUP",
   activeTheatres: { WE: true, EE: true, NA: true, PA: true },
   baseEnabled: { allies: true, axis: true, ussr: true },
+
+  nationsEnabled: {
+    belgium: true,
+    bulgaria: true,
+    finland: true,
+    france: true,
+    germany: true,
+    great_britain: true,
+    greece: true,
+    hungary: true,
+    imperial_japan: true,
+    italy: true,
+    norway: true,
+    partisans: true,
+    poland: true,
+    polish_peoples_army: true,
+    romania: true,
+    soviet_union: true,
+    the_netherlands: true,
+    us: true,
+  },
+
+  selectedSetupNation: null,
+  homelandsByNation: {},
 
   customs: [],
   selectedSetupFaction: null,
@@ -186,11 +238,31 @@ const initialState: Omit<
   ordersByTurn: {},
   locksByTerritory: {},
   contestsByTerritory: {},
-};
 
+  suppliesByFaction: {
+    allies: 100,
+    axis: 100,
+    ussr: 100,
+  },
+};
+function consumeSubmittedOrdersForTurn(
+  ordersByTurn: Record<number, Record<string, PlatoonOrder[]>>,
+  turn: number
+) {
+  const byTurn = ordersByTurn[turn] ?? {};
+  const nextByTurn: Record<string, PlatoonOrder[]> = {};
+
+  for (const [faction, list] of Object.entries(byTurn)) {
+    nextByTurn[faction] = (list ?? []).filter((o) => !o.submittedAt);
+  }
+
+  return { ...ordersByTurn, [turn]: nextByTurn };
+}
+
+// ✅ FIX: use (set, get) so supplies funcs can call get()
 export const useCampaignStore = create<CampaignState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...initialState,
 
       // ---- basic app controls ----
@@ -199,13 +271,19 @@ export const useCampaignStore = create<CampaignState>()(
       toggleTheatre: (id) =>
         set((s) => ({ activeTheatres: { ...s.activeTheatres, [id]: !s.activeTheatres[id] } })),
 
+      setViewerMode: (m) => set({ viewerMode: m }),
+
+      // Nations
+      selectSetupNation: (n) => set({ selectedSetupNation: n }),
+      setNationHomeland: (nation, territoryId) =>
+        set((s) => ({ homelandsByNation: { ...s.homelandsByNation, [nation]: territoryId } })),
+
+      // Existing faction/customs (kept)
       selectSetupFaction: (f) =>
         set((s) => ({
           selectedSetupFaction: f,
           selectedCustomId: f === "custom" ? s.selectedCustomId : null,
         })),
-
-      setViewerMode: (m) => set({ viewerMode: m }),
 
       createCustomFaction: (name, color) => {
         const id = uid();
@@ -219,18 +297,16 @@ export const useCampaignStore = create<CampaignState>()(
 
       selectCustomFaction: (id) => set({ selectedSetupFaction: "custom", selectedCustomId: id }),
 
-      // GM can swap faction; PLAYER cannot (locks identity)
-      setViewerFaction: (f) =>
-        set((s) => {
-          if (!requireGM(s)) return s;
-          return { viewerFaction: f };
-        }),
+      // GM can swap faction; PLAYER cannot
+     setViewerFaction: (f) => set({ viewerFaction: f }),
+
 
       setSelectedTerritory: (id) => set({ selectedTerritoryId: id }),
 
       setRegions: (regions) => set({ regions }),
       setSelectedRegion: (id) => set({ selectedRegionId: id }),
 
+      // v1 homelands (bridge)
       setHomeland: (factionKey, territoryId) =>
         set((s) => ({ homelands: { ...s.homelands, [factionKey]: territoryId } })),
 
@@ -255,8 +331,6 @@ export const useCampaignStore = create<CampaignState>()(
           }
 
           return {
-            // NOTE: applyHomeland is a setup/GM action in practice, but we don't gate it here.
-            // It also serves as the one-time "pick your faction identity" for PLAYER mode.
             viewerFaction: factionKey,
             ownerByTerritory: { ...s.ownerByTerritory, [homelandTid]: factionKey },
             intelByTerritory: nextIntel,
@@ -298,11 +372,17 @@ export const useCampaignStore = create<CampaignState>()(
 
       resetAll: () => set({ ...initialState }),
 
+      // -------- world start --------
       autoSetupWorld: () =>
         set((s) => {
           if (!requireGM(s)) return s;
 
-          const factions: FactionKey[] = ["allies", "axis", "ussr", ...s.customs.map((c) => `custom:${c.id}` as const)];
+          const factions: FactionKey[] = [
+            "allies",
+            "axis",
+            "ussr",
+            ...s.customs.map((c) => `custom:${c.id}` as const),
+          ];
 
           const allTerritories = new Set<string>();
           for (const r of s.regions) for (const t of r.territories) allTerritories.add(t);
@@ -360,7 +440,7 @@ export const useCampaignStore = create<CampaignState>()(
 
           const platoon = s.platoonsById[platoonId];
           if (!platoon) return s;
-          if (platoon.faction !== faction) return s; // no cross-faction ordering
+          if (platoon.faction !== faction) return s;
 
           const byTurn: Record<string, PlatoonOrder[]> = { ...(s.ordersByTurn[turn] ?? {}) };
           const list: PlatoonOrder[] = [...(byTurn[faction] ?? [])];
@@ -397,8 +477,9 @@ export const useCampaignStore = create<CampaignState>()(
 
           return {
             ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn },
-            turnLog: [logNote(`Orders submitted: ${faction} (Turn ${turn})`), ...s.turnLog],
+            turnLog: [logNote(`Orders submitted: ${faction} (Turn ${turn})`, "ORDERS"), ...s.turnLog],
           };
+
         }),
 
       // -------- GM-only mechanics --------
@@ -424,6 +505,7 @@ export const useCampaignStore = create<CampaignState>()(
             ownerByTerritory: nextOwners,
             locksByTerritory: nextLocks,
             contestsByTerritory: nextContests,
+            ordersByTurn: consumeSubmittedOrdersForTurn(s.ordersByTurn, s.turnNumber),
             turnLog: [...log.map((t) => logNote(t)), ...s.turnLog],
           };
         }),
@@ -456,39 +538,119 @@ export const useCampaignStore = create<CampaignState>()(
         }),
 
       nextPhase: (isAdjacent) =>
-        set((s) => {
-          if (!requireGM(s)) return s;
+  set((s) => {
+    if (!requireGM(s)) return s;
 
-          if (s.phase === "SETUP") return { phase: "ORDERS" as const };
-          if (s.phase === "ORDERS") return { phase: "RESOLUTION" as const };
+    const factions: FactionKey[] = ["allies", "axis", "ussr"]; // adjust if needed
+    const idx = Math.max(0, factions.indexOf(s.viewerFaction));
+    const rotatedFaction = factions[(idx + 1) % factions.length];
 
-          if (s.phase === "RESOLUTION") {
-            const byTurn = s.ordersByTurn[s.turnNumber] ?? {};
-            const allOrders = Object.values(byTurn).flat() as PlatoonOrder[];
+    if (s.phase === "SETUP") return { phase: "ORDERS" as const, viewerFaction: rotatedFaction };
+    if (s.phase === "ORDERS") return { phase: "RESOLUTION" as const, viewerFaction: rotatedFaction };
 
-            const { nextPlatoons, nextOwners, nextLocks, nextContests, log } = resolveTurn({
-              turn: s.turnNumber,
-              platoonsById: s.platoonsById,
-              orders: allOrders,
-              ownerByTerritory: s.ownerByTerritory,
-              locksByTerritory: s.locksByTerritory,
-              contestsByTerritory: s.contestsByTerritory,
-              isAdjacent,
-            });
+    if (s.phase === "RESOLUTION") {
+      const byTurn = s.ordersByTurn[s.turnNumber] ?? {};
+      const allOrders = Object.values(byTurn).flat() as PlatoonOrder[];
 
-            return {
-              phase: "BATTLES" as const,
-              platoonsById: nextPlatoons,
-              ownerByTerritory: nextOwners,
-              locksByTerritory: nextLocks,
-              contestsByTerritory: nextContests,
-              turnLog: [...log.map((t) => logNote(t)), ...s.turnLog],
-            };
-          }
+      const { nextPlatoons, nextOwners, nextLocks, nextContests, log } = resolveTurn({
+        turn: s.turnNumber,
+        platoonsById: s.platoonsById,
+        orders: allOrders,
+        ownerByTerritory: s.ownerByTerritory,
+        locksByTerritory: s.locksByTerritory,
+        contestsByTerritory: s.contestsByTerritory,
+        isAdjacent,
 
-          // BATTLES -> next turn
-          return { phase: "ORDERS" as const, turnNumber: s.turnNumber + 1 };
-        }),
+
+      });
+
+      return {
+        phase: "BATTLES" as const,
+        viewerFaction: rotatedFaction,
+        platoonsById: nextPlatoons,
+        ownerByTerritory: nextOwners,
+        locksByTerritory: nextLocks,
+        contestsByTerritory: nextContests,
+        ordersByTurn: consumeSubmittedOrdersForTurn(s.ordersByTurn, s.turnNumber),
+        turnLog: [...log.map((t) => logNote(t)), ...s.turnLog],
+      };
+    }
+
+    // BATTLES -> next turn -> ORDERS
+    return { phase: "ORDERS" as const, turnNumber: s.turnNumber + 1, viewerFaction: rotatedFaction };
+  }),
+
+
+      // -------- Supplies (now valid because we have get()) --------
+      ensureSupplies: () => {
+        const s = get();
+        const m = { ...(s.suppliesByFaction ?? {}) };
+
+        if (m.allies == null) m.allies = 100;
+        if (m.axis == null) m.axis = 100;
+        if (m.ussr == null) m.ussr = 100;
+
+        for (const c of s.customs ?? []) {
+          const k = `custom:${c.id}`;
+          if (m[k] == null) m[k] = 100;
+        }
+
+        set({ suppliesByFaction: m });
+      },
+
+      getSupplies: (faction: string) => {
+        const s = get();
+        return (s.suppliesByFaction?.[faction] ?? 0) | 0;
+      },
+
+      spendSupplies: (faction: string, amount: number, reason?: string) => {
+        const s = get();
+        const cur = s.suppliesByFaction?.[faction] ?? 0;
+        const cost = Math.max(0, Math.floor(amount));
+        if (cur < cost) return false;
+
+        const next = cur - cost;
+        set({ suppliesByFaction: { ...s.suppliesByFaction, [faction]: next } });
+
+        if (Array.isArray(s.turnLog) && cost > 0) {
+          set({
+            turnLog: [
+              {
+                ts: Date.now(),
+                type: "SUPPLY",
+                text: `${faction} spent ${cost} supplies${reason ? ` (${reason})` : ""} (now ${next})`,
+                id: uid(),
+              },
+              ...s.turnLog,
+            ],
+          });
+        }
+
+        return true;
+      },
+
+      addSupplies: (faction: string, amount: number, reason?: string) => {
+        const s = get();
+        const add = Math.max(0, Math.floor(amount));
+        const cur = s.suppliesByFaction?.[faction] ?? 0;
+        const next = cur + add;
+
+        set({ suppliesByFaction: { ...s.suppliesByFaction, [faction]: next } });
+
+        if (Array.isArray(s.turnLog) && add > 0) {
+          set({
+            turnLog: [
+              {
+                ts: Date.now(),
+                type: "SUPPLY",
+                text: `${faction} gained ${add} supplies${reason ? ` (${reason})` : ""} (now ${next})`,
+                id: uid(),
+              },
+              ...s.turnLog,
+            ],
+          });
+        }
+      },
 
       clearLocksAndContests: () =>
         set((s) => {
