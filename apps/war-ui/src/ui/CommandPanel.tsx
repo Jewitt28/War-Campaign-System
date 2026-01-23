@@ -7,6 +7,7 @@ import GMTools from "../gm/GMTools";
 
 import PlatoonsPanel from "./PlatoonsPanel";
 import TurnLogPanel from "./TurnLogPanel";
+import CommandHub from "./CommandHub";
 
 type Props = { data: NormalizedData | null };
 
@@ -15,10 +16,12 @@ export type Tab = "DASHBOARD" | "ORDERS" | "INTEL" | "LOG";
 type RightTab = Tab | "PLATOONS";
 
 export default function CommandPanel({ data }: Props) {
-  const viewerMode = useCampaignStore((s) => s.viewerMode);
-  const setViewerMode = useCampaignStore((s) => s.setViewerMode);
-  const mode = useCampaignStore((s) => s.mode);
 
+  const mode = useCampaignStore((s) => s.mode);
+  //  const viewerMode = useCampaignStore((s) => s.viewerMode);
+  const commandHubExpanded = useCampaignStore((s) => s.commandHubExpanded);
+  const setCommandHubExpanded = useCampaignStore((s) => s.setCommandHubExpanded);
+  const viewerMode = useCampaignStore((s) => s.viewerMode);
   // Temporary: while in setup, treat UI as GM-capable so GM-only panels are available.
   const gmEffective = mode === "SETUP" || viewerMode === "GM";
 
@@ -39,6 +42,9 @@ export default function CommandPanel({ data }: Props) {
   const content = (() => {
     switch (tab) {
       case "DASHBOARD":
+                if (gmEffective) return <GMTools data={data} tab={tab} />;
+        return <CommandHub data={data} variant={commandHubExpanded ? "compact" : "full"} />;
+        // return gmEffective ? <GMTools data={data} setTab={tab} /> : <CommandHub data={data}  />;
       case "ORDERS":
       case "LOG":
         return gmEffective ? <GMTools data={data} tab={tab} /> : <PlayerDashboard data={data} tab={tab} />;
@@ -56,10 +62,7 @@ export default function CommandPanel({ data }: Props) {
       {/* TOP: Always-visible inspector */}
       <MapInspector />
 
-      <hr style={{ borderColor: "rgba(255,255,255,.12)", margin: "12px 0" }} />
-
-      {/* Tabs + temp viewer toggle */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
         {visibleTabs.map((t) => (
           <button
             key={t.id}
@@ -69,24 +72,24 @@ export default function CommandPanel({ data }: Props) {
             {t.label}
           </button>
         ))}
+  {!gmEffective && tab === "DASHBOARD" ? (
+          <button
+            type="button"
+            onClick={() => setCommandHubExpanded(!commandHubExpanded)}
+            style={{ marginLeft: "auto" }}
+          >
+            {commandHubExpanded ? "Collapse Hub" : "Expand Hub"}
 
-        {/* TEMP OVERRIDE (until profiles/login) */}
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ fontSize: 12, opacity: 0.8 }}>
-            Viewer: <b>{viewerMode}</b> · Mode: <b>{mode}</b>
-          </span>
-          <button type="button" onClick={() => setViewerMode(viewerMode === "GM" ? "PLAYER" : "GM")}>
-            Toggle GM
           </button>
-        </div>
-      </div>
+) : null}
 
+</div>
       {/* MIDDLE: Tab content */}
       <div style={{ border: "1px solid rgba(255,255,255,.10)", borderRadius: 10, padding: 10 }}>{content}</div>
 
       {/* BOTTOM: Always-visible mini log */}
-      <div style={{ marginTop: 12 }}>
-        <TurnLogPanel />
+        <div style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,.12)" }}>
+        <TurnLogPanel defaultOpen={false} maxHeight={260} />
       </div>
     </div>
   );

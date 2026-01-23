@@ -77,6 +77,8 @@ export default function SetupPanel() {
   const {
     mode,
     setMode,
+    playMode,
+    setPlayMode,
     toggleTheatre,
     activeTheatres,
     resetAll,
@@ -264,6 +266,40 @@ export default function SetupPanel() {
             disabled={!isGM}
           >
             Lock Setup & Start Game
+          </button>
+        </div>
+      </div>
+ <div
+        style={{
+          marginTop: 10,
+          padding: 10,
+          borderRadius: 10,
+          border: "1px solid rgba(255,255,255,.12)",
+          background: "rgba(0,0,0,.12)",
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div style={{ fontWeight: 700 }}>Play Mode</div>
+        <div style={{ fontSize: 12, opacity: 0.75 }}>
+          Choose how the Command Hub and GM tools are arranged during play.
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => setPlayMode("ONE_SCREEN")}
+            disabled={!canEditSetup}
+            style={{ fontWeight: playMode === "ONE_SCREEN" ? 800 : 600 }}
+          >
+            One Screen (shared GM/Player)
+          </button>
+          <button
+            type="button"
+            onClick={() => setPlayMode("ONE_SCREEN")}
+            disabled={!canEditSetup}
+            style={{ fontWeight: playMode !== "ONE_SCREEN" ? 800 : 600 }}
+          >
+            Multi Screen (player-only UI)
           </button>
         </div>
       </div>

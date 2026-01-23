@@ -15,7 +15,7 @@ export type SuppliesByFaction = Record<string, number>;
 
 export type Mode = "SETUP" | "PLAY";
 export type ViewerMode = "PLAYER" | "GM";
-
+export type PlayMode = "ONE_SCREEN" | "MULTI-SCREEN";
 export type TurnLogType = "NOTE" | "MOVE" | "SUPPLY" | "PLATOON" | "ORDERS" | "BATTLE" | "ERROR";
 
 export type TurnLogEntry = {
@@ -40,6 +40,8 @@ export type RegionInfo = {
 export type CampaignState = {
   // --- app ---
   mode: Mode;
+  playMode: PlayMode;
+  commandHubExpanded: boolean;
   activeTheatres: Record<"WE" | "EE" | "NA" | "PA", boolean>;
 
   baseEnabled: Record<BaseFactionKey, boolean>;
@@ -75,6 +77,8 @@ export type CampaignState = {
   turnLog: TurnLogEntry[];
 
   setMode: (m: Mode) => void;
+  setPlayMode: (m: PlayMode) => void;
+  setCommandHubExpanded: (expanded: boolean) => void;
   toggleTheatre: (id: "WE" | "EE" | "NA" | "PA") => void;
 
   selectSetupFaction: (f: BaseFactionKey | "custom" | null) => void;
@@ -154,6 +158,8 @@ function playerCanActAs(s: CampaignState, faction: FactionKey) {
 const initialState: Omit<
   CampaignState,
   | "setMode"
+  | "setPlayMode"
+  | "setCommandHubExpanded"
   | "toggleTheatre"
   | "selectSetupFaction"
   | "createCustomFaction"
@@ -187,6 +193,8 @@ const initialState: Omit<
   | "spendSupplies"
 > = {
   mode: "SETUP",
+  playMode: "ONE_SCREEN",
+  commandHubExpanded: false,
   activeTheatres: { WE: true, EE: true, NA: true, PA: true },
   baseEnabled: { allies: true, axis: true, ussr: true },
 
@@ -267,6 +275,8 @@ export const useCampaignStore = create<CampaignState>()(
 
       // ---- basic app controls ----
       setMode: (m) => set({ mode: m }),
+      setPlayMode: (m) => set({ playMode: m}),
+      setCommandHubExpanded: (expanded) => set({ commandHubExpanded: expanded }),
 
       toggleTheatre: (id) =>
         set((s) => ({ activeTheatres: { ...s.activeTheatres, [id]: !s.activeTheatres[id] } })),
