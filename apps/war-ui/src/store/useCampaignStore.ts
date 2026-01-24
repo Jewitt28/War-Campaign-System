@@ -15,6 +15,8 @@ import type {
   Contest,
   Platoon,
   BattleOutcome,
+  PlatoonCondition,
+  PlatoonTrait,
 } from "../domain/types";
 import { resolveTurn } from "../domain/resolveTurn";
 import { resolveBattles as resolveBattlesFn } from "../domain/resolveBattles";
@@ -165,6 +167,17 @@ export type CampaignState = {
     faction: FactionKey,
     territoryId: string,
     name?: string,
+  ) => void;
+  createPlatoonWithLoadout: (
+    faction: FactionKey,
+    territoryId: string,
+    payload: {
+      name?: string;
+      traits?: PlatoonTrait[];
+      mpBase?: number;
+      condition?: PlatoonCondition;
+      strengthPct?: number;
+    },
   ) => void;
 
   setPlatoonOrderMove: (
@@ -632,6 +645,33 @@ export const useCampaignStore = create<CampaignState>()(
             platoonsById: { ...s.platoonsById, [id]: next },
             turnLog: [
               logNote(`Created platoon for ${faction} at ${territoryId}`),
+              ...s.turnLog,
+            ],
+          };
+        }),
+      createPlatoonWithLoadout: (faction, territoryId, payload) =>
+        set((s) => {
+          if (!playerCanActAsNation(s, s.viewerNation)) return s;
+
+          const id = uid();
+          const next: Platoon = {
+            id,
+            faction,
+            nation: s.viewerNation,
+            name: payload.name?.trim() || `Platoon ${id.slice(0, 4)}`,
+            territoryId,
+            condition: payload.condition ?? "FRESH",
+            strengthPct: payload.strengthPct ?? 100,
+            mpBase: payload.mpBase ?? 1,
+            traits: payload.traits ?? [],
+          };
+
+          return {
+            platoonsById: { ...s.platoonsById, [id]: next },
+            turnLog: [
+              logNote(
+                `Created platoon for ${faction} at ${territoryId} (loadout)`,
+              ),
               ...s.turnLog,
             ],
           };
