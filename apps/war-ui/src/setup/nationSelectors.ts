@@ -1,4 +1,4 @@
-import type { BaseFactionKey } from "../store/useCampaignStore";
+import type { FactionKey } from "../store/useCampaignStore";
 import { NATIONS, type NationKey } from "./NationDefinitions";
 import type { CustomNation } from "../store/useCampaignStore";
 
@@ -8,22 +8,18 @@ import type { CustomNation } from "../store/useCampaignStore";
 export function deriveFactionsFromNations(
   nationsEnabled: Record<NationKey, boolean>,
   customNations: CustomNation[] = [],
-): Record<BaseFactionKey, boolean> {
-  const result: Record<BaseFactionKey, boolean> = {
-    allies: false,
-    axis: false,
-    ussr: false,
-  };
+): FactionKey[] {
+  const result = new Set<FactionKey>();
 
   for (const n of NATIONS) {
     if (!nationsEnabled[n.id]) continue;
-    result[n.defaultFaction] = true;
+    result.add(n.defaultFaction);
   }
 
   for (const n of customNations) {
     if (!nationsEnabled[n.id]) continue;
-    result[n.defaultFaction] = true;
+    result.add(n.defaultFaction);
   }
 
-  return result;
+  return Array.from(result.values());
 }

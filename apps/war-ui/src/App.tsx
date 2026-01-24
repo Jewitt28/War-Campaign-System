@@ -67,7 +67,7 @@ export default function App() {
             }}
           >
             {showSetup && <SetupPanel />}
-            {viewerMode === "GM" ? (
+            {viewerMode === "GM" && mode !== "SETUP" ? (
               <GMTools data={data} tab="DASHBOARD" />
             ) : leftPanelView === "FACTION_COMMAND" ? (
               <CommandHub data={data} variant="full" />

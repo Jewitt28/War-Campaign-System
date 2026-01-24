@@ -1,13 +1,14 @@
 
-import  { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { useCampaignStore, type BaseFactionKey } from "../store/useCampaignStore";
+import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
 import { canPickNationHomeland, getFactionKeyForNation } from "./SetupRules";
 import { NATIONS, type NationKey } from "./NationDefinitions";
 
 import { loadTheatresData } from "../data/theatres";
 import type { RegionDef } from "../data/regions";
 import { deriveFactionsFromNations } from "./nationSelectors";
+import { factionLabel } from "../store/factionLabel";
 
 type Status = "TODO" | "DONE" | "LOCKED";
 
@@ -94,6 +95,8 @@ export default function SetupPanel() {
     setSelectedTerritory,
     customNations,
     createCustomNation,
+    customs,
+    createCustomFaction,
     homelandUnlock,
     setHomelandUnlock,
   } = useCampaignStore();
@@ -136,13 +139,17 @@ export default function SetupPanel() {
     [activeTheatres]
   );
 
+  const nationLabel = (nationId: NationKey | null) => {
+    if (!nationId) return "—";
+    const custom = customNations.find((n) => n.id === nationId);
+    return custom?.name ?? NATIONS.find((n) => n.id === nationId)?.name ?? nationId;
+  };
+
   const derivedFactionsLabel = useMemo(() => {
     const derived = deriveFactionsFromNations(nationsEnabledMap, customNations);
-    const list = Object.entries(derived)
-      .filter(([, v]) => v)
-      .map(([k]) => k.toUpperCase());
+    const list = derived.map((key) => factionLabel(key, customs));
     return list.join(", ") || "None";
-  }, [nationsEnabledMap]);
+  }, [nationsEnabledMap, customNations, customs]);
 
   const summaryStatus: { s1: Status; s2: Status; s3: Status } = useMemo(() => {
     if (locked) return { s1: "LOCKED", s2: "LOCKED", s3: "LOCKED" };
@@ -156,20 +163,25 @@ export default function SetupPanel() {
   // ----- Collapsible UI state -----
   // Important: no effect-driven setState (satisfy react-hooks/set-state-in-effect).
   // Instead, choose sane defaults based on current state using lazy init.
-  const [open1, setOpen1] = useState<boolean>(() => !locked && !stage2Done); // theatres (start open unless already moved on)
-  const [open2, setOpen2] = useState<boolean>(() => !locked); // nations (usually open)
-  const [open3, setOpen3] = useState<boolean>(() => !locked); // homelands (usually open)
+  const [openSection, setOpenSection] = useState<0 | 1 | 2 | 3>(() => {
+    if (locked) return 1;
+    if (!stage1Done) return 1;
+    if (!stage2Done) return 2;
+    return 3;
+  });
 
-  const expandAll = () => {
-    setOpen1(true);
-    setOpen2(true);
-    setOpen3(true);
+  const open1 = openSection === 1;
+  const open2 = openSection === 2;
+  const open3 = openSection === 3;
+
+  const resumeStep = () => {
+    if (!stage1Done) return setOpenSection(1);
+    if (!stage2Done) return setOpenSection(2);
+    return setOpenSection(3);
   };
 
   const collapseAll = () => {
-    setOpen1(false);
-    setOpen2(false);
-    setOpen3(false);
+    setOpenSection(0);
   };
 
   // ----- Map territory name lookup + region groups -----
@@ -182,7 +194,10 @@ export default function SetupPanel() {
   const [regionTerritoryId, setRegionTerritoryId] = useState<string>("");
   const [customNationName, setCustomNationName] = useState<string>("");
   const [customNationFaction, setCustomNationFaction] =
-    useState<BaseFactionKey>("allies");
+    useState<FactionKey>("allies");
+  const [customNationColor, setCustomNationColor] = useState<string>("#22c55e");
+  const [customFactionName, setCustomFactionName] = useState<string>("");
+  const [customFactionColor, setCustomFactionColor] = useState<string>("#8b5cf6");
 
   useEffect(() => {
     loadTheatresData()
@@ -243,48 +258,8 @@ export default function SetupPanel() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button onClick={resetAll} disabled={!isGM}>
-            Reset
-          </button>
-
-          {mode === "SETUP" ? (
-            <button
-              onClick={() => {
-                if (!isGM) return;
-                setMode("PLAY");
-                collapseAll();
-              }}
-              disabled={!isGM}
-            >
-              Lock Setup
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                if (!isGM) return;
-                setMode("SETUP");
-                expandAll();
-              }}
-              disabled={!isGM}
-            >
-              Unlock (GM)
-            </button>
-          )}
-
-          <button
-            onClick={() => {
-              if (!isGM) return;
-              autoSetupWorld();
-              collapseAll();
-            }}
-            disabled={!isGM}
-          >
-            Lock Setup & Start Game
-          </button>
-        </div>
       </div>
- <div
+      <div
         style={{
           marginTop: 10,
           padding: 10,
@@ -351,8 +326,8 @@ export default function SetupPanel() {
           <div style={{ fontWeight: 800 }}>Summary</div>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <button type="button" onClick={expandAll} disabled={locked}>
-              Expand
+            <button type="button" onClick={resumeStep} disabled={locked}>
+              Resume step
             </button>
             <button type="button" onClick={collapseAll}>
               Collapse
@@ -375,7 +350,8 @@ export default function SetupPanel() {
 
           {selectedSetupNation && (
             <div style={{ marginTop: 4 }}>
-              <b>Selected nation:</b> {selectedSetupNation} · Aligned faction: <b>{getFactionKeyForNation(selectedSetupNation)}</b>
+              <b>Selected nation:</b> {nationLabel(selectedSetupNation)} · Aligned faction:{" "}
+              <b>{factionLabel(getFactionKeyForNation(selectedSetupNation), customs)}</b>
             </div>
           )}
         </div>
@@ -408,7 +384,7 @@ export default function SetupPanel() {
         <SectionHeader
           title="1) Theatres in play"
           open={open1}
-          onToggle={() => setOpen1((v) => !v)}
+          onToggle={() => setOpenSection(open1 ? 0 : 1)}
           status={locked ? "LOCKED" : stage1Done ? "DONE" : "TODO"}
           subtitle={
             anyTheatreActive
@@ -418,13 +394,18 @@ export default function SetupPanel() {
         />
 
         {open1 && (
-          <div style={{ padding: "10px 6px 2px" }}>
-            {(["WE", "EE", "NA", "PA"] as const).map((id) => (
-              <label key={id} style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0" }}>
-                <input type="checkbox" checked={activeTheatres[id]} onChange={() => toggleTheatre(id)} />
-                <span>{id}</span>
-              </label>
-            ))}
+          <div style={{ padding: "10px 6px 2px", display: "grid", gap: 10 }}>
+            <div>
+              {(["WE", "EE", "NA", "PA"] as const).map((id) => (
+                <label key={id} style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0" }}>
+                  <input type="checkbox" checked={activeTheatres[id]} onChange={() => toggleTheatre(id)} />
+                  <span>{id}</span>
+                </label>
+              ))}
+            </div>
+            <button type="button" disabled={!stage1Done} onClick={() => setOpenSection(2)}>
+              Confirm theatres
+            </button>
           </div>
         )}
 
@@ -432,9 +413,9 @@ export default function SetupPanel() {
         <SectionHeader
           title="2) Nations"
           open={open2}
-          onToggle={() => setOpen2((v) => !v)}
+          onToggle={() => setOpenSection(open2 ? 0 : 2)}
           status={locked ? "LOCKED" : stage2Done ? "DONE" : "TODO"}
-          subtitle={`${enabledNationIds.length} enabled · Selected: ${selectedSetupNation ?? "—"}`}
+          subtitle={`${enabledNationIds.length} enabled · Selected: ${nationLabel(selectedSetupNation)}`}
         />
 
         {open2 && (
@@ -469,7 +450,7 @@ export default function SetupPanel() {
                 onChange={(e) => {
                   const v = e.target.value as NationKey | "";
                   selectSetupNation(v === "" ? null : v);
-                                    if (v) setViewerNation(v as NationKey);
+                  if (v) setViewerNation(v as NationKey);
                 }}
                 style={{ width: "100%" }}
               >
@@ -484,12 +465,56 @@ export default function SetupPanel() {
 
               {selectedSetupNation && (
                 <div style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
-                  Aligned faction: <b>{getFactionKeyForNation(selectedSetupNation)}</b>
+                  Aligned faction: <b>{factionLabel(getFactionKeyForNation(selectedSetupNation), customs)}</b>
                 </div>
               )}
 
               <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
                 <b>Factions in play:</b> {derivedFactionsLabel}
+              </div>
+            </div>
+
+            <div style={{ border: "1px dashed rgba(255,255,255,.12)", borderRadius: 8, padding: 10 }}>
+              <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 6 }}>Create custom faction</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <input
+                  value={customFactionName}
+                  onChange={(e) => setCustomFactionName(e.target.value)}
+                  placeholder="Faction name"
+                />
+                <label style={{ display: "grid", gap: 4 }}>
+                  <span style={{ fontSize: 12, opacity: 0.8 }}>Faction color</span>
+                  <input type="color" value={customFactionColor} onChange={(e) => setCustomFactionColor(e.target.value)} />
+                </label>
+                <button
+                  type="button"
+                  disabled={!customFactionName.trim() || !canEditSetup}
+                  onClick={() => {
+                    if (!customFactionName.trim()) return;
+                    createCustomFaction(customFactionName.trim(), customFactionColor);
+                    setCustomFactionName("");
+                  }}
+                >
+                  Add Faction
+                </button>
+                {customs.length > 0 && (
+                  <div style={{ display: "grid", gap: 6, fontSize: 12, opacity: 0.85 }}>
+                    {customs.map((faction) => (
+                      <div key={faction.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span
+                          style={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: "50%",
+                            background: faction.color,
+                            border: "1px solid rgba(255,255,255,.4)",
+                          }}
+                        />
+                        <span>{faction.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -502,14 +527,28 @@ export default function SetupPanel() {
                   placeholder="Nation name"
                 />
                 <label style={{ display: "grid", gap: 4 }}>
+                  <span style={{ fontSize: 12, opacity: 0.8 }}>Nation color</span>
+                  <input type="color" value={customNationColor} onChange={(e) => setCustomNationColor(e.target.value)} />
+                </label>
+                <label style={{ display: "grid", gap: 4 }}>
                   <span style={{ fontSize: 12, opacity: 0.8 }}>Default faction</span>
                   <select
                     value={customNationFaction}
-                    onChange={(e) => setCustomNationFaction(e.target.value as BaseFactionKey)}
+                    onChange={(e) => setCustomNationFaction(e.target.value as FactionKey)}
                   >
+                    <option value="neutral">Unaligned</option>
                     <option value="allies">Allies</option>
                     <option value="axis">Axis</option>
                     <option value="ussr">USSR</option>
+                    {customs.length > 0 && (
+                      <optgroup label="Custom factions">
+                        {customs.map((faction) => (
+                          <option key={faction.id} value={`custom:${faction.id}`}>
+                            {faction.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </label>
                 <button
@@ -517,7 +556,7 @@ export default function SetupPanel() {
                   disabled={!customNationName.trim() || !canEditSetup}
                   onClick={() => {
                     if (!customNationName.trim()) return;
-                    createCustomNation(customNationName.trim(), customNationFaction);
+                    createCustomNation(customNationName.trim(), customNationFaction, customNationColor);
                     setCustomNationName("");
                   }}
                 >
@@ -525,6 +564,10 @@ export default function SetupPanel() {
                 </button>
               </div>
             </div>
+
+            <button type="button" disabled={!stage2Done} onClick={() => setOpenSection(3)}>
+              Confirm nations
+            </button>
           </div>
         )}
 
@@ -532,13 +575,41 @@ export default function SetupPanel() {
         <SectionHeader
           title="3) Homelands"
           open={open3}
-          onToggle={() => setOpen3((v) => !v)}
+          onToggle={() => setOpenSection(open3 ? 0 : 3)}
           status={locked ? "LOCKED" : stage3Done ? "DONE" : "TODO"}
           subtitle={`Progress: ${homelandProgressLabel}`}
         />
 
         {open3 && (
           <div style={{ paddingTop: 10 }}>
+            <div style={{ marginBottom: 12, padding: 10, border: "1px solid rgba(255,255,255,.12)", borderRadius: 8 }}>
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>Nation selection</div>
+              <label style={{ display: "grid", gap: 4 }}>
+                <span style={{ fontSize: 12, opacity: 0.85 }}>Pick nation</span>
+                <select
+                  value={selectedSetupNation ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value as NationKey | "";
+                    selectSetupNation(v === "" ? null : v);
+                    if (v) setViewerNation(v as NationKey);
+                  }}
+                  style={{ width: "100%" }}
+                >
+                  <option value="">— Select —</option>
+                  {allNations.filter((n) => nationsEnabledMap[n.id]).map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {n.flag ? `${n.flag} ` : ""}
+                      {n.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {selectedSetupNation && (
+                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
+                  Aligned faction: <b>{factionLabel(getFactionKeyForNation(selectedSetupNation), customs)}</b>
+                </div>
+              )}
+            </div>
             <div style={{ marginBottom: 12, padding: 10, border: "1px solid rgba(255,255,255,.12)", borderRadius: 8 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input
@@ -620,9 +691,7 @@ export default function SetupPanel() {
                       setSelectedTerritory(safeRegionTerritoryId);
 
                       // UX: once you set a homeland, you normally don't need stages 1/2 open.
-                      setOpen1(false);
-                      setOpen2(false);
-                      setOpen3(true);
+                      setOpenSection(3);
                     }}
                   >
                     Set Homeland
@@ -652,6 +721,55 @@ export default function SetupPanel() {
             </div>
           </div>
         )}
+      </div>
+
+      <div
+        style={{
+          marginTop: 12,
+          display: "flex",
+          gap: 8,
+          flexWrap: "wrap",
+          justifyContent: "flex-end",
+        }}
+      >
+        <button onClick={resetAll} disabled={!isGM}>
+          Reset
+        </button>
+
+        {mode === "SETUP" ? (
+          <button
+            onClick={() => {
+              if (!isGM) return;
+              setMode("PLAY");
+              collapseAll();
+            }}
+            disabled={!isGM}
+          >
+            Lock Setup
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              if (!isGM) return;
+              setMode("SETUP");
+              resumeStep();
+            }}
+            disabled={!isGM}
+          >
+            Unlock (GM)
+          </button>
+        )}
+
+        <button
+          onClick={() => {
+            if (!isGM) return;
+            autoSetupWorld();
+            collapseAll();
+          }}
+          disabled={!isGM}
+        >
+          Lock Setup & Start Game
+        </button>
       </div>
     </div>
   );
