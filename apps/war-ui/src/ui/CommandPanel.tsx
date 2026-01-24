@@ -8,6 +8,7 @@ import PlatoonsPanel from "./PlatoonsPanel";
 import TurnLogPanel from "./TurnLogPanel";
 import CommandHub from "./CommandHub";
 import BattlesPanel from "./BattlesPanel";
+import { getFactionAccent } from "./factionColors";
 
 type Props = { data: NormalizedData | null };
 
@@ -30,8 +31,14 @@ export default function CommandPanel({ data }: Props) {
   );
   const viewerMode = useCampaignStore((s) => s.viewerMode);
   const phase = useCampaignStore((s) => s.phase);
+  const viewerNation = useCampaignStore((s) => s.viewerNation);
+  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const customNations = useCampaignStore((s) => s.customNations);
+  const customs = useCampaignStore((s) => s.customs);
   // Temporary: while in setup, treat UI as GM-capable so GM-only panels are available.
   const gmEffective = mode === "SETUP" || viewerMode === "GM";
+
+  const accentColor = getFactionAccent({ viewerNation, viewerFaction, customNations, customs });
 
   const [tab, setTab] = useState<RightTab>("DASHBOARD");
 
@@ -112,8 +119,9 @@ export default function CommandPanel({ data }: Props) {
     <div
       style={{
         padding: 12,
-        border: "1px solid rgba(255,255,255,.15)",
+        border: `1px solid ${accentColor}55`,
         borderRadius: 8,
+        background: `linear-gradient(135deg, ${accentColor}12, rgba(0,0,0,0))`,
       }}
     >
       {/* TOP: Always-visible inspector */}

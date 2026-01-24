@@ -20,7 +20,7 @@ import { resolveTurn } from "../domain/resolveTurn";
 import { resolveBattles as resolveBattlesFn } from "../domain/resolveBattles";
 
 export type BaseFactionKey = "allies" | "axis" | "ussr";
-export type FactionKey = BaseFactionKey | `custom:${string}`;
+export type FactionKey = BaseFactionKey | "neutral" | `custom:${string}`;
 export type OwnerKey = NationKey | "neutral" | "contested";
 export type SuppliesByFaction = Record<string, number>;
 
@@ -58,7 +58,8 @@ export type CustomFaction = { id: string; name: string; color: string };
 export type CustomNation = {
   id: NationKey;
   name: string;
-  defaultFaction: BaseFactionKey;
+  defaultFaction: FactionKey;
+  color: string;
 };
 
 export type RegionInfo = {
@@ -89,7 +90,7 @@ export type CampaignState = {
 
   // Existing faction/custom system (kept for now)
   customs: CustomFaction[];
-  createCustomNation: (name: string, defaultFaction: BaseFactionKey) => void;
+  createCustomNation: (name: string, defaultFaction: FactionKey, color: string) => void;
   selectedSetupFaction: BaseFactionKey | "custom" | null;
   selectedCustomId: string | null;
 
@@ -355,7 +356,7 @@ const initialState: Omit<
   viewerNation: "great_britain",
   viewerFaction: "allies",
   playerFactionId: null,
-  viewerMode: "PLAYER",
+  viewerMode: "GM",
 
   homelands: {},
   homelandUnlock: false,
@@ -442,12 +443,13 @@ export const useCampaignStore = create<CampaignState>()(
           selectedCustomId: id,
         }));
       },
-      createCustomNation: (name, defaultFaction) => {
+      createCustomNation: (name, defaultFaction, color) => {
         const id = `custom:${uid()}` as NationKey;
         const next: CustomNation = {
           id,
           name: (name || "Custom Nation").trim(),
           defaultFaction,
+          color,
         };
         set((s) => ({
           customNations: [...s.customNations, next],

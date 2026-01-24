@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadTheatresData, withBase, type TheatreData } from "../data/theatres";
 import type { VisibilityLevel } from "../data/visibility";
-import { useCampaignStore, type OwnerKey } from "../store/useCampaignStore";
+import { useCampaignStore, type CustomNation, type FactionKey, type OwnerKey } from "../store/useCampaignStore";
 import type { Contest } from "../domain/types";
 import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
 
@@ -23,6 +23,7 @@ const baseFactionColors: Record<"allies" | "axis" | "ussr", string> = {
   axis: "#dc2626",
   ussr: "#f97316",
 };
+const neutralFactionColor = "#6b7280";
 
 // ✅ borders ALWAYS visible (strategy/planning)
 const BORDER_STROKE = "rgba(255,255,255,.55)";
@@ -30,20 +31,26 @@ const BORDER_WIDTH = "1.25";
 
 function getOwnerFill(
   owner: OwnerKey,
-  customNations: Array<{ id: string; defaultFaction: "allies" | "axis" | "ussr" }>,
+  customNations: CustomNation[],
 ) {
-  if (owner === "neutral") return "#6b7280";
+  if (owner === "neutral") return neutralFactionColor;
   if (owner === "contested") return "#a855f7";
-  const defaultFaction = owner.startsWith("custom:")
-    ? customNations.find((n) => n.id === owner)?.defaultFaction
-    : NATION_BY_ID[owner as BaseNationKey]?.defaultFaction;
-  if (defaultFaction) return baseFactionColors[defaultFaction];
-  return "#6b7280";
+  const customNation = owner.startsWith("custom:")
+    ? customNations.find((n) => n.id === owner)
+    : null;
+  const defaultFaction: FactionKey | undefined =
+    customNation?.defaultFaction ??
+    NATION_BY_ID[owner as BaseNationKey]?.defaultFaction;
+  if (customNation?.color) return customNation.color;
+  if (defaultFaction && defaultFaction in baseFactionColors) {
+    return baseFactionColors[defaultFaction as keyof typeof baseFactionColors];
+  }
+  return neutralFactionColor;
 }
 
 function getDefaultFactionForNation(
   nation: string,
-  customNations: Array<{ id: string; defaultFaction: "allies" | "axis" | "ussr" }>,
+  customNations: CustomNation[],
 ) {
   return nation.startsWith("custom:")
     ? customNations.find((n) => n.id === nation)?.defaultFaction
@@ -52,10 +59,17 @@ function getDefaultFactionForNation(
 
 function getNationAccent(
   nation: string,
-  customNations: Array<{ id: string; defaultFaction: "allies" | "axis" | "ussr" }>,
+  customNations: CustomNation[],
 ) {
   const defaultFaction = getDefaultFactionForNation(nation, customNations);
-  return defaultFaction ? baseFactionColors[defaultFaction] : "#6b7280";
+  if (nation.startsWith("custom:")) {
+    const customNation = customNations.find((n) => n.id === nation);
+    if (customNation?.color) return customNation.color;
+  }
+  if (defaultFaction && defaultFaction in baseFactionColors) {
+    return baseFactionColors[defaultFaction as keyof typeof baseFactionColors];
+  }
+  return neutralFactionColor;
 }
 
 function isGMEffective(mode: "SETUP" | "PLAY", viewerMode: "PLAYER" | "GM") {

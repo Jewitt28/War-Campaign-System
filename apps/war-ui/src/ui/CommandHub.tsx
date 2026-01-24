@@ -7,6 +7,7 @@ import {
   type BaseNationKey,
   type NationKey,
 } from "../setup/NationDefinitions";
+import { getFactionAccent } from "./factionColors";
 
 type Props = {
   data: NormalizedData | null;
@@ -147,6 +148,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
       ? customNations.find((n) => n.id === viewerNation)?.name
       : NATION_BY_ID[viewerNation as BaseNationKey]?.name) ?? viewerNation;
   const customFaction = customs.find((f) => `custom:${f.id}` === viewerFaction);
+  const accentColor = getFactionAccent({ viewerNation, viewerFaction, customNations, customs });
 
   const currentCommanderId = viewerMode === "GM" ? "leader" : "officer-2";
   const isCompact = variant === "compact";
@@ -226,7 +228,16 @@ export default function CommandHub({ data, variant = "full" }: Props) {
   };
 
   return (
-    <div style={{ padding: isCompact ? 14 : 20, display: "grid", gap: isCompact ? 14 : 20 }}>
+    <div
+      style={{
+        padding: isCompact ? 14 : 20,
+        display: "grid",
+        gap: isCompact ? 14 : 20,
+        border: `1px solid ${accentColor}55`,
+        borderRadius: 14,
+        background: `linear-gradient(135deg, ${accentColor}18, rgba(0,0,0,0))`,
+      }}
+    >
       {/* HEADER + RESOURCES */}
       <section style={{ display: "grid", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -235,8 +246,8 @@ export default function CommandHub({ data, variant = "full" }: Props) {
               width: 52,
               height: 52,
               borderRadius: 14,
-              background: customFaction?.color ? `${customFaction.color}33` : "rgba(255,255,255,.12)",
-              border: customFaction?.color ? `1px solid ${customFaction.color}` : "1px solid rgba(255,255,255,.15)",
+              background: `${accentColor}33`,
+              border: `1px solid ${accentColor}`,
               display: "grid",
               placeItems: "center",
               fontSize: 24,

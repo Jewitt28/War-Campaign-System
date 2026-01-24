@@ -7,15 +7,15 @@ import {
 import type { TheatreId } from "../data/theatres";
 import { NATIONS, type NationKey } from "./NationDefinitions";
 
-export function getFactionKeyForNation(nation: NationKey): BaseFactionKey {
+export function getFactionKeyForNation(nation: NationKey): FactionKey {
   const s = useCampaignStore.getState();
   if (nation.startsWith("custom:")) {
     return (
-      s.customNations.find((x) => x.id === nation)?.defaultFaction ?? "allies"
+      s.customNations.find((x) => x.id === nation)?.defaultFaction ?? "neutral"
     );
   }
   const n = NATIONS.find((x) => x.id === nation);
-  return n?.defaultFaction ?? "allies";
+  return n?.defaultFaction ?? "neutral";
 }
 
 /**

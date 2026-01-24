@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import type { NormalizedData } from "../data/theatres";
 import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
 import { useCampaignStore } from "../store/useCampaignStore";
+import { factionLabel } from "../store/factionLabel";
+import { getFactionAccent } from "./factionColors";
 
 type Props = {
   data: NormalizedData | null;
@@ -11,6 +13,7 @@ export default function NationCommandPanel({ data }: Props) {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
   const customNations = useCampaignStore((s) => s.customNations);
+  const customs = useCampaignStore((s) => s.customs);
   const turnNumber = useCampaignStore((s) => s.turnNumber);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
@@ -37,13 +40,24 @@ export default function NationCommandPanel({ data }: Props) {
       });
   }, [ordersByTurn, platoonsById, turnNumber, viewerNation]);
   const supplies = suppliesByFaction?.[viewerFaction] ?? 0;
+  const accentColor = getFactionAccent({ viewerNation, viewerFaction, customNations, customs });
 
   return (
-    <div style={{ padding: 16, display: "grid", gap: 12 }}>
+    <div
+      style={{
+        padding: 16,
+        display: "grid",
+        gap: 12,
+        border: `1px solid ${accentColor}55`,
+        borderRadius: 12,
+        background: `linear-gradient(135deg, ${accentColor}12, rgba(0,0,0,0))`,
+      }}
+    >
       <div>
         <h2 style={{ margin: 0 }}>{nationLabel} Command</h2>
         <div style={{ opacity: 0.8 }}>
-          Nation overview · Faction alignment: <b>{viewerFaction}</b> · Turn{" "}
+          Nation overview · Faction alignment:{" "}
+          <b>{factionLabel(viewerFaction, customs)}</b> · Turn{" "}
           <b>{turnNumber}</b>
         </div>
         <div style={{ opacity: 0.7, fontSize: 12, marginTop: 4 }}>
