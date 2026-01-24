@@ -1,7 +1,8 @@
 // apps/war-ui/src/map/MapBoard.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { loadTheatresData, withBase, type TheatreData } from "../data/theatres";
+import { loadTheatresData, withBase, type NormalizedData } from "../data/theatres";
+import { getEffectiveVisibility as getRulesVisibility } from "../data/visibilityRules";
 import type { VisibilityLevel } from "../data/visibility";
 import { useCampaignStore, type CustomNation, type FactionKey, type OwnerKey } from "../store/useCampaignStore";
 import type { Contest } from "../domain/types";
@@ -269,7 +270,7 @@ export default function MapBoard() {
 
   const [vb, setVb] = useState<ViewBox | null>(null);
   const [hover, setHover] = useState<HoverState>(null);
-  const [data, setData] = useState<TheatreData | null>(null);
+  const [data, setData] = useState<NormalizedData | null>(null);
 
   const zoomApiRef = useRef<null | {
     reset: () => void;
@@ -321,7 +322,7 @@ export default function MapBoard() {
     const terrMap = new Map<string, TerritoryInfo>();
 
     if (data) {
-      for (const th of data.theatres) {
+      for (const th of data.raw.theatres) {
         if (!activeTheatres[th.theatreId as keyof typeof activeTheatres])
           continue;
 
@@ -351,8 +352,8 @@ export default function MapBoard() {
   }, [activeTheatres, data]);
   const regionTerritoriesById = useMemo(() => {
     const map = new Map<string, string[]>();
-    if (!data?.regions) return map;
-    for (const region of data.regions) {
+    if (!data?.raw.regions) return map;
+    for (const region of data.raw.regions) {
       for (const tid of region.territories ?? []) {
         map.set(tid, region.territories ?? []);
       }
@@ -365,7 +366,7 @@ export default function MapBoard() {
     const m = new Map<string, Set<string>>();
     if (!data) return m;
 
-    for (const th of data.theatres) {
+    for (const th of data.raw.theatres) {
       if (!activeTheatres[th.theatreId as keyof typeof activeTheatres])
         continue;
       const adj = th.adjacency ?? {};
@@ -621,7 +622,20 @@ export default function MapBoard() {
       centroidCacheRef.current.clear();
 
       const grouped = new Map<string, string[]>();
-      Object.values(platoonsById).forEach((platoon) => {
+      const visiblePlatoons = Object.values(platoonsById).filter((platoon) => {
+        if (gmEffective) return true;
+        const visibility = getRulesVisibility({
+          viewerMode,
+          viewerNation,
+          territoryId: platoon.territoryId,
+          ownerByTerritory,
+          intelByTerritory,
+          data,
+        });
+        return visibility !== "NONE" || platoon.nation === viewerNation;
+      });
+
+      visiblePlatoons.forEach((platoon) => {
         const list = grouped.get(platoon.territoryId) ?? [];
         list.push(platoon.nation);
         grouped.set(platoon.territoryId, list);
@@ -707,12 +721,17 @@ export default function MapBoard() {
     [
       buildSupplyPath,
       customNations,
+      data,
       ensureOverlayLayer,
       getTerritoryCentroid,
+      gmEffective,
       homelandsByNation,
+      intelByTerritory,
+      ownerByTerritory,
       platoonsById,
       selectedPlatoonId,
       territoriesById,
+      viewerMode,
       viewerNation,
     ],
   );
@@ -756,7 +775,7 @@ export default function MapBoard() {
   // Load theatres data
   useEffect(() => {
     loadTheatresData()
-      .then((nd) => setData(nd.raw))
+      .then((nd) => setData(nd))
       .catch((err) => console.error("Failed to load theatres_all.json", err));
   }, []);
 
