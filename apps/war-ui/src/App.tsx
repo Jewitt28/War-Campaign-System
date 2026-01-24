@@ -5,9 +5,11 @@ import CommandHub from "./ui/CommandHub";
 import CommandPanel from "./ui/CommandPanel";
 import MapBoard from "./map/MapBoard";
 import { loadTheatresData, type NormalizedData } from "./data/theatres";
-import { useCampaignStore, type FactionKey } from "./store/useCampaignStore";
+import { useCampaignStore } from "./store/useCampaignStore";
+import { NATIONS, type NationKey } from "./setup/NationDefinitions";
 import PlayPanel from "./ui/PlayPanel";
 import GMTools from "./gm/GMTools";
+
 
 
 export default function App() {
@@ -74,9 +76,11 @@ export default function App() {
 function TopBar({ data }: { data: NormalizedData | null }) {
   const viewerMode = useCampaignStore((s) => s.viewerMode);
   const setViewerMode = useCampaignStore((s) => s.setViewerMode);
+    const viewerNation = useCampaignStore((s) => s.viewerNation);
+  const setViewerNation = useCampaignStore((s) => s.setViewerNation);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
-  const setViewerFaction = useCampaignStore((s) => s.setViewerFaction);
-  const customs = useCampaignStore((s) => s.customs);
+  // const setViewerFaction = useCampaignStore((s) => s.setViewerFaction);
+  // const customs = useCampaignStore((s) => s.customs);
   const playMode = useCampaignStore((s) => s.playMode);
   const mode = useCampaignStore((s) => s.mode);
   const phase = useCampaignStore((s) => s.phase);
@@ -152,14 +156,12 @@ function TopBar({ data }: { data: NormalizedData | null }) {
 
              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
         <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12 }}>
-          Player View
-          <select value={viewerFaction} onChange={(e) => setViewerFaction(e.target.value as FactionKey)}>
-            <option value="allies">Allies</option>
-            <option value="axis">Axis</option>
-            <option value="ussr">USSR</option>
-            {customs.map((custom) => (
-              <option key={custom.id} value={`custom:${custom.id}`}>
-                {custom.name}
+          Player Nation
+          <select value={viewerNation} onChange={(e) => setViewerNation(e.target.value as NationKey)}>
+            {NATIONS.map((nation) => (
+              <option key={nation.id} value={nation.id}>
+                {nation.flag ? `${nation.flag} ` : ""}
+                {nation.name}
               </option>
             ))}
           </select>

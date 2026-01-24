@@ -3,6 +3,8 @@ import type { NormalizedData } from "../data/theatres";
 import type { VisibilityLevel } from "../data/visibility";
 import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
 import type { PlatoonOrder, BattleOutcome, Contest } from "../domain/types";
+import { NATIONS, type NationKey } from "../setup/NationDefinitions";
+
 
 type Props = {
   data: NormalizedData | null;
@@ -21,8 +23,9 @@ function factionOptions(customs: Array<{ id: string; name: string }>) {
 export default function PlayPanel({ data }: Props) {
   const {
     // viewer / intel
+    viewerNation,
+    setViewerNation,
     viewerFaction,
-    setViewerFaction,
     viewerMode,
     setViewerMode,
     customs,
@@ -168,13 +171,14 @@ export default function PlayPanel({ data }: Props) {
         )}
       </div>
 
-      {/* Viewer faction */}
+      {/* Viewer nation */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>Viewer (Fog of War)</div>
-        <select value={viewerFaction} onChange={(e) => setViewerFaction(e.target.value as FactionKey)} style={{ width: "100%" }}>
-          {factions.map((f) => (
-            <option key={f.key} value={f.key}>
-              {f.label}
+       <select value={viewerNation} onChange={(e) => setViewerNation(e.target.value as NationKey)} style={{ width: "100%" }}>
+          {NATIONS.map((nation) => (
+            <option key={nation.id} value={nation.id}>
+              {nation.flag ? `${nation.flag} ` : ""}
+              {nation.name}
             </option>
           ))}
         </select>

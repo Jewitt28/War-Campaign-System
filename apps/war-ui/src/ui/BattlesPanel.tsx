@@ -2,11 +2,12 @@
 import { useMemo, useState } from "react";
 import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
 import type { BattleOutcome, Contest } from "../domain/types";
+import { NATIONS, type NationKey } from "../setup/NationDefinitions";
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), hi);
 
 // Adjust if your FactionKey union differs
-const FACTIONS_IN_PLAY: FactionKey[] = ["allies", "axis", "ussr"];
+
 
 type ConditionHit = 0 | 1 | 2;
 const toConditionHit = (n: number): ConditionHit => {
@@ -33,8 +34,8 @@ export default function BattlesPanel() {
   const resolveBattles = useCampaignStore((s) => s.resolveBattles);
 
   // “Current player” selector (for the wider UX you described)
-  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
-  const setViewerFaction = useCampaignStore((s) => s.setViewerFaction);
+  const viewerNation = useCampaignStore((s) => s.viewerNation);
+  const setViewerNation = useCampaignStore((s) => s.setViewerNation);
 
   const pendingContests = useMemo(() => {
     return Object.values(contestsByTerritory).filter((c) => c?.status === "BATTLE_PENDING") as Contest[];
@@ -43,11 +44,10 @@ export default function BattlesPanel() {
   const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcome>>({});
 
   const cycleFaction = (dir: 1 | -1) => {
-    if (!FACTIONS_IN_PLAY.length) return;
-    const idx = Math.max(0, FACTIONS_IN_PLAY.indexOf(viewerFaction));
-    const next = FACTIONS_IN_PLAY[(idx + dir + FACTIONS_IN_PLAY.length) % FACTIONS_IN_PLAY.length];
-    setViewerFaction(next);
-  };
+if (!NATIONS.length) return;
+    const idx = Math.max(0, NATIONS.findIndex((n) => n.id === viewerNation));
+    const next = NATIONS[(idx + dir + NATIONS.length) % NATIONS.length];
+    setViewerNation(next.id as NationKey);  };
 
   const autoFillAll = () => {
     const filled: Record<string, BattleOutcome> = {};
@@ -64,10 +64,11 @@ export default function BattlesPanel() {
 
         <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ fontSize: 12, opacity: 0.8 }}>Current player:</div>
-          <select value={viewerFaction} onChange={(e) => setViewerFaction(e.target.value as FactionKey)}>
-            {FACTIONS_IN_PLAY.map((f) => (
-              <option key={f} value={f}>
-                {f}
+          <select value={viewerNation} onChange={(e) => setViewerNation(e.target.value as NationKey)}>
+            {NATIONS.map((nation) => (
+              <option key={nation.id} value={nation.id}>
+                {nation.flag ? `${nation.flag} ` : ""}
+                {nation.name}
               </option>
             ))}
           </select>
@@ -104,10 +105,11 @@ export default function BattlesPanel() {
         {/* “Current player” controls (for your broader loop UX) */}
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ fontSize: 12, opacity: 0.8 }}>Current player:</div>
-          <select value={viewerFaction} onChange={(e) => setViewerFaction(e.target.value as FactionKey)}>
-            {FACTIONS_IN_PLAY.map((f) => (
-              <option key={f} value={f}>
-                {f}
+          <select value={viewerNation} onChange={(e) => setViewerNation(e.target.value as NationKey)}>
+            {NATIONS.map((nation) => (
+              <option key={nation.id} value={nation.id}>
+                {nation.flag ? `${nation.flag} ` : ""}
+                {nation.name}
               </option>
             ))}
           </select>

@@ -242,7 +242,7 @@ export default function MapBoard() {
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
   const locksByTerritory = useCampaignStore((s) => s.locksByTerritory);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
-
+    const platoonsById = useCampaignStore((s) => s.platoonsById);
   const customs = useCampaignStore((s) => s.customs);
   const homelands = useCampaignStore((s) => s.homelands);
 
@@ -284,6 +284,16 @@ export default function MapBoard() {
 
     return { allowedShapeIds: allowed, shapeToTerritory: shapeMap, territoriesById: terrMap };
   }, [activeTheatres, data]);
+  const regionTerritoriesById = useMemo(() => {
+    const map = new Map<string, string[]>();
+    if (!data?.regions) return map;
+    for (const region of data.regions) {
+      for (const tid of region.territories ?? []) {
+        map.set(tid, region.territories ?? []);
+      }
+    }
+    return map;
+  }, [data]);
 
   // ✅ adjacency lookup for active theatres (land+sea)
   const adjacencyByTerritory = useMemo(() => {
@@ -342,7 +352,7 @@ export default function MapBoard() {
   // ✅ Always keep borders on. Use fill/opacity for fog.
   const clearSelectionStyles = useCallback((svg: SVGSVGElement) => {
     svg.querySelectorAll<SVGPathElement>("path").forEach((p) => {
-      p.style.opacity = "0.20";
+        p.style.opacity = "1";
       p.style.stroke = BORDER_STROKE;
       p.style.strokeWidth = BORDER_WIDTH;
       (p.style as any).vectorEffect = "non-scaling-stroke";
@@ -426,6 +436,20 @@ export default function MapBoard() {
 
       const lvl = getEffectiveVisibility(territory.id);
       if (!gmEffective && lvl === "NONE") return;
+       const regionTerritories = regionTerritoriesById.get(territory.id);
+      if (regionTerritories?.length) {
+        regionTerritories.forEach((tid) => {
+          const info = territoriesById.get(tid);
+          if (!info) return;
+          info.shapeRefs.forEach((id) => {
+            const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
+            if (!p) return;
+            p.style.stroke = "rgba(251,191,36,.85)";
+            p.style.strokeWidth = "5.2";
+            (p.style as any).vectorEffect = "non-scaling-stroke";
+          });
+        });
+      }
 
       territory.shapeRefs.forEach((id) => {
         const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
@@ -436,9 +460,150 @@ export default function MapBoard() {
         (p.style as any).vectorEffect = "non-scaling-stroke";
       });
     },
-    [applyFogStyles, getEffectiveVisibility, gmEffective]
+ [applyFogStyles, getEffectiveVisibility, gmEffective, regionTerritoriesById, territoriesById]
   );
 
+  const ensureOverlayLayer = useCallback((svg: SVGSVGElement, id: string) => {
+    let layer = svg.querySelector<SVGGElement>(`#${CSS.escape(id)}`);
+    if (!layer) {
+      layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      layer.setAttribute("id", id);
+      layer.style.pointerEvents = "none";
+      svg.appendChild(layer);
+    }
+    return layer;
+  }, []);
+
+  const centroidCacheRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+
+  const getTerritoryCentroid = useCallback((svg: SVGSVGElement, territory: TerritoryInfo) => {
+    const cached = centroidCacheRef.current.get(territory.id);
+    if (cached) return cached;
+    const boxes: DOMRect[] = [];
+    territory.shapeRefs.forEach((shapeId) => {
+      const el = svg.querySelector<SVGGraphicsElement>(`#${CSS.escape(shapeId)}`);
+      if (el) boxes.push(el.getBBox());
+    });
+    if (!boxes.length) return null;
+    const sum = boxes.reduce(
+      (acc, box) => ({
+        x: acc.x + box.x + box.width / 2,
+        y: acc.y + box.y + box.height / 2,
+      }),
+      { x: 0, y: 0 }
+    );
+    const centroid = { x: sum.x / boxes.length, y: sum.y / boxes.length };
+    centroidCacheRef.current.set(territory.id, centroid);
+    return centroid;
+  }, []);
+
+  const buildSupplyPath = useCallback(
+    (start: string, target: string) => {
+      if (start === target) return [start];
+      const queue: string[] = [start];
+      const prev = new Map<string, string | null>([[start, null]]);
+      while (queue.length) {
+        const node = queue.shift() as string;
+        const neighbors = adjacencyByTerritory.get(node);
+        if (!neighbors) continue;
+        for (const next of neighbors) {
+          if (prev.has(next)) continue;
+          prev.set(next, node);
+          if (next === target) {
+            const path = [target];
+            let cur: string | null = node;
+            while (cur) {
+              path.push(cur);
+              cur = prev.get(cur) ?? null;
+            }
+            return path.reverse();
+          }
+          queue.push(next);
+        }
+      }
+      return null;
+    },
+    [adjacencyByTerritory]
+  );
+
+  const updatePlatoonOverlays = useCallback(
+    (svg: SVGSVGElement) => {
+      const markerLayer = ensureOverlayLayer(svg, "platoon-markers");
+      const lineLayer = ensureOverlayLayer(svg, "supply-lines");
+      markerLayer.innerHTML = "";
+      lineLayer.innerHTML = "";
+      centroidCacheRef.current.clear();
+
+      const grouped = new Map<string, string[]>();
+      Object.values(platoonsById).forEach((platoon) => {
+        const list = grouped.get(platoon.territoryId) ?? [];
+        list.push(platoon.faction);
+        grouped.set(platoon.territoryId, list);
+      });
+
+      const homeland = homelands?.[viewerFaction] ?? null;
+
+      grouped.forEach((factions, tid) => {
+        const territory = territoriesById.get(tid);
+        if (!territory) return;
+        const centroid = getTerritoryCentroid(svg, territory);
+        if (!centroid) return;
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", centroid.x.toString());
+        circle.setAttribute("cy", centroid.y.toString());
+        circle.setAttribute("r", "3");
+        circle.setAttribute("fill", getOwnerFill(factions[0], customs));
+        circle.setAttribute("stroke", "#111827");
+        circle.setAttribute("stroke-width", "0.5");
+        markerLayer.appendChild(circle);
+
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", centroid.x.toString());
+        label.setAttribute("y", (centroid.y + 1).toString());
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("font-size", "3");
+        label.setAttribute("fill", "#f8fafc");
+        label.textContent = String(factions.length);
+        markerLayer.appendChild(label);
+
+        if (homeland && factions.includes(viewerFaction)) {
+          const path = buildSupplyPath(tid, homeland);
+          if (path && path.length > 1) {
+            const points = path
+              .map((pid) => {
+                const terr = territoriesById.get(pid);
+                if (!terr) return null;
+                return getTerritoryCentroid(svg, terr);
+              })
+              .filter(Boolean) as Array<{ x: number; y: number }>;
+            if (points.length > 1) {
+              const poly = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+              poly.setAttribute(
+                "points",
+                points.map((p) => `${p.x},${p.y}`).join(" ")
+              );
+              poly.setAttribute("fill", "none");
+              poly.setAttribute("stroke", "rgba(145, 224, 162, 0.94)");
+              poly.setAttribute("stroke-width", "1.4");
+              poly.setAttribute("stroke-dasharray", "4 4");
+              lineLayer.appendChild(poly);
+            }
+          }
+        }
+      });
+    },
+    [
+      buildSupplyPath,
+      customs,
+      ensureOverlayLayer,
+      getTerritoryCentroid,
+      homelands,
+      platoonsById,
+      territoriesById,
+      viewerFaction,
+    ]
+  );
   const fitToAllowed = useCallback(
     (svg: SVGSVGElement) => {
       const els = Array.from(allowedShapeIds)
@@ -507,6 +672,7 @@ export default function MapBoard() {
 
         stripSvgBackground(svg);
         applyFogStyles(svg);
+                updatePlatoonOverlays(svg);
 
         // zoom/pan wiring
         const { api, cleanup } = wireZoomPanImpl(svg, hostEl, (nextVb) => {
@@ -620,6 +786,7 @@ export default function MapBoard() {
     gmEffective,
     applyFogStyles,
     fitToAllowed,
+        updatePlatoonOverlays,
     getEffectiveVisibility,
     highlightTerritory,
     setSelectedTerritory,
@@ -644,6 +811,11 @@ export default function MapBoard() {
 
     applyFogStyles(svg);
   }, [selectedTerritoryId, territoriesById, applyFogStyles, highlightTerritory]);
+useEffect(() => {
+    const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return;
+    updatePlatoonOverlays(svg);
+  }, [platoonsById, homelands, updatePlatoonOverlays]);
 
   return (
     <div style={{ position: "relative", height: "100%", minHeight: 0 }}>

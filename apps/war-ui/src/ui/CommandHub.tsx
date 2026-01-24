@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import { useCampaignStore, type FactionKey, type OwnerKey } from "../store/useCampaignStore";
 import { factionLabel } from "../store/factionLabel";
+import { NATION_BY_ID } from "../setup/NationDefinitions";
 
 type Props = {
   data: NormalizedData | null;
@@ -24,6 +25,7 @@ type Member = {
   name: string;
   role: "Leader" | "Co-Leader" | "General";
   theatre?: string;
+  forces?: string;
 };
 
 const RESOURCE_ICONS: Record<string, string> = {
@@ -43,6 +45,12 @@ const THEATRE_ICONS: Record<string, string> = {
 };
 
 const ROLE_OPTIONS: Member["role"][] = ["Leader", "Co-Leader", "General"];
+
+const DEFAULT_EMBLEMS: Record<string, string> = {
+  allies: "🕊️",
+  axis: "⚔️",
+  ussr: "🚩",
+};
 
 function summarizeBonus(bonus?: string) {
   if (!bonus) return [];
@@ -66,18 +74,22 @@ function parseBonusAmount(bonus?: string) {
 }
 
 function buildOwnerSet(owners: OwnerKey[]) {
-  return new Set(owners.filter((o) => o !== "neutral"));
+  return new Set(owners.filter((o) => o !== "neutral" && o !== "contested"));
 }
 
 export default function CommandHub({ data, variant = "full" }: Props) {
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
   const customs = useCampaignStore((s) => s.customs);
+  //  const playerFactionId = useCampaignStore((s) => s.playerFactionId);
+  // const setPlayerFactionId = useCampaignStore((s) => s.setPlayerFactionId);
   const suppliesByFaction = useCampaignStore((s) => s.suppliesByFaction);
   const regionsFromStore = useCampaignStore((s) => s.regions);
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
+    const addNote = useCampaignStore((s) => s.addNote);
 
   const territoryNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -125,8 +137,17 @@ export default function CommandHub({ data, variant = "full" }: Props) {
   const contestedRegions = regionStatusList.filter((region) => region.status === "contested");
 
   const factionDisplayName = factionLabel(viewerFaction, customs);
-  const canManageRoles = viewerMode === "GM";
+  const nationDisplayName = NATION_BY_ID[viewerNation]?.name ?? viewerNation;
+  const customFaction = customs.find((f) => `custom:${f.id}` === viewerFaction);
+
+  const currentCommanderId = viewerMode === "GM" ? "leader" : "officer-2";
   const isCompact = variant === "compact";
+
+  const emblemText =
+    customFaction?.name?.slice(0, 1).toUpperCase() ||
+    nationDisplayName.slice(0, 1).toUpperCase() ||
+    DEFAULT_EMBLEMS[String(viewerFaction)] ||
+    "🛡️";
 
   const resourceSnapshot = useMemo(() => {
     const base = suppliesByFaction?.[viewerFaction] ?? 0;
@@ -138,14 +159,18 @@ export default function CommandHub({ data, variant = "full" }: Props) {
     ];
   }, [suppliesByFaction, viewerFaction]);
 
+  const totalResourceValue = useMemo(() => {
+    return resourceSnapshot.reduce((sum, r) => sum + (Number.isFinite(r.value) ? r.value : 0), 0);
+  }, [resourceSnapshot]);
+
   const initialMembers = useMemo<Member[]>(
     () => [
-      { id: "leader", name: `${factionDisplayName} Command`, role: "Leader", theatre: "HQ" },
-      { id: "officer-1", name: "Field Marshal", role: "Co-Leader", theatre: "WE" },
-      { id: "officer-2", name: "Operations Lead", role: "General", theatre: "EE" },
-      { id: "officer-3", name: "Logistics Chief", role: "General", theatre: "NA" },
+      { id: "leader", name: `${nationDisplayName} Command`, role: "Leader", theatre: "HQ", forces: "Strategic" },
+      { id: "officer-1", name: "Field Marshal", role: "Co-Leader", theatre: "WE", forces: "Army Group Alpha" },
+      { id: "officer-2", name: "Operations Lead", role: "General", theatre: "EE", forces: "2nd Expeditionary" },
+      { id: "officer-3", name: "Logistics Chief", role: "General", theatre: "NA", forces: "Support Command" },
     ],
-    [factionDisplayName]
+    [nationDisplayName]
   );
 
   const [members, setMembers] = useState<Member[]>(initialMembers);
@@ -157,7 +182,23 @@ export default function CommandHub({ data, variant = "full" }: Props) {
   ]);
   const [chatInput, setChatInput] = useState("");
 
+ const viewerMember = members.find((member) => member.id === currentCommanderId);
+  const canManageRoles = viewerMode === "GM" || viewerMember?.role === "Leader";
+  // const hasFactionAccess = viewerMode === "GM" ? true : playerFactionId !== null;
+  const availableFactions = useMemo(() => {
+    return [
+      { id: "allies", label: "Allies" },
+      { id: "axis", label: "Axis" },
+      { id: "ussr", label: "USSR" },
+      ...customs.map((custom) => ({ id: `custom:${custom.id}`, label: custom.name })),
+    ];
+  }, [customs]);
+  const [strategyAction, setStrategyAction] = useState<string | null>(null);
+  const [proposalTarget, setProposalTarget] = useState<string>("allies");
+  const [proposalType, setProposalType] = useState<string>("Alliance (shared vision)");
+  const [resourceDraft, setResourceDraft] = useState({ fuel: "", industry: "", manpower: "" });
   useEffect(() => {
+    // If you later want to reset this on faction change, uncomment:
     // setMembers(initialMembers);
     // setChatMessages([
     //   { id: "sys-1", sender: "System", text: `Joined ${factionDisplayName} channel`, ts: "Just now", system: true },
@@ -172,15 +213,13 @@ export default function CommandHub({ data, variant = "full" }: Props) {
   const sendChat = () => {
     const trimmed = chatInput.trim();
     if (!trimmed) return;
-    setChatMessages((prev) => [
-      { id: String(Date.now()), sender: "You", text: trimmed, ts: "now" },
-      ...prev,
-    ]);
+    setChatMessages((prev) => [{ id: String(Date.now()), sender: "You", text: trimmed, ts: "now" }, ...prev]);
     setChatInput("");
   };
 
   return (
     <div style={{ padding: isCompact ? 14 : 20, display: "grid", gap: isCompact ? 14 : 20 }}>
+      {/* HEADER + RESOURCES */}
       <section style={{ display: "grid", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div
@@ -188,20 +227,29 @@ export default function CommandHub({ data, variant = "full" }: Props) {
               width: 52,
               height: 52,
               borderRadius: 14,
-              background: "rgba(255,255,255,.12)",
+              background: customFaction?.color ? `${customFaction.color}33` : "rgba(255,255,255,.12)",
+              border: customFaction?.color ? `1px solid ${customFaction.color}` : "1px solid rgba(255,255,255,.15)",
               display: "grid",
               placeItems: "center",
               fontSize: 24,
+              fontWeight: 700,
             }}
             aria-hidden="true"
           >
-            🛡️
+            {emblemText}
           </div>
-          <div>
-            <h2 style={{ margin: 0 }}>{factionDisplayName} Command Hub</h2>
+
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ margin: 0 }}>{nationDisplayName} Command Hub</h2>
             <div style={{ fontSize: 12, opacity: 0.75 }}>
-              Faction overview · Resources include active region bonuses and supply status.
+              Nation overview · Faction alignment: {factionDisplayName}. Resources include active region bonuses and supply
+              status.
             </div>
+          </div>
+
+          <div style={{ marginLeft: "auto", textAlign: "right" }}>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>Total Resources</div>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>{totalResourceValue}</div>
           </div>
         </div>
 
@@ -222,7 +270,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                 background: "rgba(0,0,0,.12)",
               }}
             >
-              <div style={{ fontSize: 20 }}>{RESOURCE_ICONS[resource.key]}</div>
+              <div style={{ fontSize: 20 }}>{RESOURCE_ICONS[resource.key] ?? "📦"}</div>
               <div style={{ fontWeight: 700 }}>{resource.label}</div>
               <div style={{ fontSize: 18 }}>{resource.value}</div>
             </div>
@@ -230,13 +278,16 @@ export default function CommandHub({ data, variant = "full" }: Props) {
         </div>
       </section>
 
+      {/* CONTROLLED REGIONS */}
       <section style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: 16 }}>
         <h3 style={{ marginTop: 0 }}>Regions in Control</h3>
+
         {controlledByViewer.length ? (
           <div style={{ display: "grid", gap: 12 }}>
             {controlledByViewer.map((region) => {
               const bonusHighlights = summarizeBonus(region.bonus);
               const bonusAmount = parseBonusAmount(region.bonus);
+
               return (
                 <div
                   key={region.id}
@@ -254,7 +305,9 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                     <div style={{ fontWeight: 700 }}>{region.name}</div>
                     <span style={{ marginLeft: "auto", fontSize: 12, opacity: 0.8 }}>⭐ Bonus active</span>
                   </div>
+
                   <div style={{ fontSize: 12, opacity: 0.8 }}>{region.bonus ?? "No bonus listed."}</div>
+
                   {bonusHighlights.length ? (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                       {bonusHighlights.map((item) => (
@@ -288,14 +341,16 @@ export default function CommandHub({ data, variant = "full" }: Props) {
         )}
       </section>
 
+      {/* CONTESTED REGIONS OR SNAPSHOT */}
       {!isCompact ? (
         <section style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: 16 }}>
           <h3 style={{ marginTop: 0 }}>Contested Regions</h3>
+
           {contestedRegions.length ? (
             <div style={{ display: "grid", gap: 14 }}>
               {contestedRegions.map((region) => {
                 const contestedTerritories = region.territories.filter(
-                  (tid) => ownerByTerritory[tid] === "contested" || contestsByTerritory[tid]
+                  (tid) => ownerByTerritory[tid] === "contested" || Boolean(contestsByTerritory[tid])
                 );
 
                 return (
@@ -329,6 +384,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                           const renderPlatoon = (pid: string) => {
                             const platoon = platoonsById[pid];
                             if (!platoon) return null;
+
                             return (
                               <div
                                 key={pid}
@@ -346,7 +402,13 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                                   {platoon.faction} · {platoon.condition} · {platoon.strengthPct}% strength
                                 </div>
                                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, fontSize: 11 }}>
-                                  <span style={{ padding: "2px 6px", borderRadius: 999, border: "1px solid rgba(255,255,255,.2)" }}>
+                                  <span
+                                    style={{
+                                      padding: "2px 6px",
+                                      borderRadius: 999,
+                                      border: "1px solid rgba(255,255,255,.2)",
+                                    }}
+                                  >
                                     MP {platoon.mpBase}
                                   </span>
                                   {(platoon.traits ?? []).map((trait) => (
@@ -371,6 +433,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                               <div style={{ fontWeight: 600 }}>
                                 {territoryName} <span style={{ opacity: 0.7 }}>({tid})</span>
                               </div>
+
                               {contest ? (
                                 <div style={{ fontSize: 12, opacity: 0.8 }}>
                                   {contest.attackerFaction} vs {contest.defenderFaction} · {contest.status}
@@ -379,13 +442,20 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                                 <div style={{ fontSize: 12, opacity: 0.8 }}>Skirmish ongoing · details pending</div>
                               )}
 
-                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                                  gap: 10,
+                                }}
+                              >
                                 {attackers.length ? (
                                   <div style={{ display: "grid", gap: 6 }}>
                                     <div style={{ fontSize: 12, fontWeight: 700 }}>Attackers</div>
                                     {attackers.map((pid) => renderPlatoon(pid))}
                                   </div>
                                 ) : null}
+
                                 {defenders.length ? (
                                   <div style={{ display: "grid", gap: 6 }}>
                                     <div style={{ fontSize: 12, fontWeight: 700 }}>Defenders</div>
@@ -420,24 +490,38 @@ export default function CommandHub({ data, variant = "full" }: Props) {
             <div>
               Contested regions: <b>{contestedRegions.length}</b>
             </div>
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
-              Expand below the map for full contest breakdowns.
-            </div>
+            <div style={{ fontSize: 12, opacity: 0.7 }}>Expand below the map for full contest breakdowns.</div>
           </div>
         </section>
       )}
 
+      {/* STRATEGY LINKS */}
       <section style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: 16 }}>
         <h3 style={{ marginTop: 0 }}>Strategy Links</h3>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <button type="button">Research</button>
-          <button type="button">Doctrine</button>
-          <button type="button">Upgrades</button>
-          <button type="button">Diplomacy</button>
-          <button type="button">Profile</button>
+           {["Research", "Doctrine", "Upgrades", "Diplomacy", "Profile"].map((label) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => {
+                setStrategyAction(label);
+                addNote(`Opened ${label} from ${nationDisplayName} Command Hub.`);
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
+        {strategyAction ? (
+          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+            {strategyAction} panel opening is queued for a future workflow.
+          </div>
+        ) : null}
+
+        
       </section>
 
+      {/* DIPLOMACY (FULL ONLY) */}
       {!isCompact ? (
         <section style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: 16 }}>
           <h3 style={{ marginTop: 0 }}>Diplomacy & Resource Sharing</h3>
@@ -445,38 +529,80 @@ export default function CommandHub({ data, variant = "full" }: Props) {
             <div style={{ fontSize: 12, opacity: 0.75 }}>
               Leaders can propose agreements or share resources with allied factions.
             </div>
+
             <div style={{ display: "grid", gap: 8 }}>
               <label style={{ display: "grid", gap: 4 }}>
                 <span style={{ fontSize: 12, opacity: 0.8 }}>Target faction</span>
-                <select disabled={!canManageRoles}>
-                  <option>Allies</option>
-                  <option>Axis</option>
-                  <option>USSR</option>
+                 <select disabled={!canManageRoles} value={proposalTarget} onChange={(e) => setProposalTarget(e.target.value)}>
+                  {availableFactions.map((faction) => (
+                    <option key={faction.id} value={faction.id}>
+                      {faction.label}
+                    </option>
+                  ))}
                 </select>
               </label>
+
               <label style={{ display: "grid", gap: 4 }}>
                 <span style={{ fontSize: 12, opacity: 0.8 }}>Agreement type</span>
-                <select disabled={!canManageRoles}>
+                <select
+                  disabled={!canManageRoles}
+                  value={proposalType}
+                  onChange={(e) => setProposalType(e.target.value)}
+                >
                   <option>Alliance (shared vision)</option>
                   <option>Non-Aggression Pact</option>
                   <option>Resource Treaty</option>
                 </select>
               </label>
-              <button type="button" disabled={!canManageRoles}>
+
+              <button
+                type="button"
+                disabled={!canManageRoles}
+                onClick={() => addNote(`Proposal sent: ${proposalType} → ${proposalTarget}`)}
+              >
                 Send Proposal
               </button>
             </div>
+
             <div style={{ borderTop: "1px solid rgba(255,255,255,.12)", paddingTop: 10, display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 700, fontSize: 13 }}>Active Agreements</div>
               <div style={{ fontSize: 12, opacity: 0.7 }}>No active agreements yet.</div>
             </div>
+
             <div style={{ borderTop: "1px solid rgba(255,255,255,.12)", paddingTop: 10, display: "grid", gap: 6 }}>
               <div style={{ fontWeight: 700, fontSize: 13 }}>Send Resources</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <input type="number" placeholder="Fuel" disabled={!canManageRoles} />
-                <input type="number" placeholder="Industry" disabled={!canManageRoles} />
-                <input type="number" placeholder="Manpower" disabled={!canManageRoles} />
-                <button type="button" disabled={!canManageRoles}>
+                <input
+                  type="number"
+                  placeholder="Fuel"
+                  disabled={!canManageRoles}
+                  value={resourceDraft.fuel}
+                  onChange={(e) => setResourceDraft((prev) => ({ ...prev, fuel: e.target.value }))}
+                />
+                <input
+                  type="number"
+                  placeholder="Industry"
+                  disabled={!canManageRoles}
+                  value={resourceDraft.industry}
+                  onChange={(e) => setResourceDraft((prev) => ({ ...prev, industry: e.target.value }))}
+                />
+                <input
+                  type="number"
+                  placeholder="Manpower"
+                  disabled={!canManageRoles}
+                  value={resourceDraft.manpower}
+                  onChange={(e) => setResourceDraft((prev) => ({ ...prev, manpower: e.target.value }))}
+                />
+                <button
+                  type="button"
+                  disabled={!canManageRoles}
+                  onClick={() => {
+                    addNote(
+                      `Resource transfer drafted: Fuel ${resourceDraft.fuel || 0}, Industry ${resourceDraft.industry || 0}, Manpower ${resourceDraft.manpower || 0}.`
+                    );
+                    setResourceDraft({ fuel: "", industry: "", manpower: "" });
+                  }}
+                >
                   Send Resources
                 </button>
               </div>
@@ -485,10 +611,12 @@ export default function CommandHub({ data, variant = "full" }: Props) {
         </section>
       ) : null}
 
+      {/* MEMBERS + CHAT (FULL ONLY) */}
       {!isCompact ? (
         <section style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)" }}>
           <div style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: 16 }}>
             <h3 style={{ marginTop: 0 }}>Faction Members</h3>
+
             <div style={{ display: "grid", gap: 10 }}>
               {members.map((member) => (
                 <div
@@ -507,17 +635,32 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                   <div>
                     <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
                       {member.name}
-                      {member.role === "Leader" && <span title="Leader">👑</span>}
+                      {member.role === "Leader" && (
+                        <span
+                          title="Leader"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 12,
+                            padding: "2px 6px",
+                            borderRadius: 999,
+                            background: "rgba(250,204,21,.2)",
+                            border: "1px solid rgba(250,204,21,.4)",
+                          }}
+                        >
+                          👑 Leader
+                        </span>
+                      )}
                     </div>
+
                     <div style={{ fontSize: 12, opacity: 0.75 }}>
-                      {member.role} · {member.theatre ?? "Global"}
+                      {member.role} · {member.theatre ?? "Global"} · {member.forces ?? "Unassigned forces"}
                     </div>
                   </div>
+
                   {canManageRoles ? (
-                    <select
-                      value={member.role}
-                      onChange={(e) => handleRoleChange(member.id, e.target.value as Member["role"])}
-                    >
+                    <select value={member.role} onChange={(e) => handleRoleChange(member.id, e.target.value as Member["role"])}>
                       {ROLE_OPTIONS.map((role) => (
                         <option key={role} value={role}>
                           {role}
@@ -528,16 +671,30 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                 </div>
               ))}
             </div>
-            {!canManageRoles && (
+
+            {!canManageRoles ? (
+              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.65 }}>Only the faction leader or GM can manage roles.</div>
+            ) : null}
+
+            {canManageRoles ? (
               <div style={{ marginTop: 8, fontSize: 12, opacity: 0.65 }}>
-                Only the faction leader or GM can manage roles.
+                Role updates use POST /factions/{`{id}`}/members/{`{playerId}`}/role (server-side).
               </div>
-            )}
+            ) : null}
           </div>
 
-          <div style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: 16, display: "grid", gap: 10 }}>
+          <div
+            style={{
+              border: "1px solid rgba(255,255,255,.12)",
+              borderRadius: 14,
+              padding: 16,
+              display: "grid",
+              gap: 10,
+            }}
+          >
             <h3 style={{ marginTop: 0 }}>Faction Chat</h3>
             <div style={{ fontSize: 12, opacity: 0.7 }}>Private channel · {factionDisplayName}</div>
+
             <div
               style={{
                 border: "1px solid rgba(255,255,255,.12)",
@@ -566,6 +723,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                 </div>
               ))}
             </div>
+
             <div style={{ display: "flex", gap: 6 }}>
               <input
                 value={chatInput}

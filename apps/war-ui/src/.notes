@@ -1,111 +1,19 @@
-----------------------------------------------------------------------------------------------------------------------------------------------------
-1. ORDERS
-
-- Zustand store current turn 
-
---- Player - OrdersPanel.tsx
-
-
-lifecycle = draft / submitted / locked / resolved
-current setup mostly implemented. however all orders are visible in the turn log. turn log/order information should be nation/player specific
-
-
-dedicated OrdersPanel component for players to view and manage their orders each turn. This panel would list each order -- usually 1 order per platoon unless 
-platoon/general upgrades or rule states otherwise.
-
-submitted - has option to delete or edit order
-locked - GM locked orders can not be changer 
-Resolved - Resolutions from your orders - nation level again -- would only be faction level if the nation is in a faction. always nation first. 
-
-
-
-lock icon - to show when orders are in the locked status.
-
-
-
---- GM - 
-
-
---- GMTools
-- Turn Control < currently cycles through factions (needs changing to nations) for 1screenplay 
-- GMNote - yes
-
-
-
---- OrdersView
-oversees all locked orders by nation(player) and manages the turn rosoltuin.
-
-----------------------------------------------------------------------------------------------------------------------------------------------------
---- Region/Territory UI/UX
-
--- Evaluate and detemine region control and bonus's based off territory control. 
-Control is determined by territory ownership as updated in the turn resolution – recall that a faction controls a territory if no enemies remain 
-and supply is intact through the resolution phase.
-
-
--- CommandHub.tsx
-- shows the regions in control and the applied bonus.
-- contested regions would should the contested platoon and display the information, upgrade features.
-- Each bonus entry should use the appropriate resource icon and a short description. For clarity, you can include the region name and maybe an icon or emblem for that region. The resource increase can be indicated with a “+” and the resource icon (for instance, a fuel barrel icon with “+5”
-- territories or region outlines could be highlighted for the controlling faction at end-of-turn, and perhaps a small medal or star icon on the region to denote a bonus. This integration of region control not only affects numbers but provides a visual reward to players for dominating a theatre.
+factions vs nations
 
 
 
 
+playerview dropdowns all need changing to choose from the nations rather than factions (players are nations! factions are teams!)
+setup nations should begin with none selected (its just easier than having to uncheck them all)
+platoons seem to currently be set at the faction level rather than the nation level. 
+player orderpanel/tab needs the order wiring. 
+diplomacy/ resource sharing and strategy links need wiring
+factions command needs to only be available if the player is in a faction. if they arent then it should just list available factions and "send request"
 
 
 
+- after a battle is resolved. the losing players platoon/s which lost would need to move/fallback to one of their adjacent territories.
 
+- platoon tab should show all players platoons. clicking them should higlight their marker on the map. it currently is set based on clicking territories 
 
-----------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-5) Territory/Region bonuses (light but important)
-All Player homelands should be visible to all players. (obviously they would not have intel)
-
-You’ve got region definitions in regions. What’s needed:
-
-end-of-turn evaluation: who controls a region? 
-
-apply bonuses to supplies/intel/etc.
-
-show “active bonuses” in dashboard.
-
-----------------------------------------------------------------------------------------------------------------------------------------------------
-6)3. Nation & Faction Command Hub
-
-Faction Overview & Members: Develop a CommandHub page for each faction, serving as the central interface for faction management. This should display the faction’s key info: member list, ranks/roles, and resource pools. At the top, show the faction name, emblem (if any), and total faction resources (Manpower, Industry, Fuel, Intel). Use a horizontal bar or grid to show each resource with its icon and current amount – e.g. a manpower icon with the manpower value, an industry/factory icon with industry points, etc. (These values come from the backend and include any bonuses applied). Below that, list all members of the faction. Each player can be listed with their username, rank/title, and possibly their assigned forces or theater. Highlight the Faction Leader in this list (perhaps with a star or crown icon and label “Leader”), since that role has special responsibilities. The Faction Leader (or GM) should have controls here to manage ranks – e.g. a dropdown or buttons to promote a member to co-leader or demote someone. Internally, you’d call an API like POST /factions/{id}/members/{playerId}/role to update roles. The UI can prevent non-leaders from seeing these controls (regular generals just see the list). This members panel ensures everyone knows their chain of command and who holds leadership.
-
-command panel tabs driven by phase. so only the tabs with valid options are available to players for the phase. each phase should show something different or if no options for the player it should let them know they are waiting on other players.
-
-
-
-orders phase / move / intel / hold etc 
-
-resolution phase. shows outcomes in command panel ie. intel gained, players would also need to select battle initiation options for plattoons locked into battle as per rules. hold|recon|attack|retreat. on-going battles(battles which span longer than the turn) would also be highlighted for action choices (reinforcing ongoing battles may need to be handled in the movement orders phase?) 
-
-Orders Panel 
-
-
-
-
-
-
-
-
-7) Setup completion + start-of-campaign polish
-
-Homeland selection fully wires: homeland territory → owner set + intel FULL for that faction (you mentioned this).
-
-Starting platoons spawn correctly in homeland / starting territories.
-
-“Start Campaign” button that locks Setup (and hides it) and begins Turn 1.
-
-7) UI polish that matters (not cosmetic)
-
-
-
-Error messages in UI (why an order is invalid).
-
-
+- orderstab available orders need wiring up so they are actually playable. 

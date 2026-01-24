@@ -11,15 +11,14 @@ type Props = {
 
 export default function PlayerDashboard({ data, tab }: Props) {
   const viewerMode = useCampaignStore((s) => s.viewerMode);
-  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const viewerNation = useCampaignStore((s) => s.viewerNation);
   const turnNumber = useCampaignStore((s) => s.turnNumber);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
 
   const myPlatoons = useMemo(() => {
     const all = Object.values(platoonsById) as Platoon[];
-    return all.filter((p) => p.faction === viewerFaction);
-  }, [platoonsById, viewerFaction]);
-
+      return all.filter((p) => p.nation === viewerNation);
+  }, [platoonsById, viewerNation]);
   return (
     <div style={{ padding: 16, display: "grid", gap: 12 }}>
       <div>
@@ -28,7 +27,7 @@ export default function PlayerDashboard({ data, tab }: Props) {
           Tab: <b>{tab}</b> · Data: <b>{data ? "loaded" : "null"}</b>
         </div>
         <div style={{ opacity: 0.8, marginTop: 6 }}>
-          Viewer: <b>{viewerMode}</b> · Acting faction: <b>{viewerFaction}</b> · Turn: <b>{turnNumber}</b>
+                    Viewer: <b>{viewerMode}</b> · Acting nation: <b>{viewerNation}</b> · Turn: <b>{turnNumber}</b>
         </div>
       </div>
 
@@ -44,7 +43,7 @@ export default function PlayerDashboard({ data, tab }: Props) {
             ))}
           </ul>
         ) : (
-          <p style={{ margin: 0, opacity: 0.8 }}>No platoons for this faction yet.</p>
+          <p style={{ margin: 0, opacity: 0.8 }}>No platoons for this nation yet.</p>
         )}
       </section>
 

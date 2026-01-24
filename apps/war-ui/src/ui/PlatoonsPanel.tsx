@@ -296,8 +296,7 @@ export default function PlatoonsPanel({ data }: Props) {
                   >
                     <div style={{ fontWeight: 800 }}>{p.name}</div>
                     <div style={{ fontSize: 12, opacity: 0.85 }}>
-                      {p.faction} · {p.condition} · {p.strengthPct}% · MP {p.mpBase}
-                      {p.entrenched ? " · ENTRENCHED" : ""}
+                      {p.nation} · {p.faction} · {p.condition} · {p.strengthPct}% · MP {p.mpBase}                      {p.entrenched ? " · ENTRENCHED" : ""}
                       {(p.traits?.length ?? 0) > 0 ? ` · ${p.traits?.join(", ")}` : ""}
                     </div>
                   </button>

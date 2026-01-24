@@ -1,3 +1,4 @@
+import type { NationKey } from "../setup/NationDefinitions";
 import type { FactionKey } from "../store/useCampaignStore";
 
 export type Phase = "SETUP" | "ORDERS" | "RESOLUTION" | "BATTLES";
@@ -7,6 +8,7 @@ export type PlatoonCondition = "FRESH" | "WORN" | "DEPLETED" | "SHATTERED";
 export type Platoon = {
   id: string;
   faction: FactionKey;
+  nation: NationKey;
   name: string;
   territoryId: string;
 

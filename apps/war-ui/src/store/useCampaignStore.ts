@@ -2,7 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { VisibilityLevel } from "../data/visibility";
-import type { NationKey } from "../setup/NationDefinitions";
+import { NATION_BY_ID, type NationKey } from "../setup/NationDefinitions";
 
 import type { Phase, PlatoonOrder, TerritoryLock, Contest, Platoon, BattleOutcome } from "../domain/types";
 import { resolveTurn } from "../domain/resolveTurn";
@@ -64,7 +64,9 @@ export type CampaignState = {
   setSelectedRegion: (id: string | null) => void;
   setRegions: (regions: RegionInfo[]) => void;
 
+  viewerNation: NationKey;
   viewerFaction: FactionKey;
+  playerFactionId: FactionKey | null
   viewerMode: ViewerMode;
   setViewerMode: (m: ViewerMode) => void;
 
@@ -86,6 +88,8 @@ export type CampaignState = {
   selectCustomFaction: (id: string | null) => void;
 
   setViewerFaction: (f: FactionKey) => void;
+  setViewerNation: (nation: NationKey) => void;
+  setPlayerFactionId: (faction: FactionKey | null) => void;
   setSelectedTerritory: (id: string | null) => void;
 
   // v1
@@ -171,6 +175,8 @@ const initialState: Omit<
   | "setOwner"
   | "setIntelLevel"
   | "bulkSetIntelLevel"
+  | "setViewerNation"
+  | "setPlayerFactionId"
   | "setRegions"
   | "setSelectedRegion"
   | "setViewerMode"
@@ -191,6 +197,7 @@ const initialState: Omit<
   | "getSupplies"
   | "addSupplies"
   | "spendSupplies"
+  | "setViewerNation"
 > = {
   mode: "SETUP",
   playMode: "ONE_SCREEN",
@@ -199,24 +206,24 @@ const initialState: Omit<
   baseEnabled: { allies: true, axis: true, ussr: true },
 
   nationsEnabled: {
-    belgium: true,
-    bulgaria: true,
-    finland: true,
-    france: true,
-    germany: true,
-    great_britain: true,
-    greece: true,
-    hungary: true,
-    imperial_japan: true,
-    italy: true,
-    norway: true,
-    partisans: true,
-    poland: true,
-    polish_peoples_army: true,
-    romania: true,
-    soviet_union: true,
-    the_netherlands: true,
-    us: true,
+    belgium: false,
+    bulgaria: false,
+    finland: false,
+    france: false,
+    germany: false,
+    great_britain: false,
+    greece: false,
+    hungary: false,
+    imperial_japan: false,
+    italy: false,
+    norway: false,
+    partisans: false,
+    poland: false,
+    polish_peoples_army: false,
+    romania: false,
+    soviet_union: false,
+    the_netherlands: false,
+    us: false,
   },
 
   selectedSetupNation: null,
@@ -229,7 +236,9 @@ const initialState: Omit<
   regions: [],
   selectedRegionId: null,
 
+  viewerNation: "great_britain",
   viewerFaction: "allies",
+  playerFactionId: null,
   viewerMode: "PLAYER",
 
   homelands: {},
@@ -306,9 +315,15 @@ export const useCampaignStore = create<CampaignState>()(
       },
 
       selectCustomFaction: (id) => set({ selectedSetupFaction: "custom", selectedCustomId: id }),
-
+      setViewerNation: (nation) =>
+        set({
+          viewerNation: nation,
+          viewerFaction: NATION_BY_ID[nation]?.defaultFaction ?? "allies",
+        }),
+      
       // GM can swap faction; PLAYER cannot
      setViewerFaction: (f) => set({ viewerFaction: f }),
+    setPlayerFactionId: (faction) => set({ playerFactionId: faction }),
 
 
       setSelectedTerritory: (id) => set({ selectedTerritoryId: id }),
@@ -431,6 +446,7 @@ export const useCampaignStore = create<CampaignState>()(
           const next: Platoon = {
             id,
             faction,
+                        nation: s.viewerNation,
             name: name?.trim() || `Platoon ${id.slice(0, 4)}`,
             territoryId,
             condition: "FRESH",

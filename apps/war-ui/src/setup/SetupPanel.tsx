@@ -89,7 +89,7 @@ export default function SetupPanel() {
     selectSetupNation,
     homelandsByNation,
     setNationHomeland,
-
+    setViewerNation,
     setHomeland, // v1 bridge
     setSelectedTerritory,
   } = useCampaignStore();
@@ -360,7 +360,7 @@ export default function SetupPanel() {
 
           {selectedSetupNation && (
             <div style={{ marginTop: 4 }}>
-              <b>Selected nation:</b> {selectedSetupNation} · Default faction: <b>{getFactionKeyForNation(selectedSetupNation)}</b>
+              <b>Selected nation:</b> {selectedSetupNation} · Aligned faction: <b>{getFactionKeyForNation(selectedSetupNation)}</b>
             </div>
           )}
         </div>
@@ -454,6 +454,7 @@ export default function SetupPanel() {
                 onChange={(e) => {
                   const v = e.target.value as NationKey | "";
                   selectSetupNation(v === "" ? null : v);
+                                    if (v) setViewerNation(v as NationKey);
                 }}
                 style={{ width: "100%" }}
               >
@@ -468,7 +469,7 @@ export default function SetupPanel() {
 
               {selectedSetupNation && (
                 <div style={{ marginTop: 6, fontSize: 12, opacity: 0.85 }}>
-                  Default faction: <b>{getFactionKeyForNation(selectedSetupNation)}</b>
+                  Aligned faction: <b>{getFactionKeyForNation(selectedSetupNation)}</b>
                 </div>
               )}
 

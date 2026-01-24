@@ -8,11 +8,12 @@ import GMTools from "../gm/GMTools";
 import PlatoonsPanel from "./PlatoonsPanel";
 import TurnLogPanel from "./TurnLogPanel";
 import CommandHub from "./CommandHub";
+import BattlesPanel from "./BattlesPanel";
 
 type Props = { data: NormalizedData | null };
 
 // Keep these compatible with your existing GMTools/PlayerDashboard expectations.
-export type Tab = "DASHBOARD" | "ORDERS" | "INTEL" | "LOG";
+export type Tab = "DASHBOARD" | "ORDERS" | "RESOLUTION" | "BATTLES" | "INTEL" | "LOG"; 
 type RightTab = Tab | "PLATOONS";
 
 export default function CommandPanel({ data }: Props) {
@@ -22,6 +23,7 @@ export default function CommandPanel({ data }: Props) {
   const commandHubExpanded = useCampaignStore((s) => s.commandHubExpanded);
   const setCommandHubExpanded = useCampaignStore((s) => s.setCommandHubExpanded);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
+  const phase = useCampaignStore((s) => s.phase);
   // Temporary: while in setup, treat UI as GM-capable so GM-only panels are available.
   const gmEffective = mode === "SETUP" || viewerMode === "GM";
 
@@ -31,23 +33,46 @@ export default function CommandPanel({ data }: Props) {
     return [
       { id: "DASHBOARD", label: "Dashboard" },
       { id: "ORDERS", label: "Orders" },
+      { id: "RESOLUTION", label: "Resolution" },
+      { id: "BATTLES", label: "Battles" },
       { id: "PLATOONS", label: "Platoons" },
       { id: "INTEL", label: "Intel/Owners", gmOnly: true },
       { id: "LOG", label: "Log" },
     ];
   }, []);
 
-  const visibleTabs = useMemo(() => tabs.filter((t) => !t.gmOnly || gmEffective), [tabs, gmEffective]);
+const playerTabsByPhase: Record<string, RightTab[]> = useMemo(
+    () => ({
+      SETUP: ["DASHBOARD", "LOG"],
+      ORDERS: ["DASHBOARD", "ORDERS", "PLATOONS", "LOG"],
+      RESOLUTION: ["DASHBOARD", "RESOLUTION", "LOG"],
+      BATTLES: ["DASHBOARD", "BATTLES", "LOG"],
+    }),
+    []
+  );
+
+  const visibleTabs = useMemo(() => {
+    const allowed = gmEffective ? tabs : tabs.filter((t) => (playerTabsByPhase[phase] ?? []).includes(t.id));
+    return allowed.filter((t) => !t.gmOnly || gmEffective);
+  }, [gmEffective, phase, playerTabsByPhase, tabs]);
+
+  const safeTab = visibleTabs.some((t) => t.id === tab) ? tab : visibleTabs[0]?.id ?? "DASHBOARD";
+
 
   const content = (() => {
-    switch (tab) {
+    switch (safeTab) {
       case "DASHBOARD":
-                if (gmEffective) return <GMTools data={data} tab={tab} />;
+                if (gmEffective) return <GMTools data={data} tab={safeTab} />;
         return <CommandHub data={data} variant={commandHubExpanded ? "compact" : "full"} />;
         // return gmEffective ? <GMTools data={data} setTab={tab} /> : <CommandHub data={data}  />;
       case "ORDERS":
+         return gmEffective ? <GMTools data={data} tab={safeTab} /> : <OrdersPhasePanel />;
+      case "RESOLUTION":
+        return gmEffective ? <GMTools data={data} tab={safeTab} /> : <ResolutionPhasePanel />;
+      case "BATTLES":
+        return gmEffective ? <BattlesPanel /> : <PhaseWaitingPanel phase={phase} />;
       case "LOG":
-        return gmEffective ? <GMTools data={data} tab={tab} /> : <PlayerDashboard data={data} tab={tab} />;
+        return gmEffective ? <GMTools data={data} tab={safeTab} /> : <PlayerDashboard data={data} tab={safeTab} />;
       case "INTEL":
         return gmEffective ? <GMTools data={data} tab="INTEL" /> : <div>Not available in PLAYER mode.</div>;
       case "PLATOONS":
@@ -67,12 +92,12 @@ export default function CommandPanel({ data }: Props) {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            style={{ opacity: tab === t.id ? 1 : 0.75, fontWeight: tab === t.id ? 800 : 600 }}
+                    style={{ opacity: safeTab === t.id ? 1 : 0.75, fontWeight: safeTab === t.id ? 800 : 600 }}
           >
             {t.label}
           </button>
         ))}
-  {!gmEffective && tab === "DASHBOARD" ? (
+  {!gmEffective && safeTab === "DASHBOARD" ? (
           <button
             type="button"
             onClick={() => setCommandHubExpanded(!commandHubExpanded)}
@@ -148,6 +173,190 @@ function MapInspector() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+function OrdersPhasePanel() {
+  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const turnNumber = useCampaignStore((s) => s.turnNumber);
+  const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
+
+  const currentOrders = useMemo(() => {
+    const byTurn = ordersByTurn?.[turnNumber]?.[viewerFaction] ?? [];
+    return byTurn.filter((o) => !o.submittedAt);
+  }, [ordersByTurn, turnNumber, viewerFaction]);
+
+  return (
+    <div style={{ padding: 16, display: "grid", gap: 12 }}>
+      <div>
+        <h2 style={{ margin: 0 }}>Orders Phase</h2>
+        <div style={{ opacity: 0.8 }}>
+          Issue movement, hold, or recon orders for <b>{viewerFaction}</b>. Turn <b>{turnNumber}</b>.
+        </div>
+      </div>
+
+      <section style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, padding: 12 }}>
+        <h3 style={{ marginTop: 0 }}>Available Orders</h3>
+        <div style={{ display: "grid", gap: 8 }}>
+          <OrderCard title="Move" detail="Relocate platoons to adjacent territories or forced march." />
+          <OrderCard title="Hold" detail="Fortify positions and maintain defensive readiness." />
+          <OrderCard title="Recon" detail="Gather intel and reveal enemy positions." />
+          <OrderCard title="Intel" detail="Assign intel assets to contested theatres." />
+        </div>
+      </section>
+
+      <section style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, padding: 12 }}>
+        <h3 style={{ marginTop: 0 }}>Draft Orders</h3>
+        {currentOrders.length ? (
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {currentOrders.map((order) => (
+              <li key={order.id}>
+                <b>{order.type}</b> · {order.platoonId} → {order.path?.join(" → ") ?? order.from ?? "Hold"}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div style={{ fontSize: 12, opacity: 0.7 }}>No draft orders yet. Use the Platoons tab or map to issue orders.</div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function ResolutionPhasePanel() {
+  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
+  const locksByTerritory = useCampaignStore((s) => s.locksByTerritory);
+  const turnLog = useCampaignStore((s) => s.turnLog);
+
+  const relevantContests = useMemo(() => {
+    return Object.values(contestsByTerritory)
+      .filter(Boolean)
+      .filter((contest) => contest?.attackerFaction === viewerFaction || contest?.defenderFaction === viewerFaction);
+  }, [contestsByTerritory, viewerFaction]);
+
+  const ongoingBattles = useMemo(() => {
+    return relevantContests.filter((contest) => contest?.status === "BATTLE_PENDING");
+  }, [relevantContests]);
+
+  const recentNotes = useMemo(() => {
+    return turnLog.slice(0, 5);
+  }, [turnLog]);
+
+  const [battlePlans, setBattlePlans] = useState<Record<string, string>>({});
+
+  const updatePlan = (contestId: string, plan: string) => {
+    setBattlePlans((prev) => ({ ...prev, [contestId]: plan }));
+  };
+
+  return (
+    <div style={{ padding: 16, display: "grid", gap: 12 }}>
+      <div>
+        <h2 style={{ margin: 0 }}>Resolution Phase</h2>
+        <div style={{ opacity: 0.8 }}>
+          Review intel, outcomes, and choose battle stances for engagements involving <b>{viewerFaction}</b>.
+        </div>
+      </div>
+
+      <section style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, padding: 12 }}>
+        <h3 style={{ marginTop: 0 }}>Outcome Feed</h3>
+        {recentNotes.length ? (
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {recentNotes.map((entry) => (
+              <li key={entry.id}>
+                <b>{entry.type}</b> · {entry.text}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div style={{ fontSize: 12, opacity: 0.7 }}>No outcomes logged yet.</div>
+        )}
+      </section>
+
+      <section style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 12, padding: 12 }}>
+        <h3 style={{ marginTop: 0 }}>Battle Initiation</h3>
+        {relevantContests.length ? (
+          <div style={{ display: "grid", gap: 10 }}>
+            {relevantContests.map((contest) => {
+              const lock = contest?.territoryId ? locksByTerritory[contest.territoryId] : undefined;
+              const statusLabel = contest?.status ?? "OPEN";
+              const ongoing = statusLabel === "BATTLE_PENDING";
+
+              return (
+                <div
+                  key={contest?.id}
+                  style={{
+                    border: `1px solid ${ongoing ? "rgba(239,68,68,.5)" : "rgba(255,255,255,.12)"}`,
+                    borderRadius: 10,
+                    padding: 10,
+                    background: ongoing ? "rgba(239,68,68,.08)" : "rgba(0,0,0,.15)",
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ fontWeight: 700 }}>
+                    {contest?.territoryId} · {contest?.attackerFaction} vs {contest?.defenderFaction}
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>
+                    Status: <b>{statusLabel}</b> {lock ? "· Territory locked for combat" : null}
+                  </div>
+                  <label style={{ display: "grid", gap: 4 }}>
+                    <span style={{ fontSize: 12, opacity: 0.7 }}>Battle stance</span>
+                    <select
+                      value={battlePlans[contest?.id ?? ""] ?? "hold"}
+                      onChange={(e) => updatePlan(contest?.id ?? "", e.target.value)}
+                    >
+                      <option value="hold">Hold</option>
+                      <option value="recon">Recon</option>
+                      <option value="attack">Attack</option>
+                      <option value="retreat">Retreat</option>
+                    </select>
+                  </label>
+                  {ongoing ? (
+                    <div style={{ fontSize: 12, opacity: 0.75 }}>
+                      Ongoing battle requires a stance selection before the next turn.
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <PhaseWaitingPanel phase="RESOLUTION" />
+        )}
+      </section>
+
+      {ongoingBattles.length === 0 ? (
+        <div style={{ fontSize: 12, opacity: 0.7 }}>
+          No ongoing battles requiring action. Await other factions to resolve engagements.
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function OrderCard({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div
+      style={{
+        border: "1px solid rgba(255,255,255,.12)",
+        borderRadius: 10,
+        padding: 10,
+        display: "grid",
+        gap: 4,
+        background: "rgba(0,0,0,.12)",
+      }}
+    >
+      <div style={{ fontWeight: 700 }}>{title}</div>
+      <div style={{ fontSize: 12, opacity: 0.75 }}>{detail}</div>
+    </div>
+  );
+}
+
+function PhaseWaitingPanel({ phase }: { phase: string }) {
+  return (
+    <div style={{ fontSize: 12, opacity: 0.7 }}>
+      No actionable items for this phase ({phase}). Waiting on other players.
     </div>
   );
 }
