@@ -56,7 +56,9 @@ export default function PlatoonsPanel({ data }: Props) {
   const setSelectedPlatoonId = useCampaignStore((s) => s.setSelectedPlatoonId);
   const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
-  const createPlatoon = useCampaignStore((s) => s.createPlatoon);
+  const createPlatoonWithLoadout = useCampaignStore(
+    (s) => s.createPlatoonWithLoadout,
+  );
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
   const turnNumber = useCampaignStore((s) => s.turnNumber);
@@ -106,6 +108,16 @@ export default function PlatoonsPanel({ data }: Props) {
 
   const [renameDraft, setRenameDraft] = useState<string>("");
   const [refitPct, setRefitPct] = useState<number>(10);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(0);
+  const [wizardName, setWizardName] = useState("");
+  const [wizardTrait, setWizardTrait] = useState<PlatoonTrait | "">("");
+  const [wizardMpBase, setWizardMpBase] = useState(1);
+  const [wizardCondition, setWizardCondition] =
+    useState<PlatoonCondition>("FRESH");
+  const [wizardStrengthPct, setWizardStrengthPct] = useState(100);
+
+  const wizardSteps = ["Name", "Specialism", "Upgrades"];
 
   // Costs (tune later)
   const COST_REFIT_PER_1 = 1;
@@ -126,6 +138,19 @@ export default function PlatoonsPanel({ data }: Props) {
     WORN: "#eab308",
     DEPLETED: "#f97316",
     SHATTERED: "#ef4444",
+  };
+  const classStyles: Record<
+    "INFANTRY" | PlatoonTrait,
+    { label: string; color: string }
+  > = {
+    INFANTRY: { label: "Infantry", color: "#94a3b8" },
+    RECON: { label: "Recon", color: "#38bdf8" },
+    ENGINEERS: { label: "Engineers", color: "#fbbf24" },
+    MOTORIZED: { label: "Motorized", color: "#a78bfa" },
+  };
+  const getPlatoonClass = (platoonTraits?: PlatoonTrait[]) => {
+    const trait = platoonTraits?.[0];
+    return trait && classStyles[trait] ? trait : "INFANTRY";
   };
   const strengthColor = (strengthPct: number) => {
     if (strengthPct >= 75) return conditionColor.FRESH;
@@ -174,6 +199,39 @@ export default function PlatoonsPanel({ data }: Props) {
     );
   };
 
+  const openCreateWizard = () => {
+    if (!selectedTerritoryId) return;
+    setWizardName("");
+    setWizardTrait("");
+    setWizardMpBase(1);
+    setWizardCondition("FRESH");
+    setWizardStrengthPct(100);
+    setWizardStep(0);
+    setWizardOpen(true);
+  };
+
+  const closeCreateWizard = () => {
+    setWizardOpen(false);
+  };
+
+  const goToWizardStep = (nextStep: number) => {
+    setWizardStep(clamp(nextStep, 0, wizardSteps.length - 1));
+  };
+
+  const deployWizardPlatoon = () => {
+    if (!selectedTerritoryId) return;
+    const trimmedName = wizardName.trim();
+    if (!trimmedName) return;
+    createPlatoonWithLoadout(viewerFaction as FactionKey, selectedTerritoryId, {
+      name: trimmedName,
+      traits: wizardTrait ? [wizardTrait] : [],
+      mpBase: wizardMpBase,
+      condition: wizardCondition,
+      strengthPct: wizardStrengthPct,
+    });
+    setWizardOpen(false);
+  };
+
   const upgradeMobility = () => {
     if (!safeSelected) return;
     const cur = safeSelected.mpBase ?? 1;
@@ -217,6 +275,7 @@ export default function PlatoonsPanel({ data }: Props) {
 
   const traits: PlatoonTrait[] = (safeSelected?.traits ?? []) as PlatoonTrait[];
   const hasTrait = (t: PlatoonTrait) => traits.includes(t);
+  const selectedClass = getPlatoonClass(traits);
 
   const addTrait = (trait: PlatoonTrait, cost: number) => {
     if (!safeSelected) return;
@@ -355,10 +414,7 @@ export default function PlatoonsPanel({ data }: Props) {
       <>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
-            onClick={() =>
-              selectedTerritoryId &&
-              createPlatoon(viewerFaction as FactionKey, selectedTerritoryId)
-            }
+            onClick={openCreateWizard}
             disabled={!selectedTerritoryId}
             title={
               !selectedTerritoryId
@@ -369,6 +425,260 @@ export default function PlatoonsPanel({ data }: Props) {
             + Create Platoon {selectedTerritoryId ? `(as ${viewerNation})` : ""}
           </button>
         </div>
+        {wizardOpen ? (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,.55)",
+              display: "grid",
+              placeItems: "center",
+              zIndex: 50,
+            }}
+          >
+            <div
+              style={{
+                width: "min(720px, 92vw)",
+                background: "#0f172a",
+                borderRadius: 12,
+                padding: 16,
+                border: "1px solid rgba(255,255,255,.15)",
+                display: "grid",
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ fontWeight: 900 }}>
+                  Platoon Creation Wizard
+                </div>
+                <button type="button" onClick={closeCreateWizard}>
+                  Close
+                </button>
+              </div>
+
+              <div style={{ display: "grid", gap: 4 }}>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>
+                  Step {wizardStep + 1} of {wizardSteps.length} ·{" "}
+                  <b>{wizardSteps[wizardStep]}</b>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {wizardSteps.map((step, index) => (
+                    <div
+                      key={step}
+                      style={{
+                        flex: 1,
+                        height: 6,
+                        borderRadius: 999,
+                        background:
+                          index <= wizardStep
+                            ? "rgba(56,189,248,.9)"
+                            : "rgba(255,255,255,.12)",
+                      }}
+                    />
+                  ))}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                  Changes are staged locally and only saved when you click
+                  Deploy.
+                </div>
+              </div>
+
+              {wizardStep === 0 ? (
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ fontWeight: 700 }}>Name your platoon</div>
+                  <input
+                    value={wizardName}
+                    onChange={(e) => setWizardName(e.target.value)}
+                    placeholder="e.g. 1st Infantry"
+                  />
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    Territory: <b>{selectedTerritoryId ?? "—"}</b> · Nation:{" "}
+                    <b>{viewerNation}</b>
+                  </div>
+                </div>
+              ) : null}
+
+              {wizardStep === 1 ? (
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ fontWeight: 700 }}>
+                    Choose a platoon specialism
+                  </div>
+                  <label
+                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                  >
+                    <input
+                      type="radio"
+                      name="specialism"
+                      value=""
+                      checked={wizardTrait === ""}
+                      onChange={() => setWizardTrait("")}
+                    />
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: "50%",
+                          background: classStyles.INFANTRY.color,
+                          display: "inline-block",
+                        }}
+                      />
+                      None (standard infantry)
+                    </span>
+                  </label>
+                  {(["RECON", "ENGINEERS", "MOTORIZED"] as PlatoonTrait[]).map(
+                    (trait) => (
+                      <label
+                        key={trait}
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="specialism"
+                          value={trait}
+                          checked={wizardTrait === trait}
+                          onChange={() => setWizardTrait(trait)}
+                        />
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 18,
+                              height: 18,
+                              borderRadius: "50%",
+                              background: classStyles[trait].color,
+                              display: "inline-block",
+                            }}
+                          />
+                          {classStyles[trait].label}
+                        </span>
+                      </label>
+                    ),
+                  )}
+                </div>
+              ) : null}
+
+              {wizardStep === 2 ? (
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ fontWeight: 700 }}>Configure upgrades</div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <label style={{ fontSize: 12, opacity: 0.8 }}>
+                      Readiness (Condition)
+                    </label>
+                    <select
+                      value={wizardCondition}
+                      onChange={(e) =>
+                        setWizardCondition(e.target.value as PlatoonCondition)
+                      }
+                    >
+                      {CONDITION_ORDER.slice()
+                        .reverse()
+                        .map((condition) => (
+                          <option key={condition} value={condition}>
+                            {condition}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <label style={{ fontSize: 12, opacity: 0.8 }}>
+                      Mobility (MP)
+                    </label>
+                    <select
+                      value={wizardMpBase}
+                      onChange={(e) =>
+                        setWizardMpBase(
+                          clamp(Number(e.target.value || 1), 1, 3),
+                        )
+                      }
+                    >
+                      {[1, 2, 3].map((value) => (
+                        <option key={value} value={value}>
+                          {value} MP
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <label style={{ fontSize: 12, opacity: 0.8 }}>
+                      Starting strength (%)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={wizardStrengthPct}
+                      onChange={(e) =>
+                        setWizardStrengthPct(
+                          clamp(Number(e.target.value || 1), 1, 100),
+                        )
+                      }
+                    />
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    You can adjust upgrades later once the platoon is deployed.
+                  </div>
+                </div>
+              ) : null}
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 8,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => goToWizardStep(wizardStep - 1)}
+                  disabled={wizardStep === 0}
+                >
+                  Back
+                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {wizardStep < wizardSteps.length - 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => goToWizardStep(wizardStep + 1)}
+                      disabled={!wizardName.trim() && wizardStep === 0}
+                    >
+                      Next
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={deployWizardPlatoon}
+                      disabled={!wizardName.trim()}
+                    >
+                      Deploy
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div
           style={{
@@ -381,58 +691,81 @@ export default function PlatoonsPanel({ data }: Props) {
             <div style={{ fontSize: 12, opacity: 0.8 }}>No platoons yet.</div>
           ) : (
             <div style={{ display: "grid", gap: 8 }}>
-              {visiblePlatoons.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedPlatoonId(p.id);
-                    setSelectedTerritory(p.territoryId);
-                    setMoveTo("");
-                  }}
-                  style={{
-                    textAlign: "left",
-                    padding: 10,
-                    borderRadius: 10,
-                    border: "1px solid rgba(255,255,255,.12)",
-                    background:
-                      selectedPlatoonId === p.id
-                        ? "rgba(255,255,255,.06)"
-                        : "rgba(0,0,0,.12)",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div
-                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+              {visiblePlatoons.map((p) => {
+                const platoonClass = getPlatoonClass(
+                  p.traits as PlatoonTrait[],
+                );
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPlatoonId(p.id);
+                      setSelectedTerritory(p.territoryId);
+                      setMoveTo("");
+                    }}
+                    style={{
+                      textAlign: "left",
+                      padding: 10,
+                      borderRadius: 10,
+                      border: "1px solid rgba(255,255,255,.12)",
+                      background:
+                        selectedPlatoonId === p.id
+                          ? "rgba(255,255,255,.06)"
+                          : "rgba(0,0,0,.12)",
+                      cursor: "pointer",
+                    }}
                   >
-                    <span
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: "50%",
-                        background: strengthColor(
-                          p.strengthPct ?? 0,
-                          // p.condition,
-                        ),
-                        boxShadow: "0 0 6px rgba(0,0,0,.4)",
-                      }}
-                      title={`Strength ${p.strengthPct}% (${p.condition})`}
-                    />
-                    <div style={{ fontWeight: 800 }}>{p.name}</div>
-                  </div>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>
-                    {p.nation} · {p.condition} · {p.strengthPct}% · MP{" "}
-                    {p.mpBase}
-                    {p.entrenched ? " · ENTRENCHED" : ""}
-                    {(p.traits?.length ?? 0) > 0
-                      ? ` · ${p.traits?.join(", ")}`
-                      : ""}
-                  </div>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    Territory: {p.territoryId} · Faction: {p.faction}
-                  </div>
-                </button>
-              ))}
+                    <div
+                      style={{ display: "flex", gap: 8, alignItems: "center" }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          background: "rgba(15,23,42,.9)",
+                          border: `1px solid ${classStyles[platoonClass].color}`,
+                          color: classStyles[platoonClass].color,
+                        }}
+                        title={`Class: ${classStyles[platoonClass].label}`}
+                      >
+                        {classStyles[platoonClass].label}
+                      </span>
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          background: strengthColor(
+                            p.strengthPct ?? 0,
+                            // p.condition,
+                          ),
+                          boxShadow: "0 0 6px rgba(0,0,0,.4)",
+                        }}
+                        title={`Strength ${p.strengthPct}% (${p.condition})`}
+                      />
+                      <div style={{ fontWeight: 800 }}>{p.name}</div>
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.85 }}>
+                      {p.nation} · {p.condition} · {p.strengthPct}% · MP{" "}
+                      {p.mpBase}
+                      {p.entrenched ? " · ENTRENCHED" : ""}
+                      {(p.traits?.length ?? 0) > 0
+                        ? ` · ${p.traits?.join(", ")}`
+                        : ""}
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.7 }}>
+                      Territory: {p.territoryId} · Faction: {p.faction}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -480,6 +813,9 @@ export default function PlatoonsPanel({ data }: Props) {
                   {(safeSelected.traits?.length ?? 0)
                     ? safeSelected.traits?.join(", ")
                     : "—"}
+                </div>
+                <div>
+                  <b>Class:</b> {classStyles[selectedClass].label}
                 </div>
               </div>
 
