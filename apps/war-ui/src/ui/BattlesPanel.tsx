@@ -88,7 +88,8 @@ export default function BattlesPanel() {
       <div style={{ padding: 12 }}>
         <h3 style={{ marginTop: 0 }}>Battles</h3>
         <div style={{ opacity: 0.85 }}>
-          Battles are available in Phase: BATTLES.
+          Battles only appear when there are pending contests; otherwise the
+          phase is skipped.
         </div>
 
         <div
