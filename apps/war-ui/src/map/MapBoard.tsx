@@ -27,10 +27,14 @@ const baseFactionColors: Record<"allies" | "axis" | "ussr", string> = {
 const BORDER_STROKE = "rgba(255,255,255,.55)";
 const BORDER_WIDTH = "1.25";
 
-function getOwnerFill(owner: string, customs: Array<{ id: string; color: string }>) {
+function getOwnerFill(
+  owner: string,
+  customs: Array<{ id: string; color: string }>,
+) {
   if (owner === "neutral") return "#6b7280";
   if (owner === "contested") return "#a855f7";
-  if (owner === "allies" || owner === "axis" || owner === "ussr") return baseFactionColors[owner];
+  if (owner === "allies" || owner === "axis" || owner === "ussr")
+    return baseFactionColors[owner];
 
   if (owner.startsWith("custom:")) {
     const id = owner.slice("custom:".length);
@@ -46,7 +50,11 @@ function isGMEffective(mode: "SETUP" | "PLAY", viewerMode: "PLAYER" | "GM") {
 }
 
 // v1: what UI elements can be shown at each intel level
-function redactByIntel(level: VisibilityLevel, ownerIsViewer: boolean, gmEffective: boolean) {
+function redactByIntel(
+  level: VisibilityLevel,
+  ownerIsViewer: boolean,
+  gmEffective: boolean,
+) {
   // GM sees everything, viewer-owned is always FULL.
   if (gmEffective || ownerIsViewer) {
     return { showName: true, showOwner: true, showCombat: true };
@@ -90,11 +98,19 @@ function stripSvgBackground(svg: SVGSVGElement) {
 
     const looksLikeFull =
       (wAttr === "100%" && hAttr === "100%") ||
-      (Number.isFinite(w) && Number.isFinite(h) && w >= vb.w * 0.95 && h >= vb.h * 0.95);
+      (Number.isFinite(w) &&
+        Number.isFinite(h) &&
+        w >= vb.w * 0.95 &&
+        h >= vb.h * 0.95);
 
-    const looksLikeTopLeft = Math.abs(x - vb.x) < vb.w * 0.05 && Math.abs(y - vb.y) < vb.h * 0.05;
+    const looksLikeTopLeft =
+      Math.abs(x - vb.x) < vb.w * 0.05 && Math.abs(y - vb.y) < vb.h * 0.05;
 
-    const looksWhite = fill === "#fff" || fill === "#ffffff" || fill === "white" || fill === "rgb(255,255,255)";
+    const looksWhite =
+      fill === "#fff" ||
+      fill === "#ffffff" ||
+      fill === "white" ||
+      fill === "rgb(255,255,255)";
 
     if (looksLikeFull && looksLikeTopLeft && looksWhite) {
       r.setAttribute("fill", "none");
@@ -104,7 +120,11 @@ function stripSvgBackground(svg: SVGSVGElement) {
   }
 }
 
-function wireZoomPanImpl(svg: SVGSVGElement, hostEl: HTMLDivElement, onVbChange?: (vb: ViewBox) => void) {
+function wireZoomPanImpl(
+  svg: SVGSVGElement,
+  hostEl: HTMLDivElement,
+  onVbChange?: (vb: ViewBox) => void,
+) {
   const base = parseViewBox(svg);
   let current = { ...base };
 
@@ -166,7 +186,12 @@ function wireZoomPanImpl(svg: SVGSVGElement, hostEl: HTMLDivElement, onVbChange?
     const dx = (dxPx / rect.width) * startVB.w;
     const dy = (dyPx / rect.height) * startVB.h;
 
-    update({ x: startVB.x - dx, y: startVB.y - dy, w: startVB.w, h: startVB.h });
+    update({
+      x: startVB.x - dx,
+      y: startVB.y - dy,
+      w: startVB.w,
+      h: startVB.h,
+    });
   };
 
   const onMouseUp = () => {
@@ -236,24 +261,31 @@ export default function MapBoard() {
   const activeTheatres = useCampaignStore((s) => s.activeTheatres);
 
   const selectedTerritoryId = useCampaignStore((s) => s.selectedTerritoryId);
+  const selectedPlatoonId = useCampaignStore((s) => s.selectedPlatoonId);
   const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
 
   const intelByTerritory = useCampaignStore((s) => s.intelByTerritory);
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
   const locksByTerritory = useCampaignStore((s) => s.locksByTerritory);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
-    const platoonsById = useCampaignStore((s) => s.platoonsById);
+  const platoonsById = useCampaignStore((s) => s.platoonsById);
   const customs = useCampaignStore((s) => s.customs);
   const homelands = useCampaignStore((s) => s.homelands);
 
   const gmEffective = isGMEffective(mode, viewerMode);
 
   const theatresKey = useMemo(
-    () => (["WE", "EE", "NA", "PA"] as const).filter((k) => activeTheatres[k]).join("|") || "NONE",
-    [activeTheatres]
+    () =>
+      (["WE", "EE", "NA", "PA"] as const)
+        .filter((k) => activeTheatres[k])
+        .join("|") || "NONE",
+    [activeTheatres],
   );
 
-  const vbStorageKey = useMemo(() => `war.map.vb.${theatresKey}`, [theatresKey]);
+  const vbStorageKey = useMemo(
+    () => `war.map.vb.${theatresKey}`,
+    [theatresKey],
+  );
 
   const { allowedShapeIds, shapeToTerritory, territoriesById } = useMemo(() => {
     const allowed = new Set<string>();
@@ -262,7 +294,8 @@ export default function MapBoard() {
 
     if (data) {
       for (const th of data.theatres) {
-        if (!activeTheatres[th.theatreId as keyof typeof activeTheatres]) continue;
+        if (!activeTheatres[th.theatreId as keyof typeof activeTheatres])
+          continue;
 
         for (const t of th.territories) {
           const info: TerritoryInfo = {
@@ -282,7 +315,11 @@ export default function MapBoard() {
       }
     }
 
-    return { allowedShapeIds: allowed, shapeToTerritory: shapeMap, territoriesById: terrMap };
+    return {
+      allowedShapeIds: allowed,
+      shapeToTerritory: shapeMap,
+      territoriesById: terrMap,
+    };
   }, [activeTheatres, data]);
   const regionTerritoriesById = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -301,7 +338,8 @@ export default function MapBoard() {
     if (!data) return m;
 
     for (const th of data.theatres) {
-      if (!activeTheatres[th.theatreId as keyof typeof activeTheatres]) continue;
+      if (!activeTheatres[th.theatreId as keyof typeof activeTheatres])
+        continue;
       const adj = th.adjacency ?? {};
       for (const [tid, ls] of Object.entries(adj)) {
         const set = m.get(tid) ?? new Set<string>();
@@ -323,7 +361,7 @@ export default function MapBoard() {
       }
       return false;
     },
-    [adjacencyByTerritory, ownerByTerritory, viewerFaction]
+    [adjacencyByTerritory, ownerByTerritory, viewerFaction],
   );
 
   // ✅ single “effective” visibility:
@@ -346,13 +384,19 @@ export default function MapBoard() {
 
       return "NONE";
     },
-    [gmEffective, ownerByTerritory, viewerFaction, intelByTerritory, isAdjacentToOwned]
+    [
+      gmEffective,
+      ownerByTerritory,
+      viewerFaction,
+      intelByTerritory,
+      isAdjacentToOwned,
+    ],
   );
 
   // ✅ Always keep borders on. Use fill/opacity for fog.
   const clearSelectionStyles = useCallback((svg: SVGSVGElement) => {
     svg.querySelectorAll<SVGPathElement>("path").forEach((p) => {
-        p.style.opacity = "1";
+      p.style.opacity = "1";
       p.style.stroke = BORDER_STROKE;
       p.style.strokeWidth = BORDER_WIDTH;
       (p.style as any).vectorEffect = "non-scaling-stroke";
@@ -373,7 +417,8 @@ export default function MapBoard() {
 
         if (!p.dataset.baseFill) {
           const attrFill = p.getAttribute("fill");
-          p.dataset.baseFill = attrFill && attrFill !== "none" ? attrFill : "#444";
+          p.dataset.baseFill =
+            attrFill && attrFill !== "none" ? attrFill : "#444";
         }
 
         const territory = shapeToTerritory.get(shapeId);
@@ -427,7 +472,7 @@ export default function MapBoard() {
       homelands,
       viewerFaction,
       gmEffective,
-    ]
+    ],
   );
 
   const highlightTerritory = useCallback(
@@ -436,7 +481,7 @@ export default function MapBoard() {
 
       const lvl = getEffectiveVisibility(territory.id);
       if (!gmEffective && lvl === "NONE") return;
-       const regionTerritories = regionTerritoriesById.get(territory.id);
+      const regionTerritories = regionTerritoriesById.get(territory.id);
       if (regionTerritories?.length) {
         regionTerritories.forEach((tid) => {
           const info = territoriesById.get(tid);
@@ -460,7 +505,13 @@ export default function MapBoard() {
         (p.style as any).vectorEffect = "non-scaling-stroke";
       });
     },
- [applyFogStyles, getEffectiveVisibility, gmEffective, regionTerritoriesById, territoriesById]
+    [
+      applyFogStyles,
+      getEffectiveVisibility,
+      gmEffective,
+      regionTerritoriesById,
+      territoriesById,
+    ],
   );
 
   const ensureOverlayLayer = useCallback((svg: SVGSVGElement, id: string) => {
@@ -474,28 +525,35 @@ export default function MapBoard() {
     return layer;
   }, []);
 
-  const centroidCacheRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const centroidCacheRef = useRef<Map<string, { x: number; y: number }>>(
+    new Map(),
+  );
 
-  const getTerritoryCentroid = useCallback((svg: SVGSVGElement, territory: TerritoryInfo) => {
-    const cached = centroidCacheRef.current.get(territory.id);
-    if (cached) return cached;
-    const boxes: DOMRect[] = [];
-    territory.shapeRefs.forEach((shapeId) => {
-      const el = svg.querySelector<SVGGraphicsElement>(`#${CSS.escape(shapeId)}`);
-      if (el) boxes.push(el.getBBox());
-    });
-    if (!boxes.length) return null;
-    const sum = boxes.reduce(
-      (acc, box) => ({
-        x: acc.x + box.x + box.width / 2,
-        y: acc.y + box.y + box.height / 2,
-      }),
-      { x: 0, y: 0 }
-    );
-    const centroid = { x: sum.x / boxes.length, y: sum.y / boxes.length };
-    centroidCacheRef.current.set(territory.id, centroid);
-    return centroid;
-  }, []);
+  const getTerritoryCentroid = useCallback(
+    (svg: SVGSVGElement, territory: TerritoryInfo) => {
+      const cached = centroidCacheRef.current.get(territory.id);
+      if (cached) return cached;
+      const boxes: DOMRect[] = [];
+      territory.shapeRefs.forEach((shapeId) => {
+        const el = svg.querySelector<SVGGraphicsElement>(
+          `#${CSS.escape(shapeId)}`,
+        );
+        if (el) boxes.push(el.getBBox());
+      });
+      if (!boxes.length) return null;
+      const sum = boxes.reduce(
+        (acc, box) => ({
+          x: acc.x + box.x + box.width / 2,
+          y: acc.y + box.y + box.height / 2,
+        }),
+        { x: 0, y: 0 },
+      );
+      const centroid = { x: sum.x / boxes.length, y: sum.y / boxes.length };
+      centroidCacheRef.current.set(territory.id, centroid);
+      return centroid;
+    },
+    [],
+  );
 
   const buildSupplyPath = useCallback(
     (start: string, target: string) => {
@@ -523,7 +581,7 @@ export default function MapBoard() {
       }
       return null;
     },
-    [adjacencyByTerritory]
+    [adjacencyByTerritory],
   );
 
   const updatePlatoonOverlays = useCallback(
@@ -542,14 +600,33 @@ export default function MapBoard() {
       });
 
       const homeland = homelands?.[viewerFaction] ?? null;
+      const selectedPlatoonTerritory = selectedPlatoonId
+        ? (platoonsById[selectedPlatoonId]?.territoryId ?? null)
+        : null;
 
       grouped.forEach((factions, tid) => {
         const territory = territoriesById.get(tid);
         if (!territory) return;
         const centroid = getTerritoryCentroid(svg, territory);
         if (!centroid) return;
+        if (selectedPlatoonTerritory && selectedPlatoonTerritory === tid) {
+          const highlight = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle",
+          );
+          highlight.setAttribute("cx", centroid.x.toString());
+          highlight.setAttribute("cy", centroid.y.toString());
+          highlight.setAttribute("r", "6");
+          highlight.setAttribute("fill", "none");
+          highlight.setAttribute("stroke", "#facc15");
+          highlight.setAttribute("stroke-width", "1.2");
+          markerLayer.appendChild(highlight);
+        }
 
-        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        const circle = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "circle",
+        );
         circle.setAttribute("cx", centroid.x.toString());
         circle.setAttribute("cy", centroid.y.toString());
         circle.setAttribute("r", "3");
@@ -558,7 +635,10 @@ export default function MapBoard() {
         circle.setAttribute("stroke-width", "0.5");
         markerLayer.appendChild(circle);
 
-        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        const label = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text",
+        );
         label.setAttribute("x", centroid.x.toString());
         label.setAttribute("y", (centroid.y + 1).toString());
         label.setAttribute("text-anchor", "middle");
@@ -578,10 +658,13 @@ export default function MapBoard() {
               })
               .filter(Boolean) as Array<{ x: number; y: number }>;
             if (points.length > 1) {
-              const poly = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+              const poly = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "polyline",
+              );
               poly.setAttribute(
                 "points",
-                points.map((p) => `${p.x},${p.y}`).join(" ")
+                points.map((p) => `${p.x},${p.y}`).join(" "),
               );
               poly.setAttribute("fill", "none");
               poly.setAttribute("stroke", "rgba(145, 224, 162, 0.94)");
@@ -600,14 +683,17 @@ export default function MapBoard() {
       getTerritoryCentroid,
       homelands,
       platoonsById,
+      selectedPlatoonId,
       territoriesById,
       viewerFaction,
-    ]
+    ],
   );
   const fitToAllowed = useCallback(
     (svg: SVGSVGElement) => {
       const els = Array.from(allowedShapeIds)
-        .map((id) => svg.querySelector<SVGGraphicsElement>(`#${CSS.escape(id)}`))
+        .map((id) =>
+          svg.querySelector<SVGGraphicsElement>(`#${CSS.escape(id)}`),
+        )
         .filter(Boolean) as SVGGraphicsElement[];
 
       if (els.length === 0) return;
@@ -636,7 +722,7 @@ export default function MapBoard() {
 
       zoomApiRef.current?.set(next);
     },
-    [allowedShapeIds]
+    [allowedShapeIds],
   );
 
   // Load theatres data
@@ -672,7 +758,7 @@ export default function MapBoard() {
 
         stripSvgBackground(svg);
         applyFogStyles(svg);
-                updatePlatoonOverlays(svg);
+        updatePlatoonOverlays(svg);
 
         // zoom/pan wiring
         const { api, cleanup } = wireZoomPanImpl(svg, hostEl, (nextVb) => {
@@ -692,7 +778,12 @@ export default function MapBoard() {
             const raw = localStorage.getItem(vbStorageKey);
             if (!raw) return null;
             const parsed = JSON.parse(raw) as ViewBox;
-            if (parsed && [parsed.x, parsed.y, parsed.w, parsed.h].every((n) => typeof n === "number" && Number.isFinite(n))) {
+            if (
+              parsed &&
+              [parsed.x, parsed.y, parsed.w, parsed.h].every(
+                (n) => typeof n === "number" && Number.isFinite(n),
+              )
+            ) {
               return parsed;
             }
             return null;
@@ -714,7 +805,9 @@ export default function MapBoard() {
 
         // wire click + hover for allowed territories
         allowedShapeIds.forEach((shapeId) => {
-          const path = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
+          const path = svg.querySelector<SVGPathElement>(
+            `#${CSS.escape(shapeId)}`,
+          );
           if (!path) return;
 
           const onClick = (e: MouseEvent) => {
@@ -786,7 +879,7 @@ export default function MapBoard() {
     gmEffective,
     applyFogStyles,
     fitToAllowed,
-        updatePlatoonOverlays,
+    updatePlatoonOverlays,
     getEffectiveVisibility,
     highlightTerritory,
     setSelectedTerritory,
@@ -794,7 +887,9 @@ export default function MapBoard() {
 
   // When selection changes externally, update highlight
   useEffect(() => {
-    const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
+    const svg = svgHostRef.current?.querySelector(
+      "svg",
+    ) as SVGSVGElement | null;
     if (!svg) return;
 
     if (!selectedTerritoryId) {
@@ -810,9 +905,16 @@ export default function MapBoard() {
     }
 
     applyFogStyles(svg);
-  }, [selectedTerritoryId, territoriesById, applyFogStyles, highlightTerritory]);
-useEffect(() => {
-    const svg = svgHostRef.current?.querySelector("svg") as SVGSVGElement | null;
+  }, [
+    selectedTerritoryId,
+    territoriesById,
+    applyFogStyles,
+    highlightTerritory,
+  ]);
+  useEffect(() => {
+    const svg = svgHostRef.current?.querySelector(
+      "svg",
+    ) as SVGSVGElement | null;
     if (!svg) return;
     updatePlatoonOverlays(svg);
   }, [platoonsById, homelands, updatePlatoonOverlays]);
@@ -851,7 +953,14 @@ useEffect(() => {
         <button onClick={() => zoomApiRef.current?.reset()}>Reset</button>
 
         {vb && (
-          <div style={{ marginLeft: 10, fontSize: 11, opacity: 0.85, color: "#fff" }}>
+          <div
+            style={{
+              marginLeft: 10,
+              fontSize: 11,
+              opacity: 0.85,
+              color: "#fff",
+            }}
+          >
             VB {vb.w.toFixed(0)}×{vb.h.toFixed(0)}
           </div>
         )}
@@ -897,10 +1006,10 @@ useEffect(() => {
             viewerFaction === "allies"
               ? baseFactionColors.allies
               : viewerFaction === "axis"
-              ? baseFactionColors.axis
-              : viewerFaction === "ussr"
-              ? baseFactionColors.ussr
-              : "rgba(255,255,255,.6)";
+                ? baseFactionColors.axis
+                : viewerFaction === "ussr"
+                  ? baseFactionColors.ussr
+                  : "rgba(255,255,255,.6)";
 
           return (
             <div
@@ -948,7 +1057,8 @@ useEffect(() => {
 
               {redact.showCombat && contest && (
                 <div style={{ opacity: 0.95, marginTop: 4 }}>
-                  <b>Contest:</b> {contest.attackerFaction} vs {contest.defenderFaction} ({contest.status})
+                  <b>Contest:</b> {contest.attackerFaction} vs{" "}
+                  {contest.defenderFaction} ({contest.status})
                 </div>
               )}
 

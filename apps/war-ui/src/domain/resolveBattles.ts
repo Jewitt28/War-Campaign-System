@@ -1,7 +1,12 @@
 // src/domain/resolveBattles.ts
-import type { BattleOutcome, Platoon, PlatoonCondition, Contest, TerritoryLock } from "./types";
-import type { OwnerKey } from "../store/useCampaignStore";
-
+import type {
+  BattleOutcome,
+  Platoon,
+  PlatoonCondition,
+  Contest,
+  TerritoryLock,
+} from "./types";
+import type { FactionKey, OwnerKey } from "../store/useCampaignStore";
 function worsen(c: PlatoonCondition): PlatoonCondition {
   if (c === "FRESH") return "WORN";
   if (c === "WORN") return "DEPLETED";
@@ -26,6 +31,7 @@ export function resolveBattles(args: {
   ownerByTerritory: Record<string, OwnerKey>;
   locksByTerritory: Record<string, TerritoryLock | undefined>;
   contestsByTerritory: Record<string, Contest | undefined>;
+  adjacencyByTerritory: Record<string, string[]>;
   outcomes: BattleOutcome[];
 }) {
   const nextPlatoons = { ...args.platoonsById };
@@ -59,7 +65,41 @@ export function resolveBattles(args: {
       if (!p) continue;
       nextPlatoons[pid] = applyLoss(p, defenderLoss, defenderHit);
     }
+    const loserFaction: FactionKey = (
+      out.winner === c.attackerFaction ? c.defenderFaction : c.attackerFaction
+    ) as FactionKey;
+    const fallbackOptions = (
+      args.adjacencyByTerritory[territoryId] ?? []
+    ).filter((tid) => !nextLocks[tid]);
+    const preferredFallbacks = fallbackOptions.filter((tid) => {
+      const owner = nextOwners[tid];
+      return owner === loserFaction || owner === "neutral" || owner == null;
+    });
+    const fallbackTarget = preferredFallbacks[0] ?? fallbackOptions[0];
 
+    const shouldRetreat = (p: Platoon) => (p.strengthPct ?? 0) > 0;
+
+    if (fallbackTarget) {
+      const retreatingIds =
+        out.winner === c.attackerFaction
+          ? c.defenderPlatoonIds
+          : c.attackerPlatoonIds;
+      for (const pid of retreatingIds) {
+        const p = nextPlatoons[pid];
+        if (!p) continue;
+        if (!shouldRetreat(p)) continue;
+        nextPlatoons[pid] = { ...p, territoryId: fallbackTarget };
+      }
+      if (retreatingIds.length) {
+        log.push(
+          `RETREAT: ${loserFaction} platoons fallback from ${territoryId} to ${fallbackTarget}`,
+        );
+      }
+    } else {
+      log.push(
+        `RETREAT BLOCKED: No adjacent fallback from ${territoryId} for ${loserFaction}`,
+      );
+    }
     // winner takes territory
     nextOwners[territoryId] = out.winner as OwnerKey;
 
@@ -72,7 +112,7 @@ export function resolveBattles(args: {
     nextContests[territoryId] = { ...c, status: "RESOLVED" };
 
     log.push(
-      `BATTLE RESOLVED: ${territoryId} winner=${out.winner} (A -${attackerLoss}% hit${attackerHit}, D -${defenderLoss}% hit${defenderHit})`
+      `BATTLE RESOLVED: ${territoryId} winner=${out.winner} (A -${attackerLoss}% hit${attackerHit}, D -${defenderLoss}% hit${defenderHit})`,
     );
   }
 

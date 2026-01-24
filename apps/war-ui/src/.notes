@@ -1,19 +1,46 @@
 factions vs nations
 
-
-
-
 playerview dropdowns all need changing to choose from the nations rather than factions (players are nations! factions are teams!)
 setup nations should begin with none selected (its just easier than having to uncheck them all)
-platoons seem to currently be set at the faction level rather than the nation level. 
-player orderpanel/tab needs the order wiring. 
+platoons seem to currently be set at the faction level rather than the nation level.
+player orderpanel/tab needs the order wiring.
 diplomacy/ resource sharing and strategy links need wiring
 factions command needs to only be available if the player is in a faction. if they arent then it should just list available factions and "send request"
 
+IN REVIEW
 
+- after a battle is resolved. the losing players platoon/s which lost but were not destroyes would need to move/fallback to one of their adjacent territories.- OB
 
-- after a battle is resolved. the losing players platoon/s which lost would need to move/fallback to one of their adjacent territories.
+- platoon tab should show all players platoons. clicking them should higlight their marker on the map. it currently is set based on clicking territories - PL -
 
-- platoon tab should show all players platoons. clicking them should higlight their marker on the map. it currently is set based on clicking territories 
+- orderstab available orders need wiring up so they are actually playable. - OB
 
-- orderstab available orders need wiring up so they are actually playable. 
+NEXT TASKS
+
+UI
+
+- if using command hub expanded then should not show command hub in panel.
+- faction command and chat should be accessible from a button in the top bar and then open in a left side panel
+- another button on the top bar but for the nation/general command to be displayed in the left panel
+
+ORDERS/BATTLES - OB
+
+- battle initiation tab needs to actually confirm selection
+- ongoing battles should only have options to Hold or retreat (fall back or keep fighting) -
+
+GM/TOOLS - GMT
+
+- GM tools needs centralizing. appears in too many places in the UI.
+- there should be not overlap between player/GM views. and just switched from the top bar
+- player nations selecter should only show nations in play rather than all nations.
+
+COMMAND - COM
+faction command and chat should be accessible from a button in the top bar and then open in a left side panel
+
+- another button on the top bar but for the nation/general command to be displayed in the left panel
+
+PLATOON - PL
+
+- platoons tab should only show all platoons when in GM view. if its in a player/nation then it should only show the platoons they control
+
+SKILLS/RESEARCH -RES

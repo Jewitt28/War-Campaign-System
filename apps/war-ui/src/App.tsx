@@ -10,28 +10,39 @@ import { NATIONS, type NationKey } from "./setup/NationDefinitions";
 import PlayPanel from "./ui/PlayPanel";
 import GMTools from "./gm/GMTools";
 
-
-
 export default function App() {
   const [data, setData] = useState<NormalizedData | null>(null);
   const mode = useCampaignStore((s) => s.mode);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
   const playMode = useCampaignStore((s) => s.playMode);
-  const commandHubExpanded = useCampaignStore((s) => s.commandHubExpanded)
-
+  const commandHubExpanded = useCampaignStore((s) => s.commandHubExpanded);
+  const setAdjacencyByTerritory = useCampaignStore(
+    (s) => s.setAdjacencyByTerritory,
+  );
 
   useEffect(() => {
-    loadTheatresData().then(setData).catch(console.error);
-  }, []);
+    loadTheatresData()
+      .then((loaded) => {
+        setData(loaded);
+        const adjacency: Record<string, string[]> = {};
+        for (const territory of loaded.territories) {
+          adjacency[territory.id] = territory.adj ?? [];
+        }
+        setAdjacencyByTerritory(adjacency);
+      })
+      .catch(console.error);
+  }, [setAdjacencyByTerritory]);
 
-  const showSetup = (mode === "SETUP") && (viewerMode === "GM");
+  const showSetup = mode === "SETUP" && viewerMode === "GM";
   const showLeftPanel = playMode === "ONE_SCREEN" && viewerMode === "GM";
-  const oneScreenPlay = (mode === "PLAY") && (viewerMode === "GM");
+  const oneScreenPlay = mode === "PLAY" && viewerMode === "GM";
 
   const gridTemplateColumns = showLeftPanel ? "380px 1fr 420px" : "1fr 420px";
 
   return (
-    <div style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}>
+    <div
+      style={{ display: "grid", gridTemplateRows: "auto 1fr", height: "100vh" }}
+    >
       <TopBar data={data} />
 
       <div
@@ -45,7 +56,15 @@ export default function App() {
       >
         {/* LEFT: Setup + GM tools (one-screen only) */}
         {showLeftPanel ? (
-          <div style={{ display: "grid", gap: 12, alignContent: "start", minHeight: 0, overflow: "auto" }}>
+          <div
+            style={{
+              display: "grid",
+              gap: 12,
+              alignContent: "start",
+              minHeight: 0,
+              overflow: "auto",
+            }}
+          >
             {showSetup && <SetupPanel />}
             {oneScreenPlay && <PlayPanel data={data} />}
             <GMTools data={data} tab="DASHBOARD" />
@@ -54,11 +73,24 @@ export default function App() {
 
         {/* CENTER: Map + expanded Command Hub */}
         <div style={{ display: "grid", gap: 12, minHeight: 0 }}>
-          <div style={{ border: "1px solid rgba(255,255,255,.15)", borderRadius: 8, overflow: "hidden", minHeight: 0 }}>
+          <div
+            style={{
+              border: "1px solid rgba(255,255,255,.15)",
+              borderRadius: 8,
+              overflow: "hidden",
+              minHeight: 0,
+            }}
+          >
             <MapBoard />
           </div>
           {commandHubExpanded && viewerMode === "PLAYER" ? (
-            <div style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 10, overflow: "hidden" }}>
+            <div
+              style={{
+                border: "1px solid rgba(255,255,255,.12)",
+                borderRadius: 10,
+                overflow: "hidden",
+              }}
+            >
               <CommandHub data={data} variant="full" />
             </div>
           ) : null}
@@ -76,7 +108,7 @@ export default function App() {
 function TopBar({ data }: { data: NormalizedData | null }) {
   const viewerMode = useCampaignStore((s) => s.viewerMode);
   const setViewerMode = useCampaignStore((s) => s.setViewerMode);
-    const viewerNation = useCampaignStore((s) => s.viewerNation);
+  const viewerNation = useCampaignStore((s) => s.viewerNation);
   const setViewerNation = useCampaignStore((s) => s.setViewerNation);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
   // const setViewerFaction = useCampaignStore((s) => s.setViewerFaction);
@@ -106,15 +138,17 @@ function TopBar({ data }: { data: NormalizedData | null }) {
   const resourceSnapshot = useMemo(() => {
     const base = suppliesByFaction?.[viewerFaction] ?? 0;
     return [
-      { key: "🪖", value: Math.max(0, Math.round(base * 1.5)), label: "Manpower" },
+      {
+        key: "🪖",
+        value: Math.max(0, Math.round(base * 1.5)),
+        label: "Manpower",
+      },
       { key: "🏭", value: base, label: "Industry" },
       { key: "⛽", value: Math.max(0, Math.round(base * 0.6)), label: "Fuel" },
       { key: "🛰️", value: Math.max(0, Math.round(base * 0.3)), label: "Intel" },
     ];
   }, [suppliesByFaction, viewerFaction]);
 
-  
-  
   return (
     <div
       style={{
@@ -126,12 +160,30 @@ function TopBar({ data }: { data: NormalizedData | null }) {
         alignItems: "center",
       }}
     >
-   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-   <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ fontWeight: 800 }}>Turn {turnNumber}</div>
-        <div style={{ fontSize: 12, opacity: 0.75 }}>Phase: {phase}</div>
-        <div style={{ fontSize: 12, opacity: 0.75 }}>Play Mode: {playMode}</div>
-        <div style={{ fontSize: 12, opacity: 0.75 }}>Outstanding orders: {ordersPending}</div>
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ fontWeight: 800 }}>Turn {turnNumber}</div>
+          <div style={{ fontSize: 12, opacity: 0.75 }}>Phase: {phase}</div>
+          <div style={{ fontSize: 12, opacity: 0.75 }}>
+            Play Mode: {playMode}
+          </div>
+          <div style={{ fontSize: 12, opacity: 0.75 }}>
+            Outstanding orders: {ordersPending}
+          </div>
         </div>
         {resourceSnapshot.map((resource) => (
           <div
@@ -154,10 +206,28 @@ function TopBar({ data }: { data: NormalizedData | null }) {
         ))}
       </div>
 
-             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-        <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          flexWrap: "wrap",
+          justifyContent: "flex-end",
+        }}
+      >
+        <label
+          style={{
+            display: "flex",
+            gap: 6,
+            alignItems: "center",
+            fontSize: 12,
+          }}
+        >
           Player Nation
-          <select value={viewerNation} onChange={(e) => setViewerNation(e.target.value as NationKey)}>
+          <select
+            value={viewerNation}
+            onChange={(e) => setViewerNation(e.target.value as NationKey)}
+          >
             {NATIONS.map((nation) => (
               <option key={nation.id} value={nation.id}>
                 {nation.flag ? `${nation.flag} ` : ""}
@@ -167,7 +237,10 @@ function TopBar({ data }: { data: NormalizedData | null }) {
           </select>
         </label>
 
-        <button type="button" onClick={() => setViewerMode(viewerMode === "GM" ? "PLAYER" : "GM")}>
+        <button
+          type="button"
+          onClick={() => setViewerMode(viewerMode === "GM" ? "PLAYER" : "GM")}
+        >
           {viewerMode === "GM" ? "GM View" : "Player View"}
         </button>
 
@@ -178,7 +251,11 @@ function TopBar({ data }: { data: NormalizedData | null }) {
             if (!isAdjacent) return;
             nextPhase(isAdjacent);
           }}
-          title={!isAdjacent ? "Load theatres_all.json so adjacency exists." : undefined}
+          title={
+            !isAdjacent
+              ? "Load theatres_all.json so adjacency exists."
+              : undefined
+          }
         >
           Advance Phase
         </button>
