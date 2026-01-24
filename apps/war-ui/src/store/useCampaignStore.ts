@@ -873,6 +873,40 @@ export const useCampaignStore = create<CampaignState>()(
                 contestsByTerritory: s.contestsByTerritory,
                 isAdjacent,
               });
+            const pendingContests = Object.values(nextContests).filter(
+              (contest) => contest?.status === "BATTLE_PENDING",
+            );
+            const contestCount = Object.values(nextContests).filter(
+              Boolean,
+            ).length;
+            const lockCount = Object.values(nextLocks).filter(Boolean).length;
+
+            if (pendingContests.length === 0) {
+              const nextViewerFaction = factions[(idx + 2) % factions.length];
+              return {
+                phase: "ORDERS" as const,
+                turnNumber: s.turnNumber + 1,
+                viewerFaction: nextViewerFaction,
+                platoonsById: nextPlatoons,
+                ownerByTerritory: nextOwners,
+                locksByTerritory: nextLocks,
+                contestsByTerritory: nextContests,
+                intelByTerritory: nextIntel,
+                ordersByTurn: consumeSubmittedOrdersForTurn(
+                  s.ordersByTurn,
+                  s.turnNumber,
+                ),
+                turnLog: [
+                  logNote(
+                    `Skipped Battles phase (no pending contests; ${contestCount} contests, ${lockCount} locks).`,
+                    "BATTLE",
+                  ),
+                  ...reconLog.map((t) => logNote(t, "ORDERS")),
+                  ...log.map((t) => logNote(t)),
+                  ...s.turnLog,
+                ],
+              };
+            }
 
             return {
               phase: "BATTLES" as const,
