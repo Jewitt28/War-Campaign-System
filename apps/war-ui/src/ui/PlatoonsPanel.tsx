@@ -57,6 +57,8 @@ export default function PlatoonsPanel({ data }: Props) {
   const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
   const createPlatoon = useCampaignStore((s) => s.createPlatoon);
+  const viewerNation = useCampaignStore((s) => s.viewerNation);
+  const viewerMode = useCampaignStore((s) => s.viewerMode);
 
   const ensureSupplies = useCampaignStore((s) => s.ensureSupplies);
   const getSupplies = useCampaignStore((s) => s.getSupplies);
@@ -79,6 +81,10 @@ export default function PlatoonsPanel({ data }: Props) {
     () => Object.values(platoonsById),
     [platoonsById],
   );
+  const visiblePlatoons = useMemo(() => {
+    if (viewerMode === "GM") return allPlatoons;
+    return allPlatoons.filter((platoon) => platoon.nation === viewerNation);
+  }, [allPlatoons, viewerMode, viewerNation]);
 
   const selectedPlatoon = selectedPlatoonId
     ? platoonsById[selectedPlatoonId]
@@ -113,6 +119,19 @@ export default function PlatoonsPanel({ data }: Props) {
   const mustMatchFaction = safeSelected
     ? safeSelected.faction === viewerFaction
     : false;
+  const conditionColor: Record<PlatoonCondition, string> = {
+    FRESH: "#22c55e",
+    WORN: "#eab308",
+    DEPLETED: "#f97316",
+    SHATTERED: "#ef4444",
+  };
+  const strengthColor = (strengthPct: number) => {
+    if (strengthPct >= 75) return conditionColor.FRESH;
+
+    if (strengthPct >= 50) return conditionColor.WORN;
+    if (strengthPct >= 25) return conditionColor.DEPLETED;
+    return conditionColor.SHATTERED;
+  };
 
   const applyRename = () => {
     if (!safeSelected) return;
@@ -330,7 +349,7 @@ export default function PlatoonsPanel({ data }: Props) {
       >
         <div style={{ fontWeight: 900 }}>Platoons</div>
         <div style={{ fontSize: 12, opacity: 0.75 }}>
-          Viewer faction: <b>{viewerFaction}</b> · Supplies: <b>{supplies}</b>
+          Viewer nation: <b>{viewerNation}</b> · Supplies: <b>{supplies}</b>
         </div>
       </div>
 
@@ -348,8 +367,7 @@ export default function PlatoonsPanel({ data }: Props) {
                 : undefined
             }
           >
-            + Create Platoon{" "}
-            {selectedTerritoryId ? `(as ${viewerFaction})` : ""}
+            + Create Platoon {selectedTerritoryId ? `(as ${viewerNation})` : ""}
           </button>
         </div>
 
@@ -360,11 +378,11 @@ export default function PlatoonsPanel({ data }: Props) {
             padding: 10,
           }}
         >
-          {allPlatoons.length === 0 ? (
+          {visiblePlatoons.length === 0 ? (
             <div style={{ fontSize: 12, opacity: 0.8 }}>No platoons yet.</div>
           ) : (
             <div style={{ display: "grid", gap: 8 }}>
-              {allPlatoons.map((p) => (
+              {visiblePlatoons.map((p) => (
                 <button
                   key={p.id}
                   type="button"
@@ -385,17 +403,34 @@ export default function PlatoonsPanel({ data }: Props) {
                     cursor: "pointer",
                   }}
                 >
-                  <div style={{ fontWeight: 800 }}>{p.name}</div>
+                  <div
+                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                  >
+                    <span
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        background: strengthColor(
+                          p.strengthPct ?? 0,
+                          // p.condition,
+                        ),
+                        boxShadow: "0 0 6px rgba(0,0,0,.4)",
+                      }}
+                      title={`Strength ${p.strengthPct}% (${p.condition})`}
+                    />
+                    <div style={{ fontWeight: 800 }}>{p.name}</div>
+                  </div>
                   <div style={{ fontSize: 12, opacity: 0.85 }}>
-                    {p.nation} · {p.faction} · {p.condition} · {p.strengthPct}%
-                    · MP {p.mpBase}
+                    {p.nation} · {p.condition} · {p.strengthPct}% · MP{" "}
+                    {p.mpBase}
                     {p.entrenched ? " · ENTRENCHED" : ""}
                     {(p.traits?.length ?? 0) > 0
                       ? ` · ${p.traits?.join(", ")}`
                       : ""}
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    Territory: {p.territoryId}
+                    Territory: {p.territoryId} · Faction: {p.faction}
                   </div>
                 </button>
               ))}
@@ -422,6 +457,9 @@ export default function PlatoonsPanel({ data }: Props) {
               <div style={{ display: "grid", gap: 4 }}>
                 <div>
                   <b>Name:</b> {safeSelected.name}
+                </div>
+                <div>
+                  <b>Nation:</b> {safeSelected.nation}
                 </div>
                 <div>
                   <b>Faction:</b> {safeSelected.faction}

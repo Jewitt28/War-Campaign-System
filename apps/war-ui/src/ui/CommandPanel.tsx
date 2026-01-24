@@ -3,7 +3,6 @@ import type { NormalizedData } from "../data/theatres";
 import { useCampaignStore } from "../store/useCampaignStore";
 
 import PlayerDashboard from "../player/PlayerDashboard";
-import GMTools from "../gm/GMTools";
 
 import PlatoonsPanel from "./PlatoonsPanel";
 import TurnLogPanel from "./TurnLogPanel";
@@ -73,26 +72,21 @@ export default function CommandPanel({ data }: Props) {
   const content = (() => {
     switch (safeTab) {
       case "DASHBOARD":
-        if (gmEffective) return <GMTools data={data} tab={safeTab} />;
-        return (
-          <CommandHub
-            data={data}
-            variant={commandHubExpanded ? "compact" : "full"}
-          />
+        if (gmEffective) {
+          return (
+            <GMPanelNotice message="GM tools are centralized in the left panel." />
+          );
+        }
+        return commandHubExpanded ? (
+          <GMPanelNotice message="Command Hub is expanded in the center panel." />
+        ) : (
+          <CommandHub data={data} variant="full" />
         );
       // return gmEffective ? <GMTools data={data} setTab={tab} /> : <CommandHub data={data}  />;
       case "ORDERS":
-        return gmEffective ? (
-          <GMTools data={data} tab={safeTab} />
-        ) : (
-          <OrdersPhasePanel />
-        );
+        return <OrdersPhasePanel />;
       case "RESOLUTION":
-        return gmEffective ? (
-          <GMTools data={data} tab={safeTab} />
-        ) : (
-          <ResolutionPhasePanel />
-        );
+        return <ResolutionPhasePanel />;
       case "BATTLES":
         return gmEffective ? (
           <BattlesPanel />
@@ -100,14 +94,10 @@ export default function CommandPanel({ data }: Props) {
           <PhaseWaitingPanel phase={phase} />
         );
       case "LOG":
-        return gmEffective ? (
-          <GMTools data={data} tab={safeTab} />
-        ) : (
-          <PlayerDashboard data={data} tab={safeTab} />
-        );
+        return <PlayerDashboard data={data} tab={safeTab} />;
       case "INTEL":
         return gmEffective ? (
-          <GMTools data={data} tab="INTEL" />
+          <GMPanelNotice message="Intel controls are available in the GM tools panel." />
         ) : (
           <div>Not available in PLAYER mode.</div>
         );
@@ -251,6 +241,7 @@ function MapInspector() {
 }
 function OrdersPhasePanel() {
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const viewerNation = useCampaignStore((s) => s.viewerNation);
   const turnNumber = useCampaignStore((s) => s.turnNumber);
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
@@ -258,20 +249,23 @@ function OrdersPhasePanel() {
   const setPlatoonOrderMove = useCampaignStore((s) => s.setPlatoonOrderMove);
   const setPlatoonOrderHold = useCampaignStore((s) => s.setPlatoonOrderHold);
   const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
+  const setPlatoonOrderRecon = useCampaignStore((s) => s.setPlatoonOrderRecon);
 
-  const [orderType, setOrderType] = useState<"MOVE" | "HOLD">("MOVE");
+  const [orderType, setOrderType] = useState<"MOVE" | "HOLD" | "RECON">("MOVE");
   const [orderPlatoonId, setOrderPlatoonId] = useState<string>("");
   const [forcedMarch, setForcedMarch] = useState(false);
   const [step1, setStep1] = useState("");
   const [step2, setStep2] = useState("");
+  const [reconTarget1, setReconTarget1] = useState("");
+  const [reconTarget2, setReconTarget2] = useState("");
+
   const currentOrders = useMemo(() => {
     const byTurn = ordersByTurn?.[turnNumber]?.[viewerFaction] ?? [];
     return byTurn.filter((o) => !o.submittedAt);
   }, [ordersByTurn, turnNumber, viewerFaction]);
   const eligiblePlatoons = useMemo(
-    () =>
-      Object.values(platoonsById).filter((p) => p.faction === viewerFaction),
-    [platoonsById, viewerFaction],
+    () => Object.values(platoonsById).filter((p) => p.nation === viewerNation),
+    [platoonsById, viewerNation],
   );
 
   const selectedPlatoon = orderPlatoonId
@@ -287,17 +281,33 @@ function OrdersPhasePanel() {
     return adjacencyByTerritory[step1] ?? [];
   }, [adjacencyByTerritory, forcedMarch, step1]);
 
+  const reconOptions = step1Options;
+  const canReconTwice = !!selectedPlatoon?.traits?.includes("RECON");
+
   const createOrder = () => {
-    if (!orderPlatoonId) return;
+    if (!orderPlatoonId || !selectedPlatoon) return;
     if (orderType === "HOLD") {
-      setPlatoonOrderHold(turnNumber, viewerFaction, orderPlatoonId);
+      setPlatoonOrderHold(turnNumber, selectedPlatoon.faction, orderPlatoonId);
+      return;
+    }
+    if (orderType === "RECON") {
+      if (!reconTarget1) return;
+      const targets = canReconTwice
+        ? [reconTarget1, reconTarget2].filter(Boolean)
+        : [reconTarget1];
+      setPlatoonOrderRecon(
+        turnNumber,
+        selectedPlatoon.faction,
+        orderPlatoonId,
+        targets,
+      );
       return;
     }
     if (!step1) return;
     const path = forcedMarch && step2 ? [step1, step2] : [step1];
     setPlatoonOrderMove(
       turnNumber,
-      viewerFaction,
+      selectedPlatoon.faction,
       orderPlatoonId,
       path,
       forcedMarch,
@@ -308,7 +318,7 @@ function OrdersPhasePanel() {
       <div>
         <h2 style={{ margin: 0 }}>Orders Phase</h2>
         <div style={{ opacity: 0.8 }}>
-          Issue movement, hold, or recon orders for <b>{viewerFaction}</b>. Turn{" "}
+          Issue movement, hold, or recon orders for <b>{viewerNation}</b>. Turn{" "}
           <b>{turnNumber}</b>.
         </div>
       </div>
@@ -355,7 +365,14 @@ function OrdersPhasePanel() {
             </div>
             <select
               value={orderPlatoonId}
-              onChange={(e) => setOrderPlatoonId(e.target.value)}
+              onChange={(e) => {
+                setOrderPlatoonId(e.target.value);
+                setStep1("");
+                setStep2("");
+                setReconTarget1("");
+                setReconTarget2("");
+                setForcedMarch(false);
+              }}
               style={{ width: "100%" }}
             >
               <option value="">— Select —</option>
@@ -374,14 +391,17 @@ function OrdersPhasePanel() {
             <select
               value={orderType}
               onChange={(e) => {
-                setOrderType(e.target.value as "MOVE" | "HOLD");
+                setOrderType(e.target.value as "MOVE" | "HOLD" | "RECON");
                 setStep1("");
                 setStep2("");
+                setReconTarget1("");
+                setReconTarget2("");
               }}
               style={{ width: "100%" }}
             >
               <option value="MOVE">Move</option>
               <option value="HOLD">Hold</option>
+              <option value="RECON">Recon</option>
             </select>
           </div>
 
@@ -440,6 +460,56 @@ function OrdersPhasePanel() {
                 </div>
               ) : null}
             </>
+          ) : orderType === "RECON" ? (
+            <>
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
+                  Recon target
+                </div>
+                <select
+                  value={reconTarget1}
+                  onChange={(e) => {
+                    setReconTarget1(e.target.value);
+                    if (e.target.value === reconTarget2) {
+                      setReconTarget2("");
+                    }
+                  }}
+                  style={{ width: "100%" }}
+                >
+                  <option value="">—</option>
+                  {reconOptions.map((tid) => (
+                    <option key={tid} value={tid}>
+                      {tid}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {canReconTwice ? (
+                <div>
+                  <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
+                    Recon target (second)
+                  </div>
+                  <select
+                    value={reconTarget2}
+                    onChange={(e) => setReconTarget2(e.target.value)}
+                    style={{ width: "100%" }}
+                  >
+                    <option value="">—</option>
+                    {reconOptions
+                      .filter((tid) => tid !== reconTarget1)
+                      .map((tid) => (
+                        <option key={tid} value={tid}>
+                          {tid}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  Recon reveals intel about one adjacent territory.
+                </div>
+              )}
+            </>
           ) : (
             <div style={{ fontSize: 12, opacity: 0.7 }}>
               Hold keeps the platoon in place for the turn.
@@ -452,7 +522,8 @@ function OrdersPhasePanel() {
               onClick={createOrder}
               disabled={
                 !orderPlatoonId ||
-                (orderType === "MOVE" && (!step1 || (forcedMarch && !step2)))
+                (orderType === "MOVE" && (!step1 || (forcedMarch && !step2))) ||
+                (orderType === "RECON" && !reconTarget1)
               }
             >
               Add Order
@@ -480,7 +551,9 @@ function OrdersPhasePanel() {
             {currentOrders.map((order) => (
               <li key={order.id}>
                 <b>{order.type}</b> · {order.platoonId} →{" "}
-                {order.path?.join(" → ") ?? order.from ?? "Hold"}
+                {order.type === "RECON"
+                  ? (order.reconTargets ?? []).join(", ") || "—"
+                  : (order.path?.join(" → ") ?? order.from ?? "Hold")}{" "}
               </li>
             ))}
           </ul>
@@ -521,6 +594,9 @@ function ResolutionPhasePanel() {
   }, [turnLog]);
 
   const [battlePlans, setBattlePlans] = useState<Record<string, string>>({});
+  const [confirmedPlans, setConfirmedPlans] = useState<Record<string, string>>(
+    {},
+  );
 
   const updatePlan = (contestId: string, plan: string) => {
     setBattlePlans((prev) => ({ ...prev, [contestId]: plan }));
@@ -575,6 +651,9 @@ function ResolutionPhasePanel() {
                 : undefined;
               const statusLabel = contest?.status ?? "OPEN";
               const ongoing = statusLabel === "BATTLE_PENDING";
+              const selectedPlan = battlePlans[contest?.id ?? ""] ?? "hold";
+              const confirmedPlan = confirmedPlans[contest?.id ?? ""];
+              const isConfirmed = confirmedPlan === selectedPlan;
 
               return (
                 <div
@@ -603,20 +682,43 @@ function ResolutionPhasePanel() {
                       Battle stance
                     </span>
                     <select
-                      value={battlePlans[contest?.id ?? ""] ?? "hold"}
+                      value={selectedPlan}
                       onChange={(e) =>
                         updatePlan(contest?.id ?? "", e.target.value)
                       }
                     >
-                      <option value="hold">Hold</option>
-                      <option value="recon">Recon</option>
-                      <option value="attack">Attack</option>
-                      <option value="retreat">Retreat</option>
+                      <option value="hold">Hold (keep fighting)</option>
+                      {!ongoing ? (
+                        <>
+                          <option value="recon">Recon</option>
+                          <option value="attack">Attack</option>
+                        </>
+                      ) : null}
+                      <option value="retreat">Retreat (fall back)</option>
                     </select>
                   </label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setConfirmedPlans((prev) => ({
+                          ...prev,
+                          [contest?.id ?? ""]: selectedPlan,
+                        }))
+                      }
+                      disabled={isConfirmed}
+                    >
+                      {isConfirmed ? "Stance confirmed" : "Confirm stance"}
+                    </button>
+                    <span style={{ fontSize: 12, opacity: 0.7 }}>
+                      {isConfirmed
+                        ? "Confirmed selection locked in for this turn."
+                        : "Selection needs confirmation before proceeding."}
+                    </span>
+                  </div>
                   {ongoing ? (
                     <div style={{ fontSize: 12, opacity: 0.75 }}>
-                      Ongoing battle requires a stance selection before the next
+                      Ongoing battle requires a confirmed stance before the next
                       turn.
                     </div>
                   ) : null}
@@ -661,6 +763,22 @@ function PhaseWaitingPanel({ phase }: { phase: string }) {
   return (
     <div style={{ fontSize: 12, opacity: 0.7 }}>
       No actionable items for this phase ({phase}). Waiting on other players.
+    </div>
+  );
+}
+
+function GMPanelNotice({ message }: { message: string }) {
+  return (
+    <div
+      style={{
+        padding: 16,
+        border: "1px dashed rgba(255,255,255,.2)",
+        borderRadius: 10,
+        fontSize: 13,
+        opacity: 0.85,
+      }}
+    >
+      {message}
     </div>
   );
 }

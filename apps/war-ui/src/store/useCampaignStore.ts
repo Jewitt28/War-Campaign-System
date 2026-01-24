@@ -1,7 +1,7 @@
 // src/store/useCampaignStore.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { VisibilityLevel } from "../data/visibility";
+import { visibilityOrder, type VisibilityLevel } from "../data/visibility";
 import { NATION_BY_ID, type NationKey } from "../setup/NationDefinitions";
 
 import type {
@@ -32,6 +32,12 @@ export type TurnLogType =
   | "BATTLE"
   | "ERROR";
 
+export type LeftPanelView =
+  | "NONE"
+  | "FACTION_COMMAND"
+  | "NATION_COMMAND"
+  | "GM_TOOLS";
+
 export type TurnLogEntry = {
   id: string;
   ts: number;
@@ -60,7 +66,7 @@ export type CampaignState = {
   playMode: PlayMode;
   commandHubExpanded: boolean;
   activeTheatres: Record<"WE" | "EE" | "NA" | "PA", boolean>;
-
+  leftPanelView: LeftPanelView;
   baseEnabled: Record<BaseFactionKey, boolean>;
 
   // Nations
@@ -98,6 +104,7 @@ export type CampaignState = {
   setMode: (m: Mode) => void;
   setPlayMode: (m: PlayMode) => void;
   setCommandHubExpanded: (expanded: boolean) => void;
+  setLeftPanelView: (view: LeftPanelView) => void;
   toggleTheatre: (id: "WE" | "EE" | "NA" | "PA") => void;
 
   selectSetupFaction: (f: BaseFactionKey | "custom" | null) => void;
@@ -158,6 +165,14 @@ export type CampaignState = {
     faction: FactionKey,
     platoonId: string,
   ) => void;
+
+  setPlatoonOrderRecon: (
+    turn: number,
+    faction: FactionKey,
+    platoonId: string,
+    targets: string[],
+  ) => void;
+
   submitFactionOrders: (turn: number, faction: FactionKey) => void;
 
   resolveCurrentTurn: (isAdjacent: (a: string, b: string) => boolean) => void;
@@ -189,12 +204,61 @@ function requireGM(s: CampaignState) {
 function playerCanActAs(s: CampaignState, faction: FactionKey) {
   return requireGM(s) || s.viewerFaction === faction;
 }
+function nextIntelLevel(
+  current: VisibilityLevel | undefined,
+  incoming: VisibilityLevel,
+) {
+  const currentIdx = visibilityOrder.indexOf(current ?? "NONE");
+  const incomingIdx = visibilityOrder.indexOf(incoming);
+  return visibilityOrder[Math.max(currentIdx, incomingIdx)] ?? incoming;
+}
 
+function applyReconOrders(args: {
+  orders: PlatoonOrder[];
+  platoonsById: Record<string, Platoon>;
+  intelByTerritory: IntelByTerritory;
+  isAdjacent: (a: string, b: string) => boolean;
+}) {
+  const nextIntel: IntelByTerritory = { ...args.intelByTerritory };
+  const log: string[] = [];
+
+  const reconOrders = args.orders.filter(
+    (o) => o.type === "RECON" && o.submittedAt,
+  );
+
+  for (const order of reconOrders) {
+    const platoon = args.platoonsById[order.platoonId];
+    if (!platoon) continue;
+
+    const from = platoon.territoryId;
+    const hasReconTrait = platoon.traits?.includes("RECON");
+    const maxTargets = hasReconTrait ? 2 : 1;
+    const targets = (order.reconTargets ?? []).slice(0, maxTargets);
+
+    if (!targets.length) continue;
+
+    const validTargets = targets.filter((tid) => args.isAdjacent(from, tid));
+    if (!validTargets.length) continue;
+
+    for (const tid of validTargets) {
+      const prev = nextIntel[tid] ?? {};
+      nextIntel[tid] = {
+        ...prev,
+        [order.faction]: nextIntelLevel(prev[order.faction], "SCOUTED"),
+      };
+    }
+
+    log.push(`RECON: ${platoon.name} scouted ${validTargets.join(", ")}.`);
+  }
+
+  return { nextIntel, log };
+}
 const initialState: Omit<
   CampaignState,
   | "setMode"
   | "setPlayMode"
   | "setCommandHubExpanded"
+  | "setLeftPanelView"
   | "toggleTheatre"
   | "selectSetupFaction"
   | "setSelectedPlatoonId"
@@ -218,6 +282,7 @@ const initialState: Omit<
   | "createPlatoon"
   | "setPlatoonOrderMove"
   | "setPlatoonOrderHold"
+  | "setPlatoonOrderRecon"
   | "setAdjacencyByTerritory"
   | "submitFactionOrders"
   | "resolveCurrentTurn"
@@ -236,6 +301,7 @@ const initialState: Omit<
   mode: "SETUP",
   playMode: "ONE_SCREEN",
   commandHubExpanded: false,
+  leftPanelView: "NONE",
   activeTheatres: { WE: true, EE: true, NA: true, PA: true },
   baseEnabled: { allies: true, axis: true, ussr: true },
 
@@ -323,6 +389,7 @@ export const useCampaignStore = create<CampaignState>()(
       setPlayMode: (m) => set({ playMode: m }),
       setCommandHubExpanded: (expanded) =>
         set({ commandHubExpanded: expanded }),
+      setLeftPanelView: (view) => set({ leftPanelView: view }),
 
       toggleTheatre: (id) =>
         set((s) => ({
@@ -584,7 +651,40 @@ export const useCampaignStore = create<CampaignState>()(
 
           if (existingIdx >= 0) list[existingIdx] = next;
           else list.push(next);
+          byTurn[faction] = list;
+          return { ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn } };
+        }),
+      setPlatoonOrderRecon: (turn, faction, platoonId, targets) =>
+        set((s) => {
+          if (!playerCanActAs(s, faction)) return s;
 
+          const platoon = s.platoonsById[platoonId];
+          if (!platoon) return s;
+          if (platoon.faction !== faction) return s;
+
+          const byTurn: Record<string, PlatoonOrder[]> = {
+            ...(s.ordersByTurn[turn] ?? {}),
+          };
+          const list: PlatoonOrder[] = [...(byTurn[faction] ?? [])];
+          const existingIdx = list.findIndex((o) => o.platoonId === platoonId);
+          const maxTargets = platoon.traits?.includes("RECON") ? 2 : 1;
+          const reconTargets = Array.from(
+            new Set(targets.map((t) => t.trim()).filter(Boolean)),
+          ).slice(0, maxTargets);
+
+          const next: PlatoonOrder = {
+            id: existingIdx >= 0 ? list[existingIdx].id : uid(),
+            turn,
+            faction,
+            platoonId,
+            type: "RECON",
+            from: platoon.territoryId,
+            reconTargets,
+            submittedAt: list[existingIdx]?.submittedAt,
+          };
+
+          if (existingIdx >= 0) list[existingIdx] = next;
+          else list.push(next);
           byTurn[faction] = list;
           return { ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn } };
         }),
@@ -618,6 +718,12 @@ export const useCampaignStore = create<CampaignState>()(
 
           const byTurn = s.ordersByTurn[s.turnNumber] ?? {};
           const allOrders = Object.values(byTurn).flat() as PlatoonOrder[];
+          const { nextIntel, log: reconLog } = applyReconOrders({
+            orders: allOrders,
+            platoonsById: s.platoonsById,
+            intelByTerritory: s.intelByTerritory,
+            isAdjacent,
+          });
 
           const { nextPlatoons, nextOwners, nextLocks, nextContests, log } =
             resolveTurn({
@@ -625,6 +731,7 @@ export const useCampaignStore = create<CampaignState>()(
               platoonsById: s.platoonsById,
               orders: allOrders,
               ownerByTerritory: s.ownerByTerritory,
+
               locksByTerritory: s.locksByTerritory,
               contestsByTerritory: s.contestsByTerritory,
               isAdjacent,
@@ -635,11 +742,16 @@ export const useCampaignStore = create<CampaignState>()(
             ownerByTerritory: nextOwners,
             locksByTerritory: nextLocks,
             contestsByTerritory: nextContests,
+            intelByTerritory: nextIntel,
             ordersByTurn: consumeSubmittedOrdersForTurn(
               s.ordersByTurn,
               s.turnNumber,
             ),
-            turnLog: [...log.map((t) => logNote(t)), ...s.turnLog],
+            turnLog: [
+              ...reconLog.map((t) => logNote(t, "ORDERS")),
+              ...log.map((t) => logNote(t)),
+              ...s.turnLog,
+            ],
           };
         }),
 
@@ -694,6 +806,12 @@ export const useCampaignStore = create<CampaignState>()(
             const byTurn = s.ordersByTurn[s.turnNumber] ?? {};
             const allOrders = Object.values(byTurn).flat() as PlatoonOrder[];
 
+            const { nextIntel, log: reconLog } = applyReconOrders({
+              orders: allOrders,
+              platoonsById: s.platoonsById,
+              intelByTerritory: s.intelByTerritory,
+              isAdjacent,
+            });
             const { nextPlatoons, nextOwners, nextLocks, nextContests, log } =
               resolveTurn({
                 turn: s.turnNumber,
@@ -701,6 +819,7 @@ export const useCampaignStore = create<CampaignState>()(
                 orders: allOrders,
                 ownerByTerritory: s.ownerByTerritory,
                 locksByTerritory: s.locksByTerritory,
+
                 contestsByTerritory: s.contestsByTerritory,
                 isAdjacent,
               });
@@ -712,11 +831,16 @@ export const useCampaignStore = create<CampaignState>()(
               ownerByTerritory: nextOwners,
               locksByTerritory: nextLocks,
               contestsByTerritory: nextContests,
+              intelByTerritory: nextIntel,
               ordersByTurn: consumeSubmittedOrdersForTurn(
                 s.ordersByTurn,
                 s.turnNumber,
               ),
-              turnLog: [...log.map((t) => logNote(t)), ...s.turnLog],
+              turnLog: [
+                ...reconLog.map((t) => logNote(t, "ORDERS")),
+                ...log.map((t) => logNote(t)),
+                ...s.turnLog,
+              ],
             };
           }
 

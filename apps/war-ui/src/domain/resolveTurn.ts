@@ -1,5 +1,11 @@
 import type { FactionKey, OwnerKey } from "../store/useCampaignStore";
-import type { Platoon, PlatoonOrder, Contest, TerritoryLock, PlatoonCondition } from "./types";
+import type {
+  Platoon,
+  PlatoonOrder,
+  Contest,
+  TerritoryLock,
+  PlatoonCondition,
+} from "./types";
 
 const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
 
@@ -30,8 +36,12 @@ export function resolveTurn(args: {
 }) {
   const nextPlatoons: Record<string, Platoon> = { ...args.platoonsById };
   const nextOwners: Record<string, OwnerKey> = { ...args.ownerByTerritory };
-  const nextLocks: Record<string, TerritoryLock | undefined> = { ...args.locksByTerritory };
-  const nextContests: Record<string, Contest | undefined> = { ...args.contestsByTerritory };
+  const nextLocks: Record<string, TerritoryLock | undefined> = {
+    ...args.locksByTerritory,
+  };
+  const nextContests: Record<string, Contest | undefined> = {
+    ...args.contestsByTerritory,
+  };
 
   const log: string[] = [];
 
@@ -39,7 +49,9 @@ export function resolveTurn(args: {
   const moves = args.orders.filter((o) => o.type === "MOVE" && o.submittedAt);
 
   // Deterministic order (later: initiative rules)
-  moves.sort((a, b) => (a.faction + a.platoonId).localeCompare(b.faction + b.platoonId));
+  moves.sort((a, b) =>
+    (a.faction + a.platoonId).localeCompare(b.faction + b.platoonId),
+  );
 
   // --- 1) APPLY MOVEMENT (no contest creation yet; we do that after all moves so arrivals merge cleanly) ---
   for (const o of moves) {
@@ -48,7 +60,9 @@ export function resolveTurn(args: {
 
     // Cannot leave a locked territory
     if (nextLocks[p.territoryId]) {
-      log.push(`MOVE blocked: ${p.name} is in locked territory ${p.territoryId}`);
+      log.push(
+        `MOVE blocked: ${p.name} is in locked territory ${p.territoryId}`,
+      );
       continue;
     }
 
@@ -81,7 +95,9 @@ export function resolveTurn(args: {
     const allowedSteps = o.forcedMarch ? maxSteps + 1 : maxSteps;
 
     if (path.length > allowedSteps) {
-      log.push(`MOVE too far: ${p.name} wanted ${path.length} steps (allowed ${allowedSteps})`);
+      log.push(
+        `MOVE too far: ${p.name} wanted ${path.length} steps (allowed ${allowedSteps})`,
+      );
       continue;
     }
 
@@ -113,7 +129,8 @@ export function resolveTurn(args: {
       occByTerritory[tid] = { factions: new Set<FactionKey>(), byFaction: {} };
     }
     occByTerritory[tid].factions.add(faction);
-    occByTerritory[tid].byFaction[faction] = occByTerritory[tid].byFaction[faction] ?? [];
+    occByTerritory[tid].byFaction[faction] =
+      occByTerritory[tid].byFaction[faction] ?? [];
     occByTerritory[tid].byFaction[faction].push(p.id);
   }
 
@@ -128,7 +145,9 @@ export function resolveTurn(args: {
     if (factions.length >= 2) {
       // MVP supports 2-sided contests. If 3+ factions are present, we take first two (and log).
       if (factions.length > 2) {
-        log.push(`WARNING: Multi-faction conflict in ${territoryId} (${factions.join(", ")}). Using first two for MVP.`);
+        log.push(
+          `WARNING: Multi-faction conflict in ${territoryId} (${factions.join(", ")}). Using first two for MVP.`,
+        );
       }
 
       const f1 = factions[0];
@@ -157,12 +176,24 @@ export function resolveTurn(args: {
         // Merge into existing contest
         nextContests[territoryId] = {
           ...existing,
-          attackerPlatoonIds: mergeIds(existing.attackerPlatoonIds, attackerPlatoonIds),
-          defenderPlatoonIds: mergeIds(existing.defenderPlatoonIds, defenderPlatoonIds),
+          attackerPlatoonIds: mergeIds(
+            existing.attackerPlatoonIds,
+            attackerPlatoonIds,
+          ),
+          defenderPlatoonIds: mergeIds(
+            existing.defenderPlatoonIds,
+            defenderPlatoonIds,
+          ),
         };
         nextOwners[territoryId] = "contested";
-        nextLocks[territoryId] = { territoryId, reason: "COMBAT", contestId: existing.id };
-        log.push(`COMBAT UPDATED: ${territoryId} merged arrivals into contest ${existing.id}`);
+        nextLocks[territoryId] = {
+          territoryId,
+          reason: "COMBAT",
+          contestId: existing.id,
+        };
+        log.push(
+          `COMBAT UPDATED: ${territoryId} merged arrivals into contest ${existing.id}`,
+        );
       } else {
         // Create new contest
         const contestId = uid();
@@ -181,7 +212,9 @@ export function resolveTurn(args: {
         nextLocks[territoryId] = { territoryId, reason: "COMBAT", contestId };
         nextOwners[territoryId] = "contested";
 
-        log.push(`COMBAT: ${attackerFaction} vs ${defenderFaction} in ${territoryId} (locked)`);
+        log.push(
+          `COMBAT: ${attackerFaction} vs ${defenderFaction} in ${territoryId} (locked)`,
+        );
       }
 
       continue;

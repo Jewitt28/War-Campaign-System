@@ -7,14 +7,14 @@ import MapBoard from "./map/MapBoard";
 import { loadTheatresData, type NormalizedData } from "./data/theatres";
 import { useCampaignStore } from "./store/useCampaignStore";
 import { NATIONS, type NationKey } from "./setup/NationDefinitions";
-import PlayPanel from "./ui/PlayPanel";
 import GMTools from "./gm/GMTools";
+import NationCommandPanel from "./ui/NationCommandPanel";
 
 export default function App() {
   const [data, setData] = useState<NormalizedData | null>(null);
   const mode = useCampaignStore((s) => s.mode);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
-  const playMode = useCampaignStore((s) => s.playMode);
+  const leftPanelView = useCampaignStore((s) => s.leftPanelView);
   const commandHubExpanded = useCampaignStore((s) => s.commandHubExpanded);
   const setAdjacencyByTerritory = useCampaignStore(
     (s) => s.setAdjacencyByTerritory,
@@ -34,8 +34,9 @@ export default function App() {
   }, [setAdjacencyByTerritory]);
 
   const showSetup = mode === "SETUP" && viewerMode === "GM";
-  const showLeftPanel = playMode === "ONE_SCREEN" && viewerMode === "GM";
-  const oneScreenPlay = mode === "PLAY" && viewerMode === "GM";
+  const showLeftPanel =
+    (viewerMode === "GM" && (mode === "SETUP" || leftPanelView !== "NONE")) ||
+    (viewerMode === "PLAYER" && leftPanelView !== "NONE");
 
   const gridTemplateColumns = showLeftPanel ? "380px 1fr 420px" : "1fr 420px";
 
@@ -54,7 +55,7 @@ export default function App() {
           padding: 12,
         }}
       >
-        {/* LEFT: Setup + GM tools (one-screen only) */}
+        {/* LEFT: Command/GM panel */}{" "}
         {showLeftPanel ? (
           <div
             style={{
@@ -66,11 +67,15 @@ export default function App() {
             }}
           >
             {showSetup && <SetupPanel />}
-            {oneScreenPlay && <PlayPanel data={data} />}
-            <GMTools data={data} tab="DASHBOARD" />
+            {viewerMode === "GM" ? (
+              <GMTools data={data} tab="DASHBOARD" />
+            ) : leftPanelView === "FACTION_COMMAND" ? (
+              <CommandHub data={data} variant="full" />
+            ) : leftPanelView === "NATION_COMMAND" ? (
+              <NationCommandPanel data={data} />
+            ) : null}
           </div>
         ) : null}
-
         {/* CENTER: Map + expanded Command Hub */}
         <div style={{ display: "grid", gap: 12, minHeight: 0 }}>
           <div
@@ -95,7 +100,6 @@ export default function App() {
             </div>
           ) : null}
         </div>
-
         {/* RIGHT: Command panel */}
         <div style={{ minHeight: 0, overflow: "auto" }}>
           <CommandPanel data={data} />
@@ -111,8 +115,7 @@ function TopBar({ data }: { data: NormalizedData | null }) {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const setViewerNation = useCampaignStore((s) => s.setViewerNation);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
-  // const setViewerFaction = useCampaignStore((s) => s.setViewerFaction);
-  // const customs = useCampaignStore((s) => s.customs);
+
   const playMode = useCampaignStore((s) => s.playMode);
   const mode = useCampaignStore((s) => s.mode);
   const phase = useCampaignStore((s) => s.phase);
@@ -121,6 +124,9 @@ function TopBar({ data }: { data: NormalizedData | null }) {
   const resetAll = useCampaignStore((s) => s.resetAll);
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
   const suppliesByFaction = useCampaignStore((s) => s.suppliesByFaction);
+  const nationsEnabled = useCampaignStore((s) => s.nationsEnabled);
+  const leftPanelView = useCampaignStore((s) => s.leftPanelView);
+  const setLeftPanelView = useCampaignStore((s) => s.setLeftPanelView);
 
   const isAdjacent = useMemo(() => {
     if (!data) return null;
@@ -148,7 +154,19 @@ function TopBar({ data }: { data: NormalizedData | null }) {
       { key: "🛰️", value: Math.max(0, Math.round(base * 0.3)), label: "Intel" },
     ];
   }, [suppliesByFaction, viewerFaction]);
+  const nationOptions = useMemo(() => {
+    const enabled = NATIONS.filter((nation) => nationsEnabled[nation.id]);
+    if (enabled.length === 0) return NATIONS;
+    if (enabled.some((nation) => nation.id === viewerNation)) return enabled;
+    const current = NATIONS.find((nation) => nation.id === viewerNation);
+    return current ? [...enabled, current] : enabled;
+  }, [nationsEnabled, viewerNation]);
 
+  const toggleViewerMode = () => {
+    const next = viewerMode === "GM" ? "PLAYER" : "GM";
+    setViewerMode(next);
+    setLeftPanelView(next === "GM" ? "GM_TOOLS" : "NONE");
+  };
   return (
     <div
       style={{
@@ -228,7 +246,7 @@ function TopBar({ data }: { data: NormalizedData | null }) {
             value={viewerNation}
             onChange={(e) => setViewerNation(e.target.value as NationKey)}
           >
-            {NATIONS.map((nation) => (
+            {nationOptions.map((nation) => (
               <option key={nation.id} value={nation.id}>
                 {nation.flag ? `${nation.flag} ` : ""}
                 {nation.name}
@@ -236,11 +254,46 @@ function TopBar({ data }: { data: NormalizedData | null }) {
             ))}
           </select>
         </label>
-
-        <button
-          type="button"
-          onClick={() => setViewerMode(viewerMode === "GM" ? "PLAYER" : "GM")}
-        >
+        {viewerMode === "PLAYER" ? (
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                setLeftPanelView(
+                  leftPanelView === "FACTION_COMMAND"
+                    ? "NONE"
+                    : "FACTION_COMMAND",
+                )
+              }
+            >
+              Faction Command
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setLeftPanelView(
+                  leftPanelView === "NATION_COMMAND"
+                    ? "NONE"
+                    : "NATION_COMMAND",
+                )
+              }
+            >
+              Nation Command
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() =>
+              setLeftPanelView(
+                leftPanelView === "GM_TOOLS" ? "NONE" : "GM_TOOLS",
+              )
+            }
+          >
+            GM Tools
+          </button>
+        )}
+        <button type="button" onClick={toggleViewerMode}>
           {viewerMode === "GM" ? "GM View" : "Player View"}
         </button>
 

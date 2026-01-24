@@ -4,10 +4,10 @@ import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
 import type { BattleOutcome, Contest } from "../domain/types";
 import { NATIONS, type NationKey } from "../setup/NationDefinitions";
 
-const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), hi);
+const clamp = (n: number, lo: number, hi: number) =>
+  Math.min(Math.max(n, lo), hi);
 
 // Adjust if your FactionKey union differs
-
 
 type ConditionHit = 0 | 1 | 2;
 const toConditionHit = (n: number): ConditionHit => {
@@ -36,19 +36,35 @@ export default function BattlesPanel() {
   // “Current player” selector (for the wider UX you described)
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const setViewerNation = useCampaignStore((s) => s.setViewerNation);
+  const nationsEnabled = useCampaignStore((s) => s.nationsEnabled);
 
   const pendingContests = useMemo(() => {
-    return Object.values(contestsByTerritory).filter((c) => c?.status === "BATTLE_PENDING") as Contest[];
+    return Object.values(contestsByTerritory).filter(
+      (c) => c?.status === "BATTLE_PENDING",
+    ) as Contest[];
   }, [contestsByTerritory]);
 
-  const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcome>>({});
+  const [battleOutcomes, setBattleOutcomes] = useState<
+    Record<string, BattleOutcome>
+  >({});
+  const nationOptions = useMemo(() => {
+    const enabled = NATIONS.filter((nation) => nationsEnabled[nation.id]);
+    if (enabled.length === 0) return NATIONS;
+    if (enabled.some((nation) => nation.id === viewerNation)) return enabled;
+    const current = NATIONS.find((nation) => nation.id === viewerNation);
+    return current ? [...enabled, current] : enabled;
+  }, [nationsEnabled, viewerNation]);
 
   const cycleFaction = (dir: 1 | -1) => {
-if (!NATIONS.length) return;
-    const idx = Math.max(0, NATIONS.findIndex((n) => n.id === viewerNation));
-    const next = NATIONS[(idx + dir + NATIONS.length) % NATIONS.length];
-    setViewerNation(next.id as NationKey);  };
-
+    if (!nationOptions.length) return;
+    const idx = Math.max(
+      0,
+      nationOptions.findIndex((n) => n.id === viewerNation),
+    );
+    const next =
+      nationOptions[(idx + dir + nationOptions.length) % nationOptions.length];
+    setViewerNation(next.id as NationKey);
+  };
   const autoFillAll = () => {
     const filled: Record<string, BattleOutcome> = {};
     for (const c of pendingContests) filled[c.id] = autoOutcomeForContest(c);
@@ -60,12 +76,25 @@ if (!NATIONS.length) return;
     return (
       <div style={{ padding: 12 }}>
         <h3 style={{ marginTop: 0 }}>Battles</h3>
-        <div style={{ opacity: 0.85 }}>Battles are available in Phase: BATTLES.</div>
+        <div style={{ opacity: 0.85 }}>
+          Battles are available in Phase: BATTLES.
+        </div>
 
-        <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div
+          style={{
+            marginTop: 10,
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
           <div style={{ fontSize: 12, opacity: 0.8 }}>Current player:</div>
-          <select value={viewerNation} onChange={(e) => setViewerNation(e.target.value as NationKey)}>
-            {NATIONS.map((nation) => (
+          <select
+            value={viewerNation}
+            onChange={(e) => setViewerNation(e.target.value as NationKey)}
+          >
+            {nationOptions.map((nation) => (
               <option key={nation.id} value={nation.id}>
                 {nation.flag ? `${nation.flag} ` : ""}
                 {nation.name}
@@ -103,9 +132,19 @@ if (!NATIONS.length) return;
         </div>
 
         {/* “Current player” controls (for your broader loop UX) */}
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
           <div style={{ fontSize: 12, opacity: 0.8 }}>Current player:</div>
-          <select value={viewerNation} onChange={(e) => setViewerNation(e.target.value as NationKey)}>
+          <select
+            value={viewerNation}
+            onChange={(e) => setViewerNation(e.target.value as NationKey)}
+          >
             {NATIONS.map((nation) => (
               <option key={nation.id} value={nation.id}>
                 {nation.flag ? `${nation.flag} ` : ""}
@@ -124,19 +163,20 @@ if (!NATIONS.length) return;
       </div>
 
       {pendingContests.length === 0 ? (
-        <div style={{ fontSize: 12, opacity: 0.8, marginTop: 10 }}>No pending battles.</div>
+        <div style={{ fontSize: 12, opacity: 0.8, marginTop: 10 }}>
+          No pending battles.
+        </div>
       ) : (
         <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
           {pendingContests.map((c) => {
-            const current: BattleOutcome =
-              battleOutcomes[c.id] ?? {
-                contestId: c.id,
-                winner: c.attackerFaction,
-                attackerLossPct: 10,
-                defenderLossPct: 10,
-                attackerConditionHit: 0,
-                defenderConditionHit: 0,
-              };
+            const current: BattleOutcome = battleOutcomes[c.id] ?? {
+              contestId: c.id,
+              winner: c.attackerFaction,
+              attackerLossPct: 10,
+              defenderLossPct: 10,
+              attackerConditionHit: 0,
+              defenderConditionHit: 0,
+            };
 
             const update = (patch: Partial<BattleOutcome>) => {
               setBattleOutcomes((s) => ({
@@ -146,27 +186,51 @@ if (!NATIONS.length) return;
             };
 
             return (
-              <div key={c.id} style={{ padding: 10, borderRadius: 10, border: "1px solid rgba(255,255,255,.12)" }}>
+              <div
+                key={c.id}
+                style={{
+                  padding: 10,
+                  borderRadius: 10,
+                  border: "1px solid rgba(255,255,255,.12)",
+                }}
+              >
                 <div style={{ fontWeight: 800 }}>
                   {c.territoryId}: {c.attackerFaction} vs {c.defenderFaction}
                 </div>
-                <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{c.status}</div>
+                <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
+                  {c.status}
+                </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 10,
+                    marginTop: 10,
+                  }}
+                >
                   <div>
                     <div style={{ fontSize: 12, opacity: 0.85 }}>Winner</div>
                     <select
                       value={current.winner}
-                      onChange={(e) => update({ winner: e.target.value as FactionKey })}
+                      onChange={(e) =>
+                        update({ winner: e.target.value as FactionKey })
+                      }
                       style={{ width: "100%" }}
                     >
-                      <option value={c.attackerFaction}>{c.attackerFaction} (attacker)</option>
-                      <option value={c.defenderFaction}>{c.defenderFaction} (defender)</option>
+                      <option value={c.attackerFaction}>
+                        {c.attackerFaction} (attacker)
+                      </option>
+                      <option value={c.defenderFaction}>
+                        {c.defenderFaction} (defender)
+                      </option>
                     </select>
                   </div>
 
                   <div>
-                    <div style={{ fontSize: 12, opacity: 0.85 }}>Quick preset</div>
+                    <div style={{ fontSize: 12, opacity: 0.85 }}>
+                      Quick preset
+                    </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button
                         type="button"
@@ -211,34 +275,76 @@ if (!NATIONS.length) return;
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 10,
+                    marginTop: 10,
+                  }}
+                >
                   <div>
-                    <div style={{ fontSize: 12, opacity: 0.85 }}>Attacker loss %</div>
+                    <div style={{ fontSize: 12, opacity: 0.85 }}>
+                      Attacker loss %
+                    </div>
                     <input
                       type="number"
                       value={current.attackerLossPct ?? 0}
-                      onChange={(e) => update({ attackerLossPct: clamp(Number(e.target.value || 0), 0, 100) })}
+                      onChange={(e) =>
+                        update({
+                          attackerLossPct: clamp(
+                            Number(e.target.value || 0),
+                            0,
+                            100,
+                          ),
+                        })
+                      }
                       style={{ width: "100%" }}
                     />
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, opacity: 0.85 }}>Defender loss %</div>
+                    <div style={{ fontSize: 12, opacity: 0.85 }}>
+                      Defender loss %
+                    </div>
                     <input
                       type="number"
                       value={current.defenderLossPct ?? 0}
-                      onChange={(e) => update({ defenderLossPct: clamp(Number(e.target.value || 0), 0, 100) })}
+                      onChange={(e) =>
+                        update({
+                          defenderLossPct: clamp(
+                            Number(e.target.value || 0),
+                            0,
+                            100,
+                          ),
+                        })
+                      }
                       style={{ width: "100%" }}
                     />
                   </div>
                 </div>
 
                 {/* Condition hits MUST be 0|1|2 (so use selects) */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 10,
+                    marginTop: 10,
+                  }}
+                >
                   <div>
-                    <div style={{ fontSize: 12, opacity: 0.85 }}>Attacker condition hit</div>
+                    <div style={{ fontSize: 12, opacity: 0.85 }}>
+                      Attacker condition hit
+                    </div>
                     <select
                       value={toConditionHit(current.attackerConditionHit ?? 0)}
-                      onChange={(e) => update({ attackerConditionHit: toConditionHit(Number(e.target.value)) })}
+                      onChange={(e) =>
+                        update({
+                          attackerConditionHit: toConditionHit(
+                            Number(e.target.value),
+                          ),
+                        })
+                      }
                       style={{ width: "100%" }}
                     >
                       <option value={0}>0</option>
@@ -247,10 +353,18 @@ if (!NATIONS.length) return;
                     </select>
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, opacity: 0.85 }}>Defender condition hit</div>
+                    <div style={{ fontSize: 12, opacity: 0.85 }}>
+                      Defender condition hit
+                    </div>
                     <select
                       value={toConditionHit(current.defenderConditionHit ?? 0)}
-                      onChange={(e) => update({ defenderConditionHit: toConditionHit(Number(e.target.value)) })}
+                      onChange={(e) =>
+                        update({
+                          defenderConditionHit: toConditionHit(
+                            Number(e.target.value),
+                          ),
+                        })
+                      }
                       style={{ width: "100%" }}
                     >
                       <option value={0}>0</option>
@@ -274,11 +388,19 @@ if (!NATIONS.length) return;
           Resolve Battles
         </button>
 
-        <button type="button" onClick={autoFillAll} disabled={pendingContests.length === 0}>
+        <button
+          type="button"
+          onClick={autoFillAll}
+          disabled={pendingContests.length === 0}
+        >
           Auto-fill outcomes
         </button>
 
-        <button type="button" onClick={() => setBattleOutcomes({})} disabled={pendingContests.length === 0}>
+        <button
+          type="button"
+          onClick={() => setBattleOutcomes({})}
+          disabled={pendingContests.length === 0}
+        >
           Clear inputs
         </button>
       </div>
