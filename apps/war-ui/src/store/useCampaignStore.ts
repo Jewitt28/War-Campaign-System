@@ -2,7 +2,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { visibilityOrder, type VisibilityLevel } from "../data/visibility";
-import { NATION_BY_ID, type NationKey } from "../setup/NationDefinitions";
+import {
+  NATION_BY_ID,
+  type BaseNationKey,
+  type NationKey,
+} from "../setup/NationDefinitions";
 
 import type {
   Phase,
@@ -17,7 +21,7 @@ import { resolveBattles as resolveBattlesFn } from "../domain/resolveBattles";
 
 export type BaseFactionKey = "allies" | "axis" | "ussr";
 export type FactionKey = BaseFactionKey | `custom:${string}`;
-export type OwnerKey = FactionKey | "neutral" | "contested";
+export type OwnerKey = NationKey | "neutral" | "contested";
 export type SuppliesByFaction = Record<string, number>;
 
 export type Mode = "SETUP" | "PLAY";
@@ -47,10 +51,15 @@ export type TurnLogEntry = {
 
 type IntelByTerritory = Record<
   string,
-  Partial<Record<FactionKey, VisibilityLevel>>
+  Partial<Record<NationKey, VisibilityLevel>>
 >;
 
 export type CustomFaction = { id: string; name: string; color: string };
+export type CustomNation = {
+  id: NationKey;
+  name: string;
+  defaultFaction: BaseFactionKey;
+};
 
 export type RegionInfo = {
   id: string;
@@ -71,6 +80,7 @@ export type CampaignState = {
 
   // Nations
   nationsEnabled: Record<NationKey, boolean>;
+  customNations: CustomNation[];
   selectedSetupNation: NationKey | null;
   selectSetupNation: (n: NationKey | null) => void;
 
@@ -79,6 +89,7 @@ export type CampaignState = {
 
   // Existing faction/custom system (kept for now)
   customs: CustomFaction[];
+  createCustomNation: (name: string, defaultFaction: BaseFactionKey) => void;
   selectedSetupFaction: BaseFactionKey | "custom" | null;
   selectedCustomId: string | null;
 
@@ -95,6 +106,8 @@ export type CampaignState = {
 
   // v1 homeland storage (bridge)
   homelands: Partial<Record<FactionKey, string>>;
+  homelandUnlock: boolean;
+  setHomelandUnlock: (unlock: boolean) => void;
   ownerByTerritory: Record<string, OwnerKey>;
   intelByTerritory: IntelByTerritory;
 
@@ -118,18 +131,18 @@ export type CampaignState = {
   setSelectedPlatoonId: (id: string | null) => void;
   // v1
   setHomeland: (factionKey: FactionKey, territoryId: string) => void;
-  applyHomeland: (factionKey: FactionKey) => void;
+  applyHomeland: (nationKey: NationKey) => void;
 
   // GM-only mutators
   setOwner: (territoryId: string, ownerKey: OwnerKey) => void;
   setIntelLevel: (
     territoryId: string,
-    faction: FactionKey,
+    nation: NationKey,
     level: VisibilityLevel,
   ) => void;
   bulkSetIntelLevel: (
     territoryIds: string[],
-    faction: FactionKey,
+    nation: NationKey,
     level: VisibilityLevel,
   ) => void;
 
@@ -173,7 +186,7 @@ export type CampaignState = {
     targets: string[],
   ) => void;
 
-  submitFactionOrders: (turn: number, faction: FactionKey) => void;
+  submitFactionOrders: (turn: number, nation: NationKey) => void;
 
   resolveCurrentTurn: (isAdjacent: (a: string, b: string) => boolean) => void;
   resolveBattles: (outcomes: BattleOutcome[]) => void;
@@ -201,8 +214,8 @@ function requireGM(s: CampaignState) {
   return s.viewerMode === "GM";
 }
 
-function playerCanActAs(s: CampaignState, faction: FactionKey) {
-  return requireGM(s) || s.viewerFaction === faction;
+function playerCanActAsNation(s: CampaignState, nation: NationKey) {
+  return requireGM(s) || s.viewerNation === nation;
 }
 function nextIntelLevel(
   current: VisibilityLevel | undefined,
@@ -244,7 +257,7 @@ function applyReconOrders(args: {
       const prev = nextIntel[tid] ?? {};
       nextIntel[tid] = {
         ...prev,
-        [order.faction]: nextIntelLevel(prev[order.faction], "SCOUTED"),
+        [platoon.nation]: nextIntelLevel(prev[platoon.nation], "SCOUTED"),
       };
     }
 
@@ -263,11 +276,13 @@ const initialState: Omit<
   | "selectSetupFaction"
   | "setSelectedPlatoonId"
   | "createCustomFaction"
+  | "createCustomNation"
   | "selectCustomFaction"
   | "setViewerFaction"
   | "setSelectedTerritory"
   | "setHomeland"
   | "applyHomeland"
+  | "setHomelandUnlock"
   | "setOwner"
   | "setIntelLevel"
   | "bulkSetIntelLevel"
@@ -326,6 +341,7 @@ const initialState: Omit<
     us: false,
   },
 
+  customNations: [],
   selectedSetupNation: null,
   homelandsByNation: {},
 
@@ -342,6 +358,7 @@ const initialState: Omit<
   viewerMode: "PLAYER",
 
   homelands: {},
+  homelandUnlock: false,
   ownerByTerritory: {},
   intelByTerritory: {},
 
@@ -425,13 +442,43 @@ export const useCampaignStore = create<CampaignState>()(
           selectedCustomId: id,
         }));
       },
+      createCustomNation: (name, defaultFaction) => {
+        const id = `custom:${uid()}` as NationKey;
+        const next: CustomNation = {
+          id,
+          name: (name || "Custom Nation").trim(),
+          defaultFaction,
+        };
+        set((s) => ({
+          customNations: [...s.customNations, next],
+          nationsEnabled: { ...s.nationsEnabled, [id]: true },
+          selectedSetupNation: id,
+          viewerNation: id,
+          viewerFaction: defaultFaction,
+        }));
+      },
 
       selectCustomFaction: (id) =>
         set({ selectedSetupFaction: "custom", selectedCustomId: id }),
       setViewerNation: (nation) =>
-        set({
-          viewerNation: nation,
-          viewerFaction: NATION_BY_ID[nation]?.defaultFaction ?? "allies",
+        set((s) => {
+          const priorDefault =
+            (s.viewerNation.startsWith("custom:")
+              ? s.customNations.find((n) => n.id === s.viewerNation)
+                  ?.defaultFaction
+              : NATION_BY_ID[s.viewerNation as BaseNationKey]?.defaultFaction) ??
+            "allies";
+          const nextDefault =
+            (nation.startsWith("custom:")
+              ? s.customNations.find((n) => n.id === nation)?.defaultFaction
+              : NATION_BY_ID[nation as BaseNationKey]?.defaultFaction) ??
+            "allies";
+          const shouldSyncFaction = s.viewerFaction === priorDefault;
+
+          return {
+            viewerNation: nation,
+            viewerFaction: shouldSyncFaction ? nextDefault : s.viewerFaction,
+          };
         }),
 
       // GM can swap faction; PLAYER cannot
@@ -440,6 +487,7 @@ export const useCampaignStore = create<CampaignState>()(
 
       setSelectedTerritory: (id) => set({ selectedTerritoryId: id }),
       setSelectedPlatoonId: (id) => set({ selectedPlatoonId: id }),
+      setHomelandUnlock: (unlock) => set({ homelandUnlock: unlock }),
 
       setRegions: (regions) => set({ regions }),
       setSelectedRegion: (id) => set({ selectedRegionId: id }),
@@ -450,9 +498,9 @@ export const useCampaignStore = create<CampaignState>()(
           homelands: { ...s.homelands, [factionKey]: territoryId },
         })),
 
-      applyHomeland: (factionKey) =>
+      applyHomeland: (nationKey) =>
         set((s) => {
-          const homelandTid = s.homelands[factionKey];
+          const homelandTid = s.homelandsByNation[nationKey];
           if (!homelandTid) return s;
 
           const allTerritoryIds = new Set<string>();
@@ -463,19 +511,19 @@ export const useCampaignStore = create<CampaignState>()(
 
           for (const tid of allTerritoryIds) {
             const prev = nextIntel[tid] ?? {};
-            nextIntel[tid] = { ...prev, [factionKey]: "NONE" };
+            nextIntel[tid] = { ...prev, [nationKey]: "NONE" };
           }
 
           {
             const prev = nextIntel[homelandTid] ?? {};
-            nextIntel[homelandTid] = { ...prev, [factionKey]: "FULL" };
+            nextIntel[homelandTid] = { ...prev, [nationKey]: "FULL" };
           }
 
           return {
-            viewerFaction: factionKey,
+            viewerNation: nationKey,
             ownerByTerritory: {
               ...s.ownerByTerritory,
-              [homelandTid]: factionKey,
+              [homelandTid]: nationKey,
             },
             intelByTerritory: nextIntel,
           };
@@ -493,25 +541,25 @@ export const useCampaignStore = create<CampaignState>()(
           };
         }),
 
-      setIntelLevel: (territoryId, faction, level) =>
+      setIntelLevel: (territoryId, nation, level) =>
         set((s) => {
           if (!requireGM(s)) return s;
           const prev = s.intelByTerritory[territoryId] || {};
           return {
             intelByTerritory: {
               ...s.intelByTerritory,
-              [territoryId]: { ...prev, [faction]: level },
+              [territoryId]: { ...prev, [nation]: level },
             },
           };
         }),
 
-      bulkSetIntelLevel: (territoryIds, faction, level) =>
+      bulkSetIntelLevel: (territoryIds, nation, level) =>
         set((s) => {
           if (!requireGM(s)) return s;
           const next = { ...s.intelByTerritory };
           for (const id of territoryIds) {
             const prev = next[id] || {};
-            next[id] = { ...prev, [faction]: level };
+            next[id] = { ...prev, [nation]: level };
           }
           return { intelByTerritory: next };
         }),
@@ -526,13 +574,9 @@ export const useCampaignStore = create<CampaignState>()(
       autoSetupWorld: () =>
         set((s) => {
           if (!requireGM(s)) return s;
-
-          const factions: FactionKey[] = [
-            "allies",
-            "axis",
-            "ussr",
-            ...s.customs.map((c) => `custom:${c.id}` as const),
-          ];
+          const enabledNations = Object.entries(s.nationsEnabled)
+            .filter(([, enabled]) => enabled)
+            .map(([nation]) => nation as NationKey);
 
           const allTerritories = new Set<string>();
           for (const r of s.regions)
@@ -545,14 +589,14 @@ export const useCampaignStore = create<CampaignState>()(
 
           for (const tid of allTerritories) nextIntel[tid] = {};
 
-          for (const f of factions) {
-            for (const tid of allTerritories) nextIntel[tid][f] = "NONE";
+          for (const nation of enabledNations) {
+            for (const tid of allTerritories) nextIntel[tid][nation] = "NONE";
 
-            const homeland = s.homelands[f];
+            const homeland = s.homelandsByNation[nation];
             if (!homeland) continue;
 
-            nextOwners[homeland] = f;
-            nextIntel[homeland][f] = "FULL";
+            nextOwners[homeland] = nation;
+            nextIntel[homeland][nation] = "FULL";
           }
 
           return {
@@ -565,10 +609,10 @@ export const useCampaignStore = create<CampaignState>()(
           };
         }),
 
-      // -------- mechanics (players can only act as their own faction) --------
+      // -------- mechanics (players can only act as their own nation) --------
       createPlatoon: (faction, territoryId, name) =>
         set((s) => {
-          if (!playerCanActAs(s, faction)) return s;
+          if (!playerCanActAsNation(s, s.viewerNation)) return s;
 
           const id = uid();
           const next: Platoon = {
@@ -593,16 +637,16 @@ export const useCampaignStore = create<CampaignState>()(
 
       setPlatoonOrderMove: (turn, faction, platoonId, path, forcedMarch) =>
         set((s) => {
-          if (!playerCanActAs(s, faction)) return s;
-
           const platoon = s.platoonsById[platoonId];
           if (!platoon) return s;
-          if (platoon.faction !== faction) return s;
+          if (!playerCanActAsNation(s, platoon.nation)) return s;
+
+          const orderFaction = platoon.faction;
 
           const byTurn: Record<string, PlatoonOrder[]> = {
             ...(s.ordersByTurn[turn] ?? {}),
           };
-          const list: PlatoonOrder[] = [...(byTurn[faction] ?? [])];
+          const list: PlatoonOrder[] = [...(byTurn[orderFaction] ?? [])];
 
           const from = platoon.territoryId;
 
@@ -610,7 +654,7 @@ export const useCampaignStore = create<CampaignState>()(
           const next: PlatoonOrder = {
             id: existingIdx >= 0 ? list[existingIdx].id : uid(),
             turn,
-            faction,
+            faction: orderFaction,
             platoonId,
             type: "MOVE",
             from,
@@ -622,27 +666,27 @@ export const useCampaignStore = create<CampaignState>()(
           if (existingIdx >= 0) list[existingIdx] = next;
           else list.push(next);
 
-          byTurn[faction] = list;
+          byTurn[orderFaction] = list;
           return { ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn } };
         }),
       setPlatoonOrderHold: (turn, faction, platoonId) =>
         set((s) => {
-          if (!playerCanActAs(s, faction)) return s;
-
           const platoon = s.platoonsById[platoonId];
           if (!platoon) return s;
-          if (platoon.faction !== faction) return s;
+          if (!playerCanActAsNation(s, platoon.nation)) return s;
+
+          const orderFaction = platoon.faction;
 
           const byTurn: Record<string, PlatoonOrder[]> = {
             ...(s.ordersByTurn[turn] ?? {}),
           };
-          const list: PlatoonOrder[] = [...(byTurn[faction] ?? [])];
+          const list: PlatoonOrder[] = [...(byTurn[orderFaction] ?? [])];
           const existingIdx = list.findIndex((o) => o.platoonId === platoonId);
 
           const next: PlatoonOrder = {
             id: existingIdx >= 0 ? list[existingIdx].id : uid(),
             turn,
-            faction,
+            faction: orderFaction,
             platoonId,
             type: "HOLD",
             from: platoon.territoryId,
@@ -651,21 +695,21 @@ export const useCampaignStore = create<CampaignState>()(
 
           if (existingIdx >= 0) list[existingIdx] = next;
           else list.push(next);
-          byTurn[faction] = list;
+          byTurn[orderFaction] = list;
           return { ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn } };
         }),
       setPlatoonOrderRecon: (turn, faction, platoonId, targets) =>
         set((s) => {
-          if (!playerCanActAs(s, faction)) return s;
-
           const platoon = s.platoonsById[platoonId];
           if (!platoon) return s;
-          if (platoon.faction !== faction) return s;
+          if (!playerCanActAsNation(s, platoon.nation)) return s;
+
+          const orderFaction = platoon.faction;
 
           const byTurn: Record<string, PlatoonOrder[]> = {
             ...(s.ordersByTurn[turn] ?? {}),
           };
-          const list: PlatoonOrder[] = [...(byTurn[faction] ?? [])];
+          const list: PlatoonOrder[] = [...(byTurn[orderFaction] ?? [])];
           const existingIdx = list.findIndex((o) => o.platoonId === platoonId);
           const maxTargets = platoon.traits?.includes("RECON") ? 2 : 1;
           const reconTargets = Array.from(
@@ -675,7 +719,7 @@ export const useCampaignStore = create<CampaignState>()(
           const next: PlatoonOrder = {
             id: existingIdx >= 0 ? list[existingIdx].id : uid(),
             turn,
-            faction,
+            faction: orderFaction,
             platoonId,
             type: "RECON",
             from: platoon.territoryId,
@@ -685,27 +729,31 @@ export const useCampaignStore = create<CampaignState>()(
 
           if (existingIdx >= 0) list[existingIdx] = next;
           else list.push(next);
-          byTurn[faction] = list;
+          byTurn[orderFaction] = list;
           return { ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn } };
         }),
 
-      submitFactionOrders: (turn, faction) =>
+      submitFactionOrders: (turn, nation) =>
         set((s) => {
-          if (!playerCanActAs(s, faction)) return s;
+          if (!playerCanActAsNation(s, nation)) return s;
 
           const byTurn: Record<string, PlatoonOrder[]> = {
             ...(s.ordersByTurn[turn] ?? {}),
           };
-          const list: PlatoonOrder[] = (byTurn[faction] ?? []).map((o) => ({
-            ...o,
-            submittedAt: Date.now(),
-          }));
-          byTurn[faction] = list;
+          const nextByTurn: Record<string, PlatoonOrder[]> = {};
+
+          for (const [factionKey, list] of Object.entries(byTurn)) {
+            nextByTurn[factionKey] = list.map((o) => {
+              const platoon = s.platoonsById[o.platoonId];
+              if (platoon?.nation !== nation) return o;
+              return { ...o, submittedAt: Date.now() };
+            });
+          }
 
           return {
-            ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn },
+            ordersByTurn: { ...s.ordersByTurn, [turn]: nextByTurn },
             turnLog: [
-              logNote(`Orders submitted: ${faction} (Turn ${turn})`, "ORDERS"),
+              logNote(`Orders submitted: ${nation} (Turn ${turn})`, "ORDERS"),
               ...s.turnLog,
             ],
           };

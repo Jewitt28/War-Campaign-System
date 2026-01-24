@@ -115,6 +115,7 @@ function TopBar({ data }: { data: NormalizedData | null }) {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const setViewerNation = useCampaignStore((s) => s.setViewerNation);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const customNations = useCampaignStore((s) => s.customNations);
 
   const playMode = useCampaignStore((s) => s.playMode);
   const mode = useCampaignStore((s) => s.mode);
@@ -123,6 +124,7 @@ function TopBar({ data }: { data: NormalizedData | null }) {
   const nextPhase = useCampaignStore((s) => s.nextPhase);
   const resetAll = useCampaignStore((s) => s.resetAll);
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
+  const platoonsById = useCampaignStore((s) => s.platoonsById);
   const suppliesByFaction = useCampaignStore((s) => s.suppliesByFaction);
   const nationsEnabled = useCampaignStore((s) => s.nationsEnabled);
   const leftPanelView = useCampaignStore((s) => s.leftPanelView);
@@ -137,9 +139,14 @@ function TopBar({ data }: { data: NormalizedData | null }) {
   }, [data]);
 
   const ordersPending = useMemo(() => {
-    const currentOrders = ordersByTurn?.[turnNumber]?.[viewerFaction] ?? [];
-    return currentOrders.filter((order) => !order.submittedAt).length;
-  }, [ordersByTurn, turnNumber, viewerFaction]);
+    const byTurn = ordersByTurn?.[turnNumber] ?? {};
+    return Object.values(byTurn)
+      .flat()
+      .filter((order) => {
+        const platoon = platoonsById[order.platoonId];
+        return platoon?.nation === viewerNation && !order.submittedAt;
+      }).length;
+  }, [ordersByTurn, platoonsById, turnNumber, viewerNation]);
 
   const resourceSnapshot = useMemo(() => {
     const base = suppliesByFaction?.[viewerFaction] ?? 0;
@@ -155,12 +162,22 @@ function TopBar({ data }: { data: NormalizedData | null }) {
     ];
   }, [suppliesByFaction, viewerFaction]);
   const nationOptions = useMemo(() => {
-    const enabled = NATIONS.filter((nation) => nationsEnabled[nation.id]);
-    if (enabled.length === 0) return NATIONS;
+    const base = NATIONS.map((nation) => ({
+      id: nation.id as NationKey,
+      name: nation.name,
+      flag: nation.flag,
+    }));
+    const custom = customNations.map((nation) => ({
+      id: nation.id as NationKey,
+      name: nation.name,
+    }));
+    const all = [...base, ...custom];
+    const enabled = all.filter((nation) => nationsEnabled[nation.id]);
+    if (enabled.length === 0) return all;
     if (enabled.some((nation) => nation.id === viewerNation)) return enabled;
-    const current = NATIONS.find((nation) => nation.id === viewerNation);
+    const current = all.find((nation) => nation.id === viewerNation);
     return current ? [...enabled, current] : enabled;
-  }, [nationsEnabled, viewerNation]);
+  }, [customNations, nationsEnabled, viewerNation]);
 
   const toggleViewerMode = () => {
     const next = viewerMode === "GM" ? "PLAYER" : "GM";
@@ -233,27 +250,29 @@ function TopBar({ data }: { data: NormalizedData | null }) {
           justifyContent: "flex-end",
         }}
       >
-        <label
-          style={{
-            display: "flex",
-            gap: 6,
-            alignItems: "center",
-            fontSize: 12,
-          }}
-        >
-          Player Nation
-          <select
-            value={viewerNation}
-            onChange={(e) => setViewerNation(e.target.value as NationKey)}
+        {viewerMode === "GM" && (
+          <label
+            style={{
+              display: "flex",
+              gap: 6,
+              alignItems: "center",
+              fontSize: 12,
+            }}
           >
-            {nationOptions.map((nation) => (
-              <option key={nation.id} value={nation.id}>
-                {nation.flag ? `${nation.flag} ` : ""}
-                {nation.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            Player Nation
+            <select
+              value={viewerNation}
+              onChange={(e) => setViewerNation(e.target.value as NationKey)}
+            >
+              {nationOptions.map((nation) => (
+                <option key={nation.id} value={nation.id}>
+                  {nation.flag ? `${nation.flag} ` : ""}
+                  {nation.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {viewerMode === "PLAYER" ? (
           <>
             <button

@@ -1,7 +1,7 @@
 // src/setup/NationDefinitions.ts
 import type { BaseFactionKey } from "../store/useCampaignStore";
 
-export type NationKey =
+export type BaseNationKey =
   | "belgium"
   | "bulgaria"
   | "finland"
@@ -21,10 +21,12 @@ export type NationKey =
   | "the_netherlands"
   | "us";
 
+export type NationKey = BaseNationKey | `custom:${string}`;
+
 export type NationDef = {
-  id: NationKey;
+  id: BaseNationKey;
   name: string;
-  flag?: string
+  flag?: string;
 
   /**
    * “Default” alliance bucket for V1 gameplay and fog-of-war ownership coloring.
@@ -60,6 +62,6 @@ export const NATIONS: NationDef[] = [
   { id: "us", name: "United States", defaultFaction: "allies", homelandTerritories: ["NA-15"] }, // temporary (until US mainland exists)
 ];
 
-export const NATION_BY_ID: Record<NationKey, NationDef> = Object.fromEntries(
+export const NATION_BY_ID: Record<BaseNationKey, NationDef> = Object.fromEntries(
   NATIONS.map((n) => [n.id, n])
-) as Record<NationKey, NationDef>;
+) as Record<BaseNationKey, NationDef>;

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { NormalizedData } from "../data/theatres";
-import { NATION_BY_ID } from "../setup/NationDefinitions";
+import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
 import { useCampaignStore } from "../store/useCampaignStore";
 
 type Props = {
@@ -10,12 +10,16 @@ type Props = {
 export default function NationCommandPanel({ data }: Props) {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const customNations = useCampaignStore((s) => s.customNations);
   const turnNumber = useCampaignStore((s) => s.turnNumber);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
   const suppliesByFaction = useCampaignStore((s) => s.suppliesByFaction);
 
-  const nationLabel = NATION_BY_ID[viewerNation]?.name ?? viewerNation;
+  const nationLabel =
+    (viewerNation.startsWith("custom:")
+      ? customNations.find((n) => n.id === viewerNation)?.name
+      : NATION_BY_ID[viewerNation as BaseNationKey]?.name) ?? viewerNation;
   const platoons = useMemo(
     () =>
       Object.values(platoonsById).filter(
@@ -24,9 +28,14 @@ export default function NationCommandPanel({ data }: Props) {
     [platoonsById, viewerNation],
   );
   const draftOrders = useMemo(() => {
-    const byTurn = ordersByTurn?.[turnNumber]?.[viewerFaction] ?? [];
-    return byTurn.filter((order) => !order.submittedAt);
-  }, [ordersByTurn, turnNumber, viewerFaction]);
+    const byTurn = ordersByTurn?.[turnNumber] ?? {};
+    return Object.values(byTurn)
+      .flat()
+      .filter((order) => {
+        const platoon = platoonsById[order.platoonId];
+        return platoon?.nation === viewerNation && !order.submittedAt;
+      });
+  }, [ordersByTurn, platoonsById, turnNumber, viewerNation]);
   const supplies = suppliesByFaction?.[viewerFaction] ?? 0;
 
   return (

@@ -52,8 +52,8 @@ export type Contest = {
   id: string;
   territoryId: string;
 
-  attackerFaction: FactionKey;
-  defenderFaction: FactionKey;
+  attackerFaction: NationKey;
+  defenderFaction: NationKey;
 
   attackerPlatoonIds: string[];
   defenderPlatoonIds: string[];
@@ -63,7 +63,7 @@ export type Contest = {
 };
 export type BattleOutcome = {
   contestId: string;
-  winner: FactionKey; // attacker or defender faction
+  winner: NationKey; // attacker or defender nation
   attackerLossPct?: number; // e.g. 0..100
   defenderLossPct?: number; // e.g. 0..100
   attackerConditionHit?: 0 | 1 | 2; // steps worse
