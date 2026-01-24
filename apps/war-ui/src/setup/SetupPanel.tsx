@@ -1,7 +1,7 @@
 
 import  { useEffect, useMemo, useState } from "react";
 
-import { useCampaignStore } from "../store/useCampaignStore";
+import { useCampaignStore, type BaseFactionKey } from "../store/useCampaignStore";
 import { canPickNationHomeland, getFactionKeyForNation } from "./SetupRules";
 import { NATIONS, type NationKey } from "./NationDefinitions";
 
@@ -92,6 +92,10 @@ export default function SetupPanel() {
     setViewerNation,
     setHomeland, // v1 bridge
     setSelectedTerritory,
+    customNations,
+    createCustomNation,
+    homelandUnlock,
+    setHomelandUnlock,
   } = useCampaignStore();
 
   const isGM = viewerMode === "GM";
@@ -107,6 +111,14 @@ export default function SetupPanel() {
   const enabledNationIds = useMemo(
     () => Object.entries(nationsEnabledMap).filter(([, v]) => v).map(([k]) => k),
     [nationsEnabledMap]
+  );
+
+  const allNations = useMemo(
+    () => [
+      ...NATIONS.map((n) => ({ ...n, id: n.id as NationKey })),
+      ...customNations.map((n) => ({ ...n, id: n.id as NationKey })),
+    ],
+    [customNations],
   );
 
   const enabledCount = enabledNationIds.length;
@@ -125,7 +137,7 @@ export default function SetupPanel() {
   );
 
   const derivedFactionsLabel = useMemo(() => {
-    const derived = deriveFactionsFromNations(nationsEnabledMap);
+    const derived = deriveFactionsFromNations(nationsEnabledMap, customNations);
     const list = Object.entries(derived)
       .filter(([, v]) => v)
       .map(([k]) => k.toUpperCase());
@@ -168,6 +180,9 @@ export default function SetupPanel() {
   const setSelectedRegion = useCampaignStore((s) => s.setSelectedRegion);
 
   const [regionTerritoryId, setRegionTerritoryId] = useState<string>("");
+  const [customNationName, setCustomNationName] = useState<string>("");
+  const [customNationFaction, setCustomNationFaction] =
+    useState<BaseFactionKey>("allies");
 
   useEffect(() => {
     loadTheatresData()
@@ -425,7 +440,7 @@ export default function SetupPanel() {
         {open2 && (
           <div style={{ padding: "10px 0 0", display: "grid", gap: 10 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 6 }}>
-              {NATIONS.map((n) => (
+              {allNations.map((n) => (
                 <label
                   key={n.id}
                   style={{
@@ -459,7 +474,7 @@ export default function SetupPanel() {
                 style={{ width: "100%" }}
               >
                 <option value="">— Select —</option>
-                {NATIONS.filter((n) => nationsEnabledMap[n.id]).map((n) => (
+                {allNations.filter((n) => nationsEnabledMap[n.id]).map((n) => (
                   <option key={n.id} value={n.id}>
                     {n.flag ? `${n.flag} ` : ""}
                     {n.name}
@@ -477,6 +492,39 @@ export default function SetupPanel() {
                 <b>Factions in play:</b> {derivedFactionsLabel}
               </div>
             </div>
+
+            <div style={{ border: "1px dashed rgba(255,255,255,.12)", borderRadius: 8, padding: 10 }}>
+              <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 6 }}>Create custom nation</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <input
+                  value={customNationName}
+                  onChange={(e) => setCustomNationName(e.target.value)}
+                  placeholder="Nation name"
+                />
+                <label style={{ display: "grid", gap: 4 }}>
+                  <span style={{ fontSize: 12, opacity: 0.8 }}>Default faction</span>
+                  <select
+                    value={customNationFaction}
+                    onChange={(e) => setCustomNationFaction(e.target.value as BaseFactionKey)}
+                  >
+                    <option value="allies">Allies</option>
+                    <option value="axis">Axis</option>
+                    <option value="ussr">USSR</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  disabled={!customNationName.trim() || !canEditSetup}
+                  onClick={() => {
+                    if (!customNationName.trim()) return;
+                    createCustomNation(customNationName.trim(), customNationFaction);
+                    setCustomNationName("");
+                  }}
+                >
+                  Add Nation
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -491,6 +539,19 @@ export default function SetupPanel() {
 
         {open3 && (
           <div style={{ paddingTop: 10 }}>
+            <div style={{ marginBottom: 12, padding: 10, border: "1px solid rgba(255,255,255,.12)", borderRadius: 8 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={homelandUnlock}
+                  onChange={(e) => setHomelandUnlock(e.target.checked)}
+                  disabled={!canEditSetup}
+                />
+                <span style={{ fontSize: 12, opacity: 0.85 }}>
+                  Unlock homelands (allow any territory/region regardless of theatre)
+                </span>
+              </label>
+            </div>
             <div style={{ marginTop: 8, padding: 10, border: "1px solid rgba(255,255,255,.12)", borderRadius: 8 }}>
               <div style={{ fontWeight: 700, marginBottom: 6 }}>Set from Region Group</div>
 
@@ -578,7 +639,9 @@ export default function SetupPanel() {
                 {Object.keys(homelandsByNation).length === 0
                   ? "None set yet."
                   : Object.entries(homelandsByNation).map(([nid, tid]) => {
-                      const n = NATIONS.find((x) => x.id === nid);
+                      const n =
+                        allNations.find((x) => x.id === nid) ??
+                        NATIONS.find((x) => x.id === nid);
                       return (
                         <div key={nid}>
                           <b>{n?.name ?? nid}</b>: {territoryNameById[tid] ? `${territoryNameById[tid]} (${tid})` : tid}

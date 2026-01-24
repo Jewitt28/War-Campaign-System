@@ -1,9 +1,19 @@
 // src/setup/SetupRules.ts
-import { useCampaignStore, type BaseFactionKey, type FactionKey } from "../store/useCampaignStore";
+import {
+  useCampaignStore,
+  type BaseFactionKey,
+  type FactionKey,
+} from "../store/useCampaignStore";
 import type { TheatreId } from "../data/theatres";
 import { NATIONS, type NationKey } from "./NationDefinitions";
 
 export function getFactionKeyForNation(nation: NationKey): BaseFactionKey {
+  const s = useCampaignStore.getState();
+  if (nation.startsWith("custom:")) {
+    return (
+      s.customNations.find((x) => x.id === nation)?.defaultFaction ?? "allies"
+    );
+  }
   const n = NATIONS.find((x) => x.id === nation);
   return n?.defaultFaction ?? "allies";
 }
@@ -26,7 +36,7 @@ export function canPickNationHomeland(territoryId: string): { ok: boolean; reaso
 
   if (!s.selectedSetupNation) return { ok: false, reason: "Pick a nation first." };
 
-  if (!isInActiveTheatre(territoryId, s.activeTheatres)) {
+  if (!s.homelandUnlock && !isInActiveTheatre(territoryId, s.activeTheatres)) {
     return { ok: false, reason: "That theatre isn’t enabled." };
   }
 

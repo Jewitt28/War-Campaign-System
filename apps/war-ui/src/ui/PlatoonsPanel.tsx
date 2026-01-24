@@ -59,6 +59,8 @@ export default function PlatoonsPanel({ data }: Props) {
   const createPlatoon = useCampaignStore((s) => s.createPlatoon);
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
+  const turnNumber = useCampaignStore((s) => s.turnNumber);
+  const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
 
   const ensureSupplies = useCampaignStore((s) => s.ensureSupplies);
   const getSupplies = useCampaignStore((s) => s.getSupplies);
@@ -116,8 +118,8 @@ export default function PlatoonsPanel({ data }: Props) {
   const COST_TRAIT_MOTORIZED = 30;
 
   const canAfford = (cost: number) => supplies >= cost;
-  const mustMatchFaction = safeSelected
-    ? safeSelected.faction === viewerFaction
+  const mustMatchNation = safeSelected
+    ? safeSelected.nation === viewerNation
     : false;
   const conditionColor: Record<PlatoonCondition, string> = {
     FRESH: "#22c55e",
@@ -152,7 +154,7 @@ export default function PlatoonsPanel({ data }: Props) {
     const cost = gain * COST_REFIT_PER_1;
 
     if (gain <= 0) return;
-    if (!mustMatchFaction) return;
+    if (!mustMatchNation) return;
 
     const ok = spendSupplies(safeSelected.faction, cost, "Refit");
     if (!ok) return;
@@ -176,7 +178,7 @@ export default function PlatoonsPanel({ data }: Props) {
     if (!safeSelected) return;
     const cur = safeSelected.mpBase ?? 1;
     if (cur >= 3) return;
-    if (!mustMatchFaction) return;
+    if (!mustMatchNation) return;
 
     const ok = spendSupplies(
       safeSelected.faction,
@@ -195,7 +197,7 @@ export default function PlatoonsPanel({ data }: Props) {
   const upgradeCondition = () => {
     if (!safeSelected) return;
     if (safeSelected.condition === "FRESH") return;
-    if (!mustMatchFaction) return;
+    if (!mustMatchNation) return;
 
     const ok = spendSupplies(
       safeSelected.faction,
@@ -218,7 +220,7 @@ export default function PlatoonsPanel({ data }: Props) {
 
   const addTrait = (trait: PlatoonTrait, cost: number) => {
     if (!safeSelected) return;
-    if (!mustMatchFaction) return;
+    if (!mustMatchNation) return;
     if (hasTrait(trait)) return;
 
     const ok = spendSupplies(safeSelected.faction, cost, `Trait: ${trait}`);
@@ -233,7 +235,7 @@ export default function PlatoonsPanel({ data }: Props) {
 
   const toggleEntrench = () => {
     if (!safeSelected) return;
-    if (!mustMatchFaction) return;
+    if (!mustMatchNation) return;
 
     const currently = !!safeSelected.entrenched;
 
@@ -256,7 +258,7 @@ export default function PlatoonsPanel({ data }: Props) {
   const setMoveOrder = () => {
     if (!safeSelected) return;
     if (!moveTo) return;
-    if (!mustMatchFaction) return;
+    if (!mustMatchNation) return;
 
     // Prefer a real store action if it exists (older code likely had this)
     const s: any = useCampaignStore.getState();
@@ -329,12 +331,9 @@ export default function PlatoonsPanel({ data }: Props) {
     );
   };
 
-  const submitFactionOrders = () => {
-    const s: any = useCampaignStore.getState();
-    const submit = s.submitFactionOrders as
-      | ((faction: FactionKey) => void)
-      | undefined;
-    if (submit) submit(viewerFaction as FactionKey);
+  const submitOrdersForPlatoon = () => {
+    const nationToSubmit = safeSelected?.nation ?? viewerNation;
+    submitFactionOrders(turnNumber, nationToSubmit);
   };
 
   return (
@@ -526,10 +525,10 @@ export default function PlatoonsPanel({ data }: Props) {
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button
                         type="button"
-                        disabled={!moveTo || !mustMatchFaction}
+                        disabled={!moveTo || !mustMatchNation}
                         title={
-                          !mustMatchFaction
-                            ? "Switch Viewer faction to match platoon faction to issue orders."
+                          !mustMatchNation
+                            ? "Switch Viewer nation to match platoon nation to issue orders."
                             : undefined
                         }
                         onClick={setMoveOrder}
@@ -539,10 +538,10 @@ export default function PlatoonsPanel({ data }: Props) {
 
                       <button
                         type="button"
-                        disabled={!mustMatchFaction}
-                        onClick={submitFactionOrders}
+                        disabled={!mustMatchNation}
+                        onClick={submitOrdersForPlatoon}
                       >
-                        Submit Orders (Faction)
+                        Submit Orders (Nation)
                       </button>
                     </div>
 
@@ -619,12 +618,12 @@ export default function PlatoonsPanel({ data }: Props) {
                   onClick={applyRefit}
                   disabled={
                     safeSelected.strengthPct >= 100 ||
-                    !mustMatchFaction ||
+                    !mustMatchNation ||
                     !canAfford(refitPct * COST_REFIT_PER_1)
                   }
                   title={
-                    !mustMatchFaction
-                      ? "Switch Viewer faction to match platoon faction to spend supplies."
+                    !mustMatchNation
+                      ? "Switch Viewer nation to match platoon nation to spend supplies."
                       : undefined
                   }
                 >
@@ -649,7 +648,7 @@ export default function PlatoonsPanel({ data }: Props) {
                     onClick={upgradeMobility}
                     disabled={
                       safeSelected.mpBase >= 3 ||
-                      !mustMatchFaction ||
+                      !mustMatchNation ||
                       !canAfford(COST_UPGRADE_MP)
                     }
                   >
@@ -662,7 +661,7 @@ export default function PlatoonsPanel({ data }: Props) {
                     onClick={upgradeCondition}
                     disabled={
                       safeSelected.condition === "FRESH" ||
-                      !mustMatchFaction ||
+                      !mustMatchNation ||
                       !canAfford(COST_UPGRADE_CONDITION)
                     }
                   >
@@ -688,7 +687,7 @@ export default function PlatoonsPanel({ data }: Props) {
                   onClick={() => addTrait("RECON", COST_TRAIT_RECON)}
                   disabled={
                     hasTrait("RECON") ||
-                    !mustMatchFaction ||
+                    !mustMatchNation ||
                     !canAfford(COST_TRAIT_RECON)
                   }
                 >
@@ -701,7 +700,7 @@ export default function PlatoonsPanel({ data }: Props) {
                   onClick={() => addTrait("ENGINEERS", COST_TRAIT_ENGINEERS)}
                   disabled={
                     hasTrait("ENGINEERS") ||
-                    !mustMatchFaction ||
+                    !mustMatchNation ||
                     !canAfford(COST_TRAIT_ENGINEERS)
                   }
                 >
@@ -714,7 +713,7 @@ export default function PlatoonsPanel({ data }: Props) {
                   onClick={() => addTrait("MOTORIZED", COST_TRAIT_MOTORIZED)}
                   disabled={
                     hasTrait("MOTORIZED") ||
-                    !mustMatchFaction ||
+                    !mustMatchNation ||
                     !canAfford(COST_TRAIT_MOTORIZED)
                   }
                 >
@@ -742,7 +741,7 @@ export default function PlatoonsPanel({ data }: Props) {
                   type="button"
                   onClick={toggleEntrench}
                   disabled={
-                    !mustMatchFaction ||
+                    !mustMatchNation ||
                     (!safeSelected.entrenched &&
                       !canAfford(COST_TOGGLE_ENTRENCH))
                   }
@@ -759,7 +758,7 @@ export default function PlatoonsPanel({ data }: Props) {
 
               <div style={{ fontSize: 12, opacity: 0.75, marginTop: 8 }}>
                 Note: supplies are spent from the platoon’s faction — switch
-                Viewer faction to match to apply upgrades/orders.
+                Viewer nation to match to apply upgrades/orders.
               </div>
             </>
           )}

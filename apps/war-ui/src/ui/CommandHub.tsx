@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import { useCampaignStore, type FactionKey, type OwnerKey } from "../store/useCampaignStore";
 import { factionLabel } from "../store/factionLabel";
-import { NATION_BY_ID } from "../setup/NationDefinitions";
+import {
+  NATION_BY_ID,
+  type BaseNationKey,
+  type NationKey,
+} from "../setup/NationDefinitions";
 
 type Props = {
   data: NormalizedData | null;
@@ -16,7 +20,7 @@ type RegionStatus = {
   territories: string[];
   bonus?: string;
   status: "controlled" | "contested" | "neutral";
-  controllingFaction?: FactionKey;
+  controllingNation?: NationKey;
   contestedTerritories: string[];
 };
 
@@ -82,6 +86,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
   const customs = useCampaignStore((s) => s.customs);
+  const customNations = useCampaignStore((s) => s.customNations);
   //  const playerFactionId = useCampaignStore((s) => s.playerFactionId);
   // const setPlayerFactionId = useCampaignStore((s) => s.setPlayerFactionId);
   const suppliesByFaction = useCampaignStore((s) => s.suppliesByFaction);
@@ -122,7 +127,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
         return {
           ...region,
           status: "controlled",
-          controllingFaction: onlyOwner as FactionKey,
+          controllingNation: onlyOwner,
           contestedTerritories,
         };
       }
@@ -132,12 +137,15 @@ export default function CommandHub({ data, variant = "full" }: Props) {
   }, [regions, ownerByTerritory]);
 
   const controlledByViewer = regionStatusList.filter(
-    (region) => region.status === "controlled" && region.controllingFaction === viewerFaction
+    (region) => region.status === "controlled" && region.controllingNation === viewerNation
   );
   const contestedRegions = regionStatusList.filter((region) => region.status === "contested");
 
   const factionDisplayName = factionLabel(viewerFaction, customs);
-  const nationDisplayName = NATION_BY_ID[viewerNation]?.name ?? viewerNation;
+  const nationDisplayName =
+    (viewerNation.startsWith("custom:")
+      ? customNations.find((n) => n.id === viewerNation)?.name
+      : NATION_BY_ID[viewerNation as BaseNationKey]?.name) ?? viewerNation;
   const customFaction = customs.find((f) => `custom:${f.id}` === viewerFaction);
 
   const currentCommanderId = viewerMode === "GM" ? "leader" : "officer-2";

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import type { VisibilityLevel } from "../data/visibility";
-import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
+import { useCampaignStore } from "../store/useCampaignStore";
 import type { PlatoonOrder, BattleOutcome, Contest } from "../domain/types";
 import { NATIONS, type NationKey } from "../setup/NationDefinitions";
 
@@ -10,14 +10,20 @@ type Props = {
   data: NormalizedData | null;
 };
 
-function factionOptions(customs: Array<{ id: string; name: string }>) {
-  const base = [
-    { key: "allies" as const, label: "Allies" },
-    { key: "axis" as const, label: "Axis" },
-    { key: "ussr" as const, label: "USSR" },
+function nationOptions(
+  base: typeof NATIONS,
+  customs: Array<{ id: string; name: string }>,
+) {
+  return [
+    ...base.map((nation) => ({
+      key: nation.id as NationKey,
+      label: nation.name,
+    })),
+    ...customs.map((nation) => ({
+      key: nation.id as NationKey,
+      label: nation.name,
+    })),
   ];
-  const custom = customs.map((c) => ({ key: `custom:${c.id}` as const, label: c.name }));
-  return [...base, ...custom];
 }
 
 export default function PlayPanel({ data }: Props) {
@@ -28,7 +34,7 @@ export default function PlayPanel({ data }: Props) {
     viewerFaction,
     viewerMode,
     setViewerMode,
-    customs,
+    customNations,
     selectedTerritoryId,
     setSelectedTerritory,
     ownerByTerritory,
@@ -64,7 +70,10 @@ export default function PlayPanel({ data }: Props) {
 
   const [battleOutcomes, setBattleOutcomes] = useState<Record<string, BattleOutcome>>({});
 
-  const factions = useMemo(() => factionOptions(customs), [customs]);
+  const nations = useMemo(
+    () => nationOptions(NATIONS, customNations),
+    [customNations],
+  );
 
   const selected = useMemo(() => {
     if (!data || !selectedTerritoryId) return null;
@@ -94,12 +103,14 @@ export default function PlayPanel({ data }: Props) {
 
   const applyGroupIntel = (level: VisibilityLevel) => {
     if (!activeGroup) return;
-    bulkSetIntelLevel(activeGroup.territories, viewerFaction, level);
+    bulkSetIntelLevel(activeGroup.territories, viewerNation, level);
   };
 
   // selected territory derived values
   const owner = selected ? (ownerByTerritory[selected.id] ?? "neutral") : "neutral";
-  const level: VisibilityLevel = selected ? (intelByTerritory[selected.id]?.[viewerFaction] ?? "NONE") : "NONE";
+  const level: VisibilityLevel = selected
+    ? (intelByTerritory[selected.id]?.[viewerNation] ?? "NONE")
+    : "NONE";
 
   const lock = selected ? locksByTerritory[selected.id] : undefined;
   const contest = selected ? contestsByTerritory[selected.id] : undefined;
@@ -115,10 +126,15 @@ export default function PlayPanel({ data }: Props) {
   const [step2, setStep2] = useState<string>("");
   const [forcedMarch, setForcedMarch] = useState<boolean>(false);
 
-  const currentFactionOrders: PlatoonOrder[] = useMemo(() => {
+  const currentNationOrders: PlatoonOrder[] = useMemo(() => {
     const byTurn = ordersByTurn[turnNumber] ?? {};
-    return (byTurn[viewerFaction] ?? []) as PlatoonOrder[];
-  }, [ordersByTurn, turnNumber, viewerFaction]);
+    return Object.values(byTurn)
+      .flat()
+      .filter((order) => {
+        const platoon = platoonsById[order.platoonId];
+        return platoon?.nation === viewerNation;
+      }) as PlatoonOrder[];
+  }, [ordersByTurn, platoonsById, turnNumber, viewerNation]);
 
   const selectedPlatoon = orderPlatoonId ? platoonsById[orderPlatoonId] : undefined;
 
@@ -140,7 +156,13 @@ export default function PlayPanel({ data }: Props) {
     if (!step1) return;
 
     const path = forcedMarch && step2 ? [step1, step2] : [step1];
-    setPlatoonOrderMove(turnNumber, viewerFaction, selectedPlatoon.id, path, forcedMarch);
+    setPlatoonOrderMove(
+      turnNumber,
+      selectedPlatoon.faction,
+      selectedPlatoon.id,
+      path,
+      forcedMarch,
+    );
   };
 
   return (
@@ -175,10 +197,9 @@ export default function PlayPanel({ data }: Props) {
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>Viewer (Fog of War)</div>
        <select value={viewerNation} onChange={(e) => setViewerNation(e.target.value as NationKey)} style={{ width: "100%" }}>
-          {NATIONS.map((nation) => (
-            <option key={nation.id} value={nation.id}>
-              {nation.flag ? `${nation.flag} ` : ""}
-              {nation.name}
+          {nations.map((nation) => (
+            <option key={nation.key} value={nation.key}>
+              {nation.label}
             </option>
           ))}
         </select>
@@ -240,14 +261,19 @@ export default function PlayPanel({ data }: Props) {
           <select
             value={owner}
             disabled={!isGM}
-            onChange={(e) => setOwner(selected.id, e.target.value as FactionKey | "neutral" | "contested")}
+            onChange={(e) =>
+              setOwner(
+                selected.id,
+                e.target.value as NationKey | "neutral" | "contested",
+              )
+            }
             style={{ width: "100%" }}
           >
             <option value="neutral">Neutral</option>
             <option value="contested">Contested</option>
-            {factions.map((f) => (
-              <option key={f.key} value={f.key}>
-                {f.label}
+            {nations.map((nation) => (
+              <option key={nation.key} value={nation.key}>
+                {nation.label}
               </option>
             ))}
           </select>
@@ -257,7 +283,7 @@ export default function PlayPanel({ data }: Props) {
           <select
             value={level}
             disabled={!isGM}
-            onChange={(e) => setIntelLevel(selected.id, viewerFaction, e.target.value as VisibilityLevel)}
+            onChange={(e) => setIntelLevel(selected.id, viewerNation, e.target.value as VisibilityLevel)}
             style={{ width: "100%" }}
           >
             <option value="NONE">None</option>
@@ -292,7 +318,9 @@ export default function PlayPanel({ data }: Props) {
           )}
 
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-            <button onClick={() => createPlatoon(viewerFaction, selected.id)}>+ Create Platoon (as {viewerFaction})</button>
+            <button onClick={() => createPlatoon(viewerFaction, selected.id)}>
+              + Create Platoon (as {viewerNation})
+            </button>
           </div>
 
           <h4 style={{ margin: "12px 0 8px" }}>Orders (this faction)</h4>
@@ -301,7 +329,7 @@ export default function PlayPanel({ data }: Props) {
           <select value={orderPlatoonId} onChange={(e) => setOrderPlatoonId(e.target.value)} style={{ width: "100%" }}>
             <option value="">— Select —</option>
             {Object.values(platoonsById)
-              .filter((p) => p.faction === viewerFaction)
+              .filter((p) => p.nation === viewerNation)
               .map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} ({p.territoryId})
@@ -348,7 +376,7 @@ export default function PlayPanel({ data }: Props) {
           </div>
 
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-            <button onClick={() => submitFactionOrders(turnNumber, viewerFaction)}>Submit Orders</button>
+            <button onClick={() => submitFactionOrders(turnNumber, viewerNation)}>Submit Orders</button>
             <button disabled={!isGM} onClick={() => resolveCurrentTurn(isAdjacent)}>Resolve Turn</button>
             <button disabled={!isGM} onClick={() => nextPhase(isAdjacent)}>Next Phase</button>
             <button disabled={!isGM} onClick={() => clearLocksAndContests()}>Dev: Clear Locks</button>
@@ -356,12 +384,12 @@ export default function PlayPanel({ data }: Props) {
           {!isGM && <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>GM-only: resolve/advance/clear.</div>}
 
           <div style={{ marginTop: 8, fontSize: 12, opacity: 0.9 }}>
-            <b>Current faction orders:</b>
-            {currentFactionOrders.length === 0 ? (
+            <b>Current nation orders:</b>
+            {currentNationOrders.length === 0 ? (
               <div style={{ opacity: 0.75 }}>None</div>
             ) : (
               <div style={{ display: "grid", gap: 4, marginTop: 4 }}>
-                {currentFactionOrders.map((o) => (
+                {currentNationOrders.map((o) => (
                   <div key={o.id}>
                     {o.type} · platoon {o.platoonId} · from {o.from ?? "?"} · path {(o.path ?? []).join(" -> ") || "—"}{" "}
                     {o.submittedAt ? "· SUBMITTED" : "· draft"}
@@ -417,7 +445,7 @@ export default function PlayPanel({ data }: Props) {
                           onChange={(e) =>
                             setBattleOutcomes((s) => ({
                               ...s,
-                              [c.id]: { ...current, winner: e.target.value as FactionKey },
+                              [c.id]: { ...current, winner: e.target.value as NationKey },
                             }))
                           }
                           style={{ width: "100%" }}

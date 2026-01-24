@@ -175,7 +175,7 @@ function MapInspector() {
   const selectedTerritoryId = useCampaignStore((s) => s.selectedTerritoryId);
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
 
-  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
   const mode = useCampaignStore((s) => s.mode);
   const intelByTerritory = useCampaignStore((s) => s.intelByTerritory);
@@ -185,7 +185,7 @@ function MapInspector() {
   const intel = selectedTerritoryId
     ? gmEffective
       ? "FULL"
-      : (intelByTerritory[selectedTerritoryId]?.[viewerFaction] ?? "NONE")
+      : (intelByTerritory[selectedTerritoryId]?.[viewerNation] ?? "NONE")
     : null;
 
   const owner = selectedTerritoryId
@@ -204,7 +204,7 @@ function MapInspector() {
       >
         <div style={{ fontWeight: 900 }}>Selected Territory</div>
         <div style={{ fontSize: 12, opacity: 0.75 }}>
-          {gmEffective ? "GM view" : `Player view (${viewerFaction})`}
+          {gmEffective ? "GM view" : `Player view (${viewerNation})`}
         </div>
       </div>
 
@@ -240,7 +240,6 @@ function MapInspector() {
   );
 }
 function OrdersPhasePanel() {
-  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const turnNumber = useCampaignStore((s) => s.turnNumber);
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
@@ -260,9 +259,14 @@ function OrdersPhasePanel() {
   const [reconTarget2, setReconTarget2] = useState("");
 
   const currentOrders = useMemo(() => {
-    const byTurn = ordersByTurn?.[turnNumber]?.[viewerFaction] ?? [];
-    return byTurn.filter((o) => !o.submittedAt);
-  }, [ordersByTurn, turnNumber, viewerFaction]);
+    const byTurn = ordersByTurn?.[turnNumber] ?? {};
+    return Object.values(byTurn)
+      .flat()
+      .filter((o) => {
+        const platoon = platoonsById[o.platoonId];
+        return platoon?.nation === viewerNation && !o.submittedAt;
+      });
+  }, [ordersByTurn, platoonsById, turnNumber, viewerNation]);
   const eligiblePlatoons = useMemo(
     () => Object.values(platoonsById).filter((p) => p.nation === viewerNation),
     [platoonsById, viewerNation],
@@ -530,7 +534,7 @@ function OrdersPhasePanel() {
             </button>
             <button
               type="button"
-              onClick={() => submitFactionOrders(turnNumber, viewerFaction)}
+              onClick={() => submitFactionOrders(turnNumber, viewerNation)}
             >
               Submit Orders
             </button>
@@ -568,7 +572,7 @@ function OrdersPhasePanel() {
 }
 
 function ResolutionPhasePanel() {
-  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const viewerNation = useCampaignStore((s) => s.viewerNation);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
   const locksByTerritory = useCampaignStore((s) => s.locksByTerritory);
   const turnLog = useCampaignStore((s) => s.turnLog);
@@ -578,10 +582,10 @@ function ResolutionPhasePanel() {
       .filter(Boolean)
       .filter(
         (contest) =>
-          contest?.attackerFaction === viewerFaction ||
-          contest?.defenderFaction === viewerFaction,
+          contest?.attackerFaction === viewerNation ||
+          contest?.defenderFaction === viewerNation,
       );
-  }, [contestsByTerritory, viewerFaction]);
+  }, [contestsByTerritory, viewerNation]);
 
   const ongoingBattles = useMemo(() => {
     return relevantContests.filter(
@@ -608,7 +612,7 @@ function ResolutionPhasePanel() {
         <h2 style={{ margin: 0 }}>Resolution Phase</h2>
         <div style={{ opacity: 0.8 }}>
           Review intel, outcomes, and choose battle stances for engagements
-          involving <b>{viewerFaction}</b>.
+          involving <b>{viewerNation}</b>.
         </div>
       </div>
 

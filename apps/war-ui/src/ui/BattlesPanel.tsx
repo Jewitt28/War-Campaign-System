@@ -1,6 +1,6 @@
 // apps/war-ui/src/ui/BattlesPanel.tsx
 import { useMemo, useState } from "react";
-import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
+import { useCampaignStore } from "../store/useCampaignStore";
 import type { BattleOutcome, Contest } from "../domain/types";
 import { NATIONS, type NationKey } from "../setup/NationDefinitions";
 
@@ -37,6 +37,7 @@ export default function BattlesPanel() {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const setViewerNation = useCampaignStore((s) => s.setViewerNation);
   const nationsEnabled = useCampaignStore((s) => s.nationsEnabled);
+  const customNations = useCampaignStore((s) => s.customNations);
 
   const pendingContests = useMemo(() => {
     return Object.values(contestsByTerritory).filter(
@@ -48,12 +49,22 @@ export default function BattlesPanel() {
     Record<string, BattleOutcome>
   >({});
   const nationOptions = useMemo(() => {
-    const enabled = NATIONS.filter((nation) => nationsEnabled[nation.id]);
-    if (enabled.length === 0) return NATIONS;
+    const base = NATIONS.map((nation) => ({
+      id: nation.id as NationKey,
+      name: nation.name,
+      flag: nation.flag,
+    }));
+    const custom = customNations.map((nation) => ({
+      id: nation.id as NationKey,
+      name: nation.name,
+    }));
+    const all = [...base, ...custom];
+    const enabled = all.filter((nation) => nationsEnabled[nation.id]);
+    if (enabled.length === 0) return all;
     if (enabled.some((nation) => nation.id === viewerNation)) return enabled;
-    const current = NATIONS.find((nation) => nation.id === viewerNation);
+    const current = all.find((nation) => nation.id === viewerNation);
     return current ? [...enabled, current] : enabled;
-  }, [nationsEnabled, viewerNation]);
+  }, [customNations, nationsEnabled, viewerNation]);
 
   const cycleFaction = (dir: 1 | -1) => {
     if (!nationOptions.length) return;
@@ -145,7 +156,7 @@ export default function BattlesPanel() {
             value={viewerNation}
             onChange={(e) => setViewerNation(e.target.value as NationKey)}
           >
-            {NATIONS.map((nation) => (
+            {nationOptions.map((nation) => (
               <option key={nation.id} value={nation.id}>
                 {nation.flag ? `${nation.flag} ` : ""}
                 {nation.name}
@@ -214,7 +225,7 @@ export default function BattlesPanel() {
                     <select
                       value={current.winner}
                       onChange={(e) =>
-                        update({ winner: e.target.value as FactionKey })
+                        update({ winner: e.target.value as NationKey })
                       }
                       style={{ width: "100%" }}
                     >

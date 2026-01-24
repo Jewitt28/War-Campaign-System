@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadTheatresData, withBase, type TheatreData } from "../data/theatres";
 import type { VisibilityLevel } from "../data/visibility";
-import { useCampaignStore } from "../store/useCampaignStore";
+import { useCampaignStore, type OwnerKey } from "../store/useCampaignStore";
 import type { Contest } from "../domain/types";
+import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
 
 type TerritoryInfo = {
   id: string;
@@ -28,20 +29,33 @@ const BORDER_STROKE = "rgba(255,255,255,.55)";
 const BORDER_WIDTH = "1.25";
 
 function getOwnerFill(
-  owner: string,
-  customs: Array<{ id: string; color: string }>,
+  owner: OwnerKey,
+  customNations: Array<{ id: string; defaultFaction: "allies" | "axis" | "ussr" }>,
 ) {
   if (owner === "neutral") return "#6b7280";
   if (owner === "contested") return "#a855f7";
-  if (owner === "allies" || owner === "axis" || owner === "ussr")
-    return baseFactionColors[owner];
-
-  if (owner.startsWith("custom:")) {
-    const id = owner.slice("custom:".length);
-    const c = customs.find((x) => x.id === id);
-    return c?.color ?? "#22c55e";
-  }
+  const defaultFaction = owner.startsWith("custom:")
+    ? customNations.find((n) => n.id === owner)?.defaultFaction
+    : NATION_BY_ID[owner as BaseNationKey]?.defaultFaction;
+  if (defaultFaction) return baseFactionColors[defaultFaction];
   return "#6b7280";
+}
+
+function getDefaultFactionForNation(
+  nation: string,
+  customNations: Array<{ id: string; defaultFaction: "allies" | "axis" | "ussr" }>,
+) {
+  return nation.startsWith("custom:")
+    ? customNations.find((n) => n.id === nation)?.defaultFaction
+    : NATION_BY_ID[nation as BaseNationKey]?.defaultFaction;
+}
+
+function getNationAccent(
+  nation: string,
+  customNations: Array<{ id: string; defaultFaction: "allies" | "axis" | "ussr" }>,
+) {
+  const defaultFaction = getDefaultFactionForNation(nation, customNations);
+  return defaultFaction ? baseFactionColors[defaultFaction] : "#6b7280";
 }
 
 function isGMEffective(mode: "SETUP" | "PLAY", viewerMode: "PLAYER" | "GM") {
@@ -257,7 +271,7 @@ export default function MapBoard() {
   // store
   const mode = useCampaignStore((s) => s.mode);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
-  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
+  const viewerNation = useCampaignStore((s) => s.viewerNation);
   const activeTheatres = useCampaignStore((s) => s.activeTheatres);
 
   const selectedTerritoryId = useCampaignStore((s) => s.selectedTerritoryId);
@@ -269,8 +283,8 @@ export default function MapBoard() {
   const locksByTerritory = useCampaignStore((s) => s.locksByTerritory);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
-  const customs = useCampaignStore((s) => s.customs);
-  const homelands = useCampaignStore((s) => s.homelands);
+  const customNations = useCampaignStore((s) => s.customNations);
+  const homelandsByNation = useCampaignStore((s) => s.homelandsByNation);
 
   const gmEffective = isGMEffective(mode, viewerMode);
 
@@ -355,13 +369,13 @@ export default function MapBoard() {
     (tid: string) => {
       // if any owned territory has tid in its adjacency set => KNOWN
       for (const [ownedTid, owner] of Object.entries(ownerByTerritory)) {
-        if (owner !== viewerFaction) continue;
+        if (owner !== viewerNation) continue;
         const adj = adjacencyByTerritory.get(ownedTid);
         if (adj?.has(tid)) return true;
       }
       return false;
     },
-    [adjacencyByTerritory, ownerByTerritory, viewerFaction],
+    [adjacencyByTerritory, ownerByTerritory, viewerNation],
   );
 
   // ✅ single “effective” visibility:
@@ -375,9 +389,9 @@ export default function MapBoard() {
       if (gmEffective) return "FULL";
 
       const owner = ownerByTerritory[tid] ?? "neutral";
-      if (owner === viewerFaction) return "FULL";
+      if (owner === viewerNation) return "FULL";
 
-      const intel = intelByTerritory[tid]?.[viewerFaction] ?? "NONE";
+      const intel = intelByTerritory[tid]?.[viewerNation] ?? "NONE";
       if (intel !== "NONE") return intel;
 
       if (isAdjacentToOwned(tid)) return "KNOWN";
@@ -387,7 +401,7 @@ export default function MapBoard() {
     [
       gmEffective,
       ownerByTerritory,
-      viewerFaction,
+      viewerNation,
       intelByTerritory,
       isAdjacentToOwned,
     ],
@@ -409,7 +423,7 @@ export default function MapBoard() {
     (svg: SVGSVGElement) => {
       clearSelectionStyles(svg);
 
-      const homelandId = homelands?.[viewerFaction] ?? null;
+      const homelandId = homelandsByNation?.[viewerNation] ?? null;
 
       allowedShapeIds.forEach((shapeId) => {
         const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
@@ -448,7 +462,7 @@ export default function MapBoard() {
         } else {
           const owner = ownerByTerritory[territory.id] ?? "neutral";
           p.style.fillOpacity = "0.9";
-          p.style.fill = getOwnerFill(owner, customs);
+          p.style.fill = getOwnerFill(owner, customNations);
         }
 
         // homeland ring (still visible even if fogged)
@@ -468,9 +482,9 @@ export default function MapBoard() {
       shapeToTerritory,
       getEffectiveVisibility,
       ownerByTerritory,
-      customs,
-      homelands,
-      viewerFaction,
+      customNations,
+      homelandsByNation,
+      viewerNation,
       gmEffective,
     ],
   );
@@ -595,11 +609,11 @@ export default function MapBoard() {
       const grouped = new Map<string, string[]>();
       Object.values(platoonsById).forEach((platoon) => {
         const list = grouped.get(platoon.territoryId) ?? [];
-        list.push(platoon.faction);
+        list.push(platoon.nation);
         grouped.set(platoon.territoryId, list);
       });
 
-      const homeland = homelands?.[viewerFaction] ?? null;
+      const homeland = homelandsByNation?.[viewerNation] ?? null;
       const selectedPlatoonTerritory = selectedPlatoonId
         ? (platoonsById[selectedPlatoonId]?.territoryId ?? null)
         : null;
@@ -630,7 +644,7 @@ export default function MapBoard() {
         circle.setAttribute("cx", centroid.x.toString());
         circle.setAttribute("cy", centroid.y.toString());
         circle.setAttribute("r", "3");
-        circle.setAttribute("fill", getOwnerFill(factions[0], customs));
+        circle.setAttribute("fill", getOwnerFill(factions[0] as OwnerKey, customNations));
         circle.setAttribute("stroke", "#111827");
         circle.setAttribute("stroke-width", "0.5");
         markerLayer.appendChild(circle);
@@ -647,7 +661,7 @@ export default function MapBoard() {
         label.textContent = String(factions.length);
         markerLayer.appendChild(label);
 
-        if (homeland && factions.includes(viewerFaction)) {
+        if (homeland && factions.includes(viewerNation)) {
           const path = buildSupplyPath(tid, homeland);
           if (path && path.length > 1) {
             const points = path
@@ -678,14 +692,14 @@ export default function MapBoard() {
     },
     [
       buildSupplyPath,
-      customs,
+      customNations,
       ensureOverlayLayer,
       getTerritoryCentroid,
-      homelands,
+      homelandsByNation,
       platoonsById,
       selectedPlatoonId,
       territoriesById,
-      viewerFaction,
+      viewerNation,
     ],
   );
   const fitToAllowed = useCallback(
@@ -917,7 +931,7 @@ export default function MapBoard() {
     ) as SVGSVGElement | null;
     if (!svg) return;
     updatePlatoonOverlays(svg);
-  }, [platoonsById, homelands, updatePlatoonOverlays]);
+  }, [platoonsById, homelandsByNation, updatePlatoonOverlays]);
 
   return (
     <div style={{ position: "relative", height: "100%", minHeight: 0 }}>
@@ -994,22 +1008,16 @@ export default function MapBoard() {
           if (!terr) return null;
 
           const owner = ownerByTerritory[tid] ?? "neutral";
-          const ownerIsViewer = owner === viewerFaction;
+          const ownerIsViewer = owner === viewerNation;
           const locked = !!locksByTerritory[tid];
           const contest = contestsByTerritory[tid] as Contest | undefined;
 
           const level: VisibilityLevel = getEffectiveVisibility(tid);
           const redact = redactByIntel(level, ownerIsViewer, gmEffective);
 
-          const isHomeland = (homelands?.[viewerFaction] ?? null) === tid;
-          const accent =
-            viewerFaction === "allies"
-              ? baseFactionColors.allies
-              : viewerFaction === "axis"
-                ? baseFactionColors.axis
-                : viewerFaction === "ussr"
-                  ? baseFactionColors.ussr
-                  : "rgba(255,255,255,.6)";
+          const isHomeland =
+            (homelandsByNation?.[viewerNation] ?? null) === tid;
+          const accent = getNationAccent(viewerNation, customNations);
 
           return (
             <div

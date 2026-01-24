@@ -1,4 +1,5 @@
-import type { FactionKey, OwnerKey } from "../store/useCampaignStore";
+import type { OwnerKey } from "../store/useCampaignStore";
+import type { NationKey } from "../setup/NationDefinitions";
 import type {
   Platoon,
   PlatoonOrder,
@@ -118,15 +119,15 @@ export function resolveTurn(args: {
   }
 
   // --- 2) BUILD TERRITORY OCCUPANCY AFTER MOVES ---
-  type Occ = { factions: Set<FactionKey>; byFaction: Record<string, string[]> };
+  type Occ = { factions: Set<NationKey>; byFaction: Record<string, string[]> };
   const occByTerritory: Record<string, Occ> = {};
 
   for (const p of Object.values(nextPlatoons)) {
     const tid = p.territoryId;
-    const faction = p.faction as FactionKey;
+    const faction = p.nation as NationKey;
 
     if (!occByTerritory[tid]) {
-      occByTerritory[tid] = { factions: new Set<FactionKey>(), byFaction: {} };
+      occByTerritory[tid] = { factions: new Set<NationKey>(), byFaction: {} };
     }
     occByTerritory[tid].factions.add(faction);
     occByTerritory[tid].byFaction[faction] =
@@ -156,11 +157,11 @@ export function resolveTurn(args: {
       // Decide defender/attacker:
       // Prefer current owner as defender if it is a faction and present.
       const owner = nextOwners[territoryId];
-      let defenderFaction: FactionKey = f2;
-      let attackerFaction: FactionKey = f1;
+      let defenderFaction: NationKey = f2;
+      let attackerFaction: NationKey = f1;
 
       if (owner && owner !== "neutral" && owner !== "contested") {
-        const ownerFaction = owner as FactionKey;
+        const ownerFaction = owner as NationKey;
         if (ownerFaction === f1 || ownerFaction === f2) {
           defenderFaction = ownerFaction;
           attackerFaction = ownerFaction === f1 ? f2 : f1;
