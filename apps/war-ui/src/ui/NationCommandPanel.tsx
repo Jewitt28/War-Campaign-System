@@ -18,6 +18,9 @@ export default function NationCommandPanel({ data }: Props) {
   const platoonsById = useCampaignStore((s) => s.platoonsById);
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
   const suppliesByFaction = useCampaignStore((s) => s.suppliesByFaction);
+  const selectedPlatoonId = useCampaignStore((s) => s.selectedPlatoonId);
+  const setSelectedPlatoonId = useCampaignStore((s) => s.setSelectedPlatoonId);
+  const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
 
   const nationLabel =
     (viewerNation.startsWith("custom:")
@@ -39,6 +42,22 @@ export default function NationCommandPanel({ data }: Props) {
         return platoon?.nation === viewerNation && !order.submittedAt;
       });
   }, [ordersByTurn, platoonsById, turnNumber, viewerNation]);
+  const orderStatusByPlatoon = useMemo(() => {
+    const byTurn = ordersByTurn?.[turnNumber] ?? {};
+    const statuses = new Map<string, "none" | "draft" | "submitted">();
+    Object.values(byTurn)
+      .flat()
+      .forEach((order) => {
+        if (order.submittedAt) {
+          statuses.set(order.platoonId, "submitted");
+          return;
+        }
+        if (statuses.get(order.platoonId) !== "submitted") {
+          statuses.set(order.platoonId, "draft");
+        }
+      });
+    return statuses;
+  }, [ordersByTurn, turnNumber]);
   const supplies = suppliesByFaction?.[viewerFaction] ?? 0;
   const accentColor = getFactionAccent({ viewerNation, viewerFaction, customNations, customs });
 
@@ -74,15 +93,116 @@ export default function NationCommandPanel({ data }: Props) {
         }}
       >
         <h3 style={{ marginTop: 0 }}>Nation Platoons</h3>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+            fontSize: 12,
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#d14b47",
+              }}
+            />
+            No order
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#e2b340",
+              }}
+            />
+            Drafted
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#38b56f",
+              }}
+            />
+            Submitted
+          </div>
+        </div>
         {platoons.length ? (
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {platoons.map((platoon) => (
-              <li key={platoon.id}>
-                <b>{platoon.name}</b> — {platoon.condition} ·{" "}
-                {platoon.strengthPct}% · {platoon.territoryId}
-              </li>
-            ))}
-          </ul>
+          <div style={{ display: "grid", gap: 8 }}>
+            {platoons.map((platoon) => {
+              const status = orderStatusByPlatoon.get(platoon.id) ?? "none";
+              const statusColor =
+                status === "submitted"
+                  ? "#38b56f"
+                  : status === "draft"
+                    ? "#e2b340"
+                    : "#d14b47";
+              const statusLabel =
+                status === "submitted"
+                  ? "Submitted order"
+                  : status === "draft"
+                    ? "Draft order"
+                    : "No order";
+              return (
+                <button
+                  key={platoon.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedPlatoonId(platoon.id);
+                    setSelectedTerritory(platoon.territoryId);
+                  }}
+                  style={{
+                    textAlign: "left",
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(255,255,255,.12)",
+                    background:
+                      selectedPlatoonId === platoon.id
+                        ? "rgba(255,255,255,.06)"
+                        : "rgba(0,0,0,.12)",
+                    cursor: "pointer",
+                    display: "grid",
+                    gap: 4,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ fontWeight: 800 }}>{platoon.name}</div>
+                    <span
+                      title={statusLabel}
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        background: statusColor,
+                        boxShadow: `0 0 6px ${statusColor}66`,
+                        flexShrink: 0,
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.85 }}>
+                    {platoon.condition} · {platoon.strengthPct}% ·{" "}
+                    {platoon.territoryId}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         ) : (
           <div style={{ fontSize: 12, opacity: 0.8 }}>
             No platoons assigned to this nation yet.
