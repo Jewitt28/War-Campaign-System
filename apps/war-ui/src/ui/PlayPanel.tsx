@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import type { VisibilityLevel } from "../data/visibility";
 import { useCampaignStore } from "../store/useCampaignStore";
+import { factionLabel } from "../store/factionLabel";
+import { nationLabel } from "../store/nationLabel";
 import type { PlatoonOrder, BattleOutcome, Contest } from "../domain/types";
 import { NATIONS, type NationKey } from "../setup/NationDefinitions";
 import {
@@ -40,6 +42,7 @@ export default function PlayPanel({ data }: Props) {
     viewerMode,
     setViewerMode,
     customNations,
+    customs,
     selectedTerritoryId,
     setSelectedTerritory,
     ownerByTerritory,
@@ -322,7 +325,8 @@ export default function PlayPanel({ data }: Props) {
                 >
                   <div style={{ fontWeight: 700 }}>{p.name}</div>
                   <div style={{ fontSize: 12, opacity: 0.85 }}>
-                    {p.faction} · {p.condition} · {p.strengthPct}% · MP {p.mpBase}
+                    {factionLabel(p.faction, customs)} · {p.condition} ·{" "}
+                    {p.strengthPct}% · MP {p.mpBase}
                   </div>
                 </div>
               ))}
@@ -331,7 +335,7 @@ export default function PlayPanel({ data }: Props) {
 
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             <button onClick={() => createPlatoon(viewerFaction, selected.id)}>
-              + Create Platoon (as {viewerNation})
+              + Create Platoon (as {nationLabel(viewerNation, customNations)})
             </button>
           </div>
 

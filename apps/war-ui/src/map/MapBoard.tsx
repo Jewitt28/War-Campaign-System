@@ -14,6 +14,8 @@ import {
   type FactionKey,
   type OwnerKey,
 } from "../store/useCampaignStore";
+import { factionLabel } from "../store/factionLabel";
+import { nationLabel } from "../store/nationLabel";
 import type { Contest } from "../domain/types";
 import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
 
@@ -310,6 +312,7 @@ export default function MapBoard() {
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
   const customNations = useCampaignStore((s) => s.customNations);
+  const customs = useCampaignStore((s) => s.customs);
   const homelandsByNation = useCampaignStore((s) => s.homelandsByNation);
 
   const gmEffective = isGMEffective(mode, viewerMode);
@@ -718,8 +721,10 @@ export default function MapBoard() {
     (svg: SVGSVGElement) => {
       const markerLayer = ensureOverlayLayer(svg, "platoon-markers");
       const lineLayer = ensureOverlayLayer(svg, "supply-lines");
+      const homelandLayer = ensureOverlayLayer(svg, "homeland-markers");
       markerLayer.innerHTML = "";
       lineLayer.innerHTML = "";
+      homelandLayer.innerHTML = "";
       centroidCacheRef.current.clear();
 
       const grouped = new Map<string, string[]>();
@@ -747,6 +752,40 @@ export default function MapBoard() {
       const selectedPlatoonTerritory = selectedPlatoonId
         ? (platoonsById[selectedPlatoonId]?.territoryId ?? null)
         : null;
+
+      if (homeland) {
+        const territory = territoriesById.get(homeland);
+        if (territory) {
+          const centroid = getTerritoryCentroid(svg, territory);
+          if (centroid) {
+            const accent = getNationAccent(viewerNation, customNations);
+            const ring = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "circle",
+            );
+            ring.setAttribute("cx", centroid.x.toString());
+            ring.setAttribute("cy", centroid.y.toString());
+            ring.setAttribute("r", "6");
+            ring.setAttribute("fill", accent);
+            ring.setAttribute("stroke", "rgba(15,23,42,.9)");
+            ring.setAttribute("stroke-width", "1.2");
+            homelandLayer.appendChild(ring);
+
+            const icon = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "text",
+            );
+            icon.setAttribute("x", centroid.x.toString());
+            icon.setAttribute("y", (centroid.y + 2).toString());
+            icon.setAttribute("text-anchor", "middle");
+            icon.setAttribute("font-size", "5");
+            icon.setAttribute("font-weight", "700");
+            icon.setAttribute("fill", "#0f172a");
+            icon.textContent = "H";
+            homelandLayer.appendChild(icon);
+          }
+        }
+      }
 
       grouped.forEach((factions, tid) => {
         const territory = territoriesById.get(tid);
@@ -1220,7 +1259,7 @@ export default function MapBoard() {
 
               {redact.showOwner && (
                 <div style={{ opacity: 0.9 }}>
-                  <b>Owner:</b> {owner}
+                  <b>Owner:</b> {nationLabel(owner, customNations)}
                 </div>
               )}
 
@@ -1232,8 +1271,10 @@ export default function MapBoard() {
 
               {redact.showCombat && contest && (
                 <div style={{ opacity: 0.95, marginTop: 4 }}>
-                  <b>Contest:</b> {contest.attackerFaction} vs{" "}
-                  {contest.defenderFaction} ({contest.status})
+                  <b>Contest:</b>{" "}
+                  {factionLabel(contest.attackerFaction, customs)} vs{" "}
+                  {factionLabel(contest.defenderFaction, customs)} (
+                  {contest.status})
                 </div>
               )}
 

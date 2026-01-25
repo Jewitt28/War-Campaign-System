@@ -94,6 +94,7 @@ export default function SetupPanel() {
     setViewerNation,
     setHomeland, // v1 bridge
     setSelectedTerritory,
+    selectedTerritoryId,
     customNations,
     createCustomNation,
     customs,
@@ -234,6 +235,25 @@ export default function SetupPanel() {
     if (list.includes(regionTerritoryId)) return regionTerritoryId;
     return list[0];
   }, [activeRegion, regionTerritoryId]);
+
+  useEffect(() => {
+    if (!selectedTerritoryId) return;
+    if (regionGroups.length === 0) return;
+    const nextRegion = regionGroups.find((group) =>
+      group.territories?.includes(selectedTerritoryId),
+    );
+    if (!nextRegion) return;
+    if (regionId !== nextRegion.id) {
+      setRegionId(nextRegion.id);
+      setSelectedRegion(nextRegion.id);
+    }
+    setRegionTerritoryId(selectedTerritoryId);
+  }, [
+    regionGroups,
+    regionId,
+    selectedTerritoryId,
+    setSelectedRegion,
+  ]);
 
   const canSetHomeland = !!selectedSetupNation && !!safeRegionTerritoryId;
 

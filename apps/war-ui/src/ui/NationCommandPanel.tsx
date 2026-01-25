@@ -6,6 +6,7 @@ import {
   type FactionKey,
 } from "../store/useCampaignStore";
 import { factionLabel } from "../store/factionLabel";
+import { nationLabel } from "../store/nationLabel";
 import { getFactionAccent } from "./factionColors";
 import {
   formatTerritoryLabel,
@@ -94,11 +95,8 @@ export default function NationCommandPanel({ data }: Props) {
   const [wizardName, setWizardName] = useState("");
   const [wizardTrait, setWizardTrait] = useState<PlatoonTrait | "">("");
   const [wizardMpBase, setWizardMpBase] = useState(1);
-  const [wizardCondition, setWizardCondition] =
-    useState<PlatoonCondition>("FRESH");
-  const [wizardStrengthPct, setWizardStrengthPct] = useState(100);
 
-  const nationLabel =
+  const viewerNationLabel =
     (viewerNation.startsWith("custom:")
       ? customNations.find((n) => n.id === viewerNation)?.name
       : NATION_BY_ID[viewerNation as BaseNationKey]?.name) ?? viewerNation;
@@ -175,7 +173,7 @@ export default function NationCommandPanel({ data }: Props) {
     setRefitPct(10);
   }, [expandedPlatoonId]);
 
-  const wizardSteps = ["Name", "Specialism", "Upgrades"];
+  const wizardSteps = ["Specialism", "Mobility", "Name"];
   const expandedPlatoon = expandedPlatoonId
     ? platoonsById[expandedPlatoonId]
     : undefined;
@@ -188,6 +186,17 @@ export default function NationCommandPanel({ data }: Props) {
   const COST_TRAIT_RECON = 20;
   const COST_TRAIT_ENGINEERS = 20;
   const COST_TRAIT_MOTORIZED = 30;
+
+  const traitCosts: Record<PlatoonTrait, number> = {
+    RECON: COST_TRAIT_RECON,
+    ENGINEERS: COST_TRAIT_ENGINEERS,
+    MOTORIZED: COST_TRAIT_MOTORIZED,
+  };
+  const traitInfo: Record<PlatoonTrait, string> = {
+    RECON: "Recon orders can target up to 2 territories.",
+    ENGINEERS: "Support-focused platoon. (Rules coming soon.)",
+    MOTORIZED: "Mobile platoon. (Rules coming soon.)",
+  };
 
   const canAfford = (cost: number) => supplies >= cost;
   const mustMatchNation = expandedPlatoon
@@ -348,8 +357,6 @@ export default function NationCommandPanel({ data }: Props) {
     setWizardName("");
     setWizardTrait("");
     setWizardMpBase(1);
-    setWizardCondition("FRESH");
-    setWizardStrengthPct(100);
     setWizardStep(0);
     setWizardOpen(true);
   };
@@ -370,8 +377,8 @@ export default function NationCommandPanel({ data }: Props) {
       name: trimmedName,
       traits: wizardTrait ? [wizardTrait] : [],
       mpBase: wizardMpBase,
-      condition: wizardCondition,
-      strengthPct: wizardStrengthPct,
+      condition: "FRESH",
+      strengthPct: 100,
     });
     setWizardOpen(false);
   };
@@ -388,7 +395,7 @@ export default function NationCommandPanel({ data }: Props) {
       }}
     >
       <div>
-        <h2 style={{ margin: 0 }}>{nationLabel} Command</h2>
+        <h2 style={{ margin: 0 }}>{viewerNationLabel} Command</h2>
         <div style={{ opacity: 0.8 }}>
           Nation overview · Faction alignment:{" "}
           <b>{factionLabel(viewerFaction, customs)}</b> · Turn{" "}
@@ -418,7 +425,10 @@ export default function NationCommandPanel({ data }: Props) {
                 : undefined
             }
           >
-            + Create Platoon {selectedTerritoryId ? `(as ${viewerNation})` : ""}
+            + Create Platoon{" "}
+            {selectedTerritoryId
+              ? `(as ${nationLabel(viewerNation, customNations)})`
+              : ""}
           </button>
         </div>
         {wizardOpen ? (
@@ -438,9 +448,10 @@ export default function NationCommandPanel({ data }: Props) {
                 background: "#0f172a",
                 borderRadius: 12,
                 padding: 16,
-                border: "1px solid rgba(255,255,255,.15)",
+                border: `1px solid ${accentColor}55`,
                 display: "grid",
                 gap: 12,
+                backgroundImage: `linear-gradient(135deg, ${accentColor}22, rgba(0,0,0,0))`,
               }}
             >
               <div
@@ -473,7 +484,7 @@ export default function NationCommandPanel({ data }: Props) {
                         borderRadius: 999,
                         background:
                           index <= wizardStep
-                            ? "rgba(56,189,248,.9)"
+                            ? accentColor
                             : "rgba(255,255,255,.12)",
                       }}
                     />
@@ -486,21 +497,6 @@ export default function NationCommandPanel({ data }: Props) {
               </div>
 
               {wizardStep === 0 ? (
-                <div style={{ display: "grid", gap: 8 }}>
-                  <div style={{ fontWeight: 700 }}>Name your platoon</div>
-                  <input
-                    value={wizardName}
-                    onChange={(e) => setWizardName(e.target.value)}
-                    placeholder="e.g. 1st Infantry"
-                  />
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    Territory: <b>{selectedTerritoryId ?? "—"}</b> · Nation:{" "}
-                    <b>{viewerNation}</b>
-                  </div>
-                </div>
-              ) : null}
-
-              {wizardStep === 1 ? (
                 <div style={{ display: "grid", gap: 8 }}>
                   <div style={{ fontWeight: 700 }}>
                     Choose a platoon specialism
@@ -515,23 +511,28 @@ export default function NationCommandPanel({ data }: Props) {
                       checked={wizardTrait === ""}
                       onChange={() => setWizardTrait("")}
                     />
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
+                    <span style={{ display: "grid", gap: 2 }}>
                       <span
                         style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: "50%",
-                          background: classStyles.INFANTRY.color,
-                          display: "inline-block",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 8,
                         }}
-                      />
-                      None (standard infantry)
+                      >
+                        <span
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: "50%",
+                            background: classStyles.INFANTRY.color,
+                            display: "inline-block",
+                          }}
+                        />
+                        None (standard infantry)
+                      </span>
+                      <span style={{ fontSize: 12, opacity: 0.75 }}>
+                        Cost: <b>0</b> · Balanced infantry platoon.
+                      </span>
                     </span>
                   </label>
                   {(["RECON", "ENGINEERS", "MOTORIZED"] as PlatoonTrait[]).map(
@@ -551,23 +552,29 @@ export default function NationCommandPanel({ data }: Props) {
                           checked={wizardTrait === trait}
                           onChange={() => setWizardTrait(trait)}
                         />
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
+                        <span style={{ display: "grid", gap: 2 }}>
                           <span
                             style={{
-                              width: 18,
-                              height: 18,
-                              borderRadius: "50%",
-                              background: classStyles[trait].color,
-                              display: "inline-block",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 8,
                             }}
-                          />
-                          {classStyles[trait].label}
+                          >
+                            <span
+                              style={{
+                                width: 18,
+                                height: 18,
+                                borderRadius: "50%",
+                                background: classStyles[trait].color,
+                                display: "inline-block",
+                              }}
+                            />
+                            {classStyles[trait].label}
+                          </span>
+                          <span style={{ fontSize: 12, opacity: 0.75 }}>
+                            Cost: <b>{traitCosts[trait]}</b> ·{" "}
+                            {traitInfo[trait]}
+                          </span>
                         </span>
                       </label>
                     ),
@@ -575,28 +582,9 @@ export default function NationCommandPanel({ data }: Props) {
                 </div>
               ) : null}
 
-              {wizardStep === 2 ? (
+              {wizardStep === 1 ? (
                 <div style={{ display: "grid", gap: 12 }}>
-                  <div style={{ fontWeight: 700 }}>Configure upgrades</div>
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <label style={{ fontSize: 12, opacity: 0.8 }}>
-                      Readiness (Condition)
-                    </label>
-                    <select
-                      value={wizardCondition}
-                      onChange={(e) =>
-                        setWizardCondition(e.target.value as PlatoonCondition)
-                      }
-                    >
-                      {CONDITION_ORDER.slice()
-                        .reverse()
-                        .map((condition) => (
-                          <option key={condition} value={condition}>
-                            {condition}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+                  <div style={{ fontWeight: 700 }}>Configure mobility</div>
                   <div style={{ display: "grid", gap: 6 }}>
                     <label style={{ fontSize: 12, opacity: 0.8 }}>
                       Mobility (MP)
@@ -616,24 +604,33 @@ export default function NationCommandPanel({ data }: Props) {
                       ))}
                     </select>
                   </div>
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <label style={{ fontSize: 12, opacity: 0.8 }}>
-                      Starting strength (%)
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={100}
-                      value={wizardStrengthPct}
-                      onChange={(e) =>
-                        setWizardStrengthPct(
-                          clamp(Number(e.target.value || 1), 1, 100),
-                        )
-                      }
-                    />
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    New platoons always deploy at full readiness and strength.
+                  </div>
+                </div>
+              ) : null}
+
+              {wizardStep === 2 ? (
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ fontWeight: 700 }}>Name your platoon</div>
+                  <input
+                    value={wizardName}
+                    onChange={(e) => setWizardName(e.target.value)}
+                    placeholder="e.g. 1st Infantry"
+                  />
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    Territory: <b>{selectedTerritoryId ?? "—"}</b> · Nation:{" "}
+                    <b>{nationLabel(viewerNation, customNations)}</b>
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    You can adjust upgrades later once the platoon is deployed.
+                    Specialism:{" "}
+                    <b>
+                      {wizardTrait
+                        ? classStyles[wizardTrait].label
+                        : classStyles.INFANTRY.label}
+                    </b>{" "}
+                    · MP <b>{wizardMpBase}</b> · Readiness <b>FRESH</b> · Strength{" "}
+                    <b>100%</b>
                   </div>
                 </div>
               ) : null}
@@ -657,7 +654,6 @@ export default function NationCommandPanel({ data }: Props) {
                     <button
                       type="button"
                       onClick={() => goToWizardStep(wizardStep + 1)}
-                      disabled={!wizardName.trim() && wizardStep === 0}
                     >
                       Next
                     </button>
@@ -855,7 +851,8 @@ export default function NationCommandPanel({ data }: Props) {
                       </div>
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.85 }}>
-                      {platoon.nation} · {platoon.condition} ·{" "}
+                      {nationLabel(platoon.nation, customNations)} ·{" "}
+                      {platoon.condition} ·{" "}
                       {platoon.strengthPct}% · MP {platoon.mpBase}
                       {platoon.entrenched ? " · ENTRENCHED" : ""}
                       {(platoon.traits?.length ?? 0) > 0
@@ -868,7 +865,7 @@ export default function NationCommandPanel({ data }: Props) {
                         platoon.territoryId,
                         territoryNameById,
                       )}{" "}
-                      · Faction: {platoon.faction}
+                      · Faction: {factionLabel(platoon.faction, customs)}
                     </div>
                   </div>
                   {orderPanelOpen ? (
@@ -957,10 +954,12 @@ export default function NationCommandPanel({ data }: Props) {
                           <b>Name:</b> {expandedPlatoon.name}
                         </div>
                         <div>
-                          <b>Nation:</b> {expandedPlatoon.nation}
+                          <b>Nation:</b>{" "}
+                          {nationLabel(expandedPlatoon.nation, customNations)}
                         </div>
                         <div>
-                          <b>Faction:</b> {expandedPlatoon.faction}
+                          <b>Faction:</b>{" "}
+                          {factionLabel(expandedPlatoon.faction, customs)}
                         </div>
                         <div>
                           <b>Condition:</b> {expandedPlatoon.condition}

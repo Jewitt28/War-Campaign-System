@@ -2,11 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import { useCampaignStore, type OwnerKey } from "../store/useCampaignStore";
 import { factionLabel } from "../store/factionLabel";
-import {
-  NATION_BY_ID,
-  type BaseNationKey,
-  type NationKey,
-} from "../setup/NationDefinitions";
+import { nationLabel } from "../store/nationLabel";
+import type { NationKey } from "../setup/NationDefinitions";
 import { getFactionAccent } from "./factionColors";
 
 type Props = {
@@ -158,10 +155,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
   );
 
   const factionDisplayName = factionLabel(viewerFaction, customs);
-  const nationDisplayName =
-    (viewerNation.startsWith("custom:")
-      ? customNations.find((n) => n.id === viewerNation)?.name
-      : NATION_BY_ID[viewerNation as BaseNationKey]?.name) ?? viewerNation;
+  const nationDisplayName = nationLabel(viewerNation, customNations);
   const customFaction = customs.find((f) => `custom:${f.id}` === viewerFaction);
   const accentColor = getFactionAccent({
     viewerNation,
@@ -552,7 +546,8 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                                   {platoon.name}
                                 </div>
                                 <div style={{ fontSize: 12, opacity: 0.75 }}>
-                                  {platoon.faction} · {platoon.condition} ·{" "}
+                                  {factionLabel(platoon.faction, customs)} ·{" "}
+                                  {platoon.condition} ·{" "}
                                   {platoon.strengthPct}% strength
                                 </div>
                                 <div
@@ -599,8 +594,8 @@ export default function CommandHub({ data, variant = "full" }: Props) {
 
                               {contest ? (
                                 <div style={{ fontSize: 12, opacity: 0.8 }}>
-                                  {contest.attackerFaction} vs{" "}
-                                  {contest.defenderFaction} · {contest.status}
+                                  {factionLabel(contest.attackerFaction, customs)} vs{" "}
+                                  {factionLabel(contest.defenderFaction, customs)} · {contest.status}
                                 </div>
                               ) : (
                                 <div style={{ fontSize: 12, opacity: 0.8 }}>
