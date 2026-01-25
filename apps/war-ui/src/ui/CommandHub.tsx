@@ -96,7 +96,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
   const customNations = useCampaignStore((s) => s.customNations);
   //  const playerFactionId = useCampaignStore((s) => s.playerFactionId);
   // const setPlayerFactionId = useCampaignStore((s) => s.setPlayerFactionId);
-  const suppliesByFaction = useCampaignStore((s) => s.suppliesByFaction);
+  const suppliesByNation = useCampaignStore((s) => s.suppliesByNation);
   const regionsFromStore = useCampaignStore((s) => s.regions);
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
@@ -180,7 +180,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
     "🛡️";
 
   const resourceSnapshot = useMemo(() => {
-    const base = suppliesByFaction?.[viewerFaction] ?? 0;
+    const base = suppliesByNation?.[viewerNation] ?? 0;
     return [
       {
         key: "manpower",
@@ -199,7 +199,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
         value: Math.max(0, Math.round(base * 0.3)),
       },
     ];
-  }, [suppliesByFaction, viewerFaction]);
+  }, [suppliesByNation, viewerNation]);
 
   const totalResourceValue = useMemo(() => {
     return resourceSnapshot.reduce(

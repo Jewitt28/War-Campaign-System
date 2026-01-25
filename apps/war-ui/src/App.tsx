@@ -125,7 +125,6 @@ function TopBar({ data }: { data: NormalizedData | null }) {
   const setViewerMode = useCampaignStore((s) => s.setViewerMode);
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const setViewerNation = useCampaignStore((s) => s.setViewerNation);
-  const viewerFaction = useCampaignStore((s) => s.viewerFaction);
   const customNations = useCampaignStore((s) => s.customNations);
 
   const playMode = useCampaignStore((s) => s.playMode);
@@ -136,7 +135,7 @@ function TopBar({ data }: { data: NormalizedData | null }) {
   const resetAll = useCampaignStore((s) => s.resetAll);
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
-  const suppliesByFaction = useCampaignStore((s) => s.suppliesByFaction);
+  const suppliesByNation = useCampaignStore((s) => s.suppliesByNation);
   const nationsEnabled = useCampaignStore((s) => s.nationsEnabled);
   const leftPanelView = useCampaignStore((s) => s.leftPanelView);
   const setLeftPanelView = useCampaignStore((s) => s.setLeftPanelView);
@@ -160,7 +159,7 @@ function TopBar({ data }: { data: NormalizedData | null }) {
   }, [ordersByTurn, platoonsById, turnNumber, viewerNation]);
 
   const resourceSnapshot = useMemo(() => {
-    const base = suppliesByFaction?.[viewerFaction] ?? 0;
+    const base = suppliesByNation?.[viewerNation] ?? 0;
     return [
       {
         key: "🪖",
@@ -171,7 +170,7 @@ function TopBar({ data }: { data: NormalizedData | null }) {
       { key: "⛽", value: Math.max(0, Math.round(base * 0.6)), label: "Fuel" },
       { key: "🛰️", value: Math.max(0, Math.round(base * 0.3)), label: "Intel" },
     ];
-  }, [suppliesByFaction, viewerFaction]);
+  }, [suppliesByNation, viewerNation]);
   const nationOptions = useMemo(() => {
     const base = NATIONS.map((nation) => ({
       id: nation.id as NationKey,

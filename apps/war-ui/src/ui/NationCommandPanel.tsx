@@ -135,8 +135,8 @@ export default function NationCommandPanel({ data }: Props) {
     return statuses;
   }, [ordersByTurn, turnNumber]);
   const supplies = useMemo(
-    () => getSupplies(viewerFaction),
-    [getSupplies, viewerFaction],
+    () => getSupplies(viewerNation),
+    [getSupplies, viewerNation],
   );
   const accentColor = getFactionAccent({
     viewerNation,
@@ -240,7 +240,7 @@ export default function NationCommandPanel({ data }: Props) {
     if (gain <= 0) return;
     if (!mustMatchNation) return;
 
-    const ok = spendSupplies(expandedPlatoon.faction, cost, "Refit");
+    const ok = spendSupplies(expandedPlatoon.nation, cost, "Refit");
     if (!ok) return;
 
     const nextCondition =
@@ -265,7 +265,7 @@ export default function NationCommandPanel({ data }: Props) {
     if (!mustMatchNation) return;
 
     const ok = spendSupplies(
-      expandedPlatoon.faction,
+      expandedPlatoon.nation,
       COST_UPGRADE_MP,
       "Mobility upgrade",
     );
@@ -284,7 +284,7 @@ export default function NationCommandPanel({ data }: Props) {
     if (!mustMatchNation) return;
 
     const ok = spendSupplies(
-      expandedPlatoon.faction,
+      expandedPlatoon.nation,
       COST_UPGRADE_CONDITION,
       "Readiness upgrade",
     );
@@ -309,7 +309,7 @@ export default function NationCommandPanel({ data }: Props) {
     if (!mustMatchNation) return;
     if (hasTrait(trait)) return;
 
-    const ok = spendSupplies(expandedPlatoon.faction, cost, `Trait: ${trait}`);
+    const ok = spendSupplies(expandedPlatoon.nation, cost, `Trait: ${trait}`);
     if (!ok) return;
 
     patchPlatoon(expandedPlatoon.id, { traits: [...traits, trait] });
@@ -327,7 +327,7 @@ export default function NationCommandPanel({ data }: Props) {
 
     if (!currently) {
       const ok = spendSupplies(
-        expandedPlatoon.faction,
+        expandedPlatoon.nation,
         COST_TOGGLE_ENTRENCH,
         "Entrench",
       );
@@ -1207,7 +1207,7 @@ export default function NationCommandPanel({ data }: Props) {
                       </div>
 
                       <div style={{ fontSize: 12, opacity: 0.75 }}>
-                        Note: supplies are spent from the platoon’s faction —
+                        Note: supplies are spent from the platoon’s nation —
                         switch Viewer nation to match to apply
                         upgrades/orders.
                       </div>

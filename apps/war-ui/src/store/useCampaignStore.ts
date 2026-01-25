@@ -24,7 +24,7 @@ import { resolveBattles as resolveBattlesFn } from "../domain/resolveBattles";
 export type BaseFactionKey = "allies" | "axis" | "ussr";
 export type FactionKey = BaseFactionKey | "neutral" | `custom:${string}`;
 export type OwnerKey = NationKey | "neutral" | "contested";
-export type SuppliesByFaction = Record<string, number>;
+export type SuppliesByNation = Record<string, number>;
 
 export type Mode = "SETUP" | "PLAY";
 export type ViewerMode = "PLAYER" | "GM";
@@ -226,11 +226,11 @@ export type CampaignState = {
   clearLocksAndContests: () => void;
 
   // Supplies
-  suppliesByFaction: SuppliesByFaction;
+  suppliesByNation: SuppliesByNation;
   ensureSupplies: () => void;
-  getSupplies: (faction: string) => number;
-  spendSupplies: (faction: string, amount: number, reason?: string) => boolean;
-  addSupplies: (faction: string, amount: number, reason?: string) => void;
+  getSupplies: (nation: NationKey) => number;
+  spendSupplies: (nation: NationKey, amount: number, reason?: string) => boolean;
+  addSupplies: (nation: NationKey, amount: number, reason?: string) => void;
 };
 
 const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
@@ -412,11 +412,9 @@ const initialState: Omit<
   contestsByTerritory: {},
   adjacencyByTerritory: {},
 
-  suppliesByFaction: {
-    allies: 100,
-    axis: 100,
-    ussr: 100,
-  },
+  suppliesByNation: Object.fromEntries(
+    Object.values(NATION_BY_ID).map((nation) => [nation.id, 100]),
+  ),
 };
 function consumeSubmittedOrdersForTurn(
   ordersByTurn: Record<number, Record<string, PlatoonOrder[]>>,
@@ -1032,33 +1030,32 @@ export const useCampaignStore = create<CampaignState>()(
       // -------- Supplies (now valid because we have get()) --------
       ensureSupplies: () => {
         const s = get();
-        const m = { ...(s.suppliesByFaction ?? {}) };
+        const m = { ...(s.suppliesByNation ?? {}) };
 
-        if (m.allies == null) m.allies = 100;
-        if (m.axis == null) m.axis = 100;
-        if (m.ussr == null) m.ussr = 100;
-
-        for (const c of s.customs ?? []) {
-          const k = `custom:${c.id}`;
-          if (m[k] == null) m[k] = 100;
+        for (const nation of Object.values(NATION_BY_ID)) {
+          if (m[nation.id] == null) m[nation.id] = 100;
         }
 
-        set({ suppliesByFaction: m });
+        for (const c of s.customNations ?? []) {
+          if (m[c.id] == null) m[c.id] = 100;
+        }
+
+        set({ suppliesByNation: m });
       },
 
-      getSupplies: (faction: string) => {
+      getSupplies: (nation: NationKey) => {
         const s = get();
-        return (s.suppliesByFaction?.[faction] ?? 0) | 0;
+        return (s.suppliesByNation?.[nation] ?? 0) | 0;
       },
 
-      spendSupplies: (faction: string, amount: number, reason?: string) => {
+      spendSupplies: (nation: NationKey, amount: number, reason?: string) => {
         const s = get();
-        const cur = s.suppliesByFaction?.[faction] ?? 0;
+        const cur = s.suppliesByNation?.[nation] ?? 0;
         const cost = Math.max(0, Math.floor(amount));
         if (cur < cost) return false;
 
         const next = cur - cost;
-        set({ suppliesByFaction: { ...s.suppliesByFaction, [faction]: next } });
+        set({ suppliesByNation: { ...s.suppliesByNation, [nation]: next } });
 
         if (Array.isArray(s.turnLog) && cost > 0) {
           set({
@@ -1066,7 +1063,7 @@ export const useCampaignStore = create<CampaignState>()(
               {
                 ts: Date.now(),
                 type: "SUPPLY",
-                text: `${faction} spent ${cost} supplies${reason ? ` (${reason})` : ""} (now ${next})`,
+                text: `${nation} spent ${cost} supplies${reason ? ` (${reason})` : ""} (now ${next})`,
                 id: uid(),
               },
               ...s.turnLog,
@@ -1077,13 +1074,13 @@ export const useCampaignStore = create<CampaignState>()(
         return true;
       },
 
-      addSupplies: (faction: string, amount: number, reason?: string) => {
+      addSupplies: (nation: NationKey, amount: number, reason?: string) => {
         const s = get();
         const add = Math.max(0, Math.floor(amount));
-        const cur = s.suppliesByFaction?.[faction] ?? 0;
+        const cur = s.suppliesByNation?.[nation] ?? 0;
         const next = cur + add;
 
-        set({ suppliesByFaction: { ...s.suppliesByFaction, [faction]: next } });
+        set({ suppliesByNation: { ...s.suppliesByNation, [nation]: next } });
 
         if (Array.isArray(s.turnLog) && add > 0) {
           set({
@@ -1091,7 +1088,7 @@ export const useCampaignStore = create<CampaignState>()(
               {
                 ts: Date.now(),
                 type: "SUPPLY",
-                text: `${faction} gained ${add} supplies${reason ? ` (${reason})` : ""} (now ${next})`,
+                text: `${nation} gained ${add} supplies${reason ? ` (${reason})` : ""} (now ${next})`,
                 id: uid(),
               },
               ...s.turnLog,
