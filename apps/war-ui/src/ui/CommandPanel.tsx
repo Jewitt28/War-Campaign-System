@@ -263,16 +263,11 @@ function OrdersPhasePanel() {
   const setPlatoonOrderHold = useCampaignStore((s) => s.setPlatoonOrderHold);
   const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
   const setPlatoonOrderRecon = useCampaignStore((s) => s.setPlatoonOrderRecon);
-  const selectedPlatoonId = useCampaignStore((s) => s.selectedPlatoonId);
-
   const setPlatoonOrderIntel = useCampaignStore((s) => s.setPlatoonOrderIntel);
   const orderDraftType = useCampaignStore((s) => s.orderDraftType);
   const setOrderDraftType = useCampaignStore((s) => s.setOrderDraftType);
   const setSelectedPlatoonId = useCampaignStore((s) => s.setSelectedPlatoonId);
 
-  const [orderType, setOrderType] = useState<
-    "MOVE" | "HOLD" | "RECON" | "INTEL"
-  >("MOVE");
   const [orderType, setOrderType] = useState<
     "MOVE" | "HOLD" | "RECON" | "INTEL"
   >("MOVE");
@@ -283,6 +278,7 @@ function OrdersPhasePanel() {
   const [reconTarget1, setReconTarget1] = useState("");
   const [reconTarget2, setReconTarget2] = useState("");
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (selectedPlatoonId && selectedPlatoonId !== orderPlatoonId) {
       setOrderPlatoonId(selectedPlatoonId);

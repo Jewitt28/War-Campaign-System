@@ -819,6 +819,7 @@ export default function MapBoard() {
       const grouped = new Map<string, string[]>();
       const visiblePlatoons = Object.values(platoonsById).filter((platoon) => {
         if (gmEffective) return true;
+        if (platoon.nation === viewerNation) return true;
         const visibility = getRulesVisibility({
           viewerMode,
           viewerNation,
@@ -827,7 +828,7 @@ export default function MapBoard() {
           intelByTerritory,
           data,
         });
-        return visibility !== "NONE" || platoon.nation === viewerNation;
+        return visibility === "SCOUTED" || visibility === "FULL";
       });
 
       visiblePlatoons.forEach((platoon) => {
