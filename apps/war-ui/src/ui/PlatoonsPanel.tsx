@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
 import type { PlatoonCondition, PlatoonTrait } from "../domain/types";
+import { formatTerritoryLabel } from "./territoryLabel";
 
 const CONDITION_ORDER: PlatoonCondition[] = [
   "SHATTERED",
@@ -50,6 +51,7 @@ export default function PlatoonsPanel() {
   );
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
+  const territoryNameById = useCampaignStore((s) => s.territoryNameById);
 
   const ensureSupplies = useCampaignStore((s) => s.ensureSupplies);
   const getSupplies = useCampaignStore((s) => s.getSupplies);
@@ -656,7 +658,9 @@ export default function PlatoonsPanel() {
                         : ""}
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.7 }}>
-                      Territory: {p.territoryId} · Faction: {p.faction}
+                      Territory:{" "}
+                      {formatTerritoryLabel(p.territoryId, territoryNameById)} ·{" "}
+                      Faction: {p.faction}
                     </div>
                   </button>
                 );

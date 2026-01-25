@@ -3,6 +3,7 @@ import { useCampaignStore } from "../store/useCampaignStore";
 import type { Platoon } from "../domain/types";
 import type { NormalizedData } from "../data/theatres";
 import type { Tab } from "../ui/CommandPanel";
+import { formatTerritoryLabel } from "../ui/territoryLabel";
 
 type Props = {
   data: NormalizedData | null;
@@ -14,10 +15,11 @@ export default function PlayerDashboard({ data, tab }: Props) {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const turnNumber = useCampaignStore((s) => s.turnNumber);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
+  const territoryNameById = useCampaignStore((s) => s.territoryNameById);
 
   const myPlatoons = useMemo(() => {
     const all = Object.values(platoonsById) as Platoon[];
-      return all.filter((p) => p.nation === viewerNation);
+    return all.filter((p) => p.nation === viewerNation);
   }, [platoonsById, viewerNation]);
   return (
     <div style={{ padding: 16, display: "grid", gap: 12 }}>
@@ -38,7 +40,8 @@ export default function PlayerDashboard({ data, tab }: Props) {
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {myPlatoons.map((p) => (
               <li key={p.id}>
-                <b>{p.name}</b> — {p.condition} · {p.strengthPct}% · {p.territoryId}
+                <b>{p.name}</b> — {p.condition} · {p.strengthPct}% ·{" "}
+                {formatTerritoryLabel(p.territoryId, territoryNameById)}
               </li>
             ))}
           </ul>

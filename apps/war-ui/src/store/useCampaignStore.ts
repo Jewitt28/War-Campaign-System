@@ -117,6 +117,7 @@ export type CampaignState = {
   setHomelandUnlock: (unlock: boolean) => void;
   ownerByTerritory: Record<string, OwnerKey>;
   intelByTerritory: IntelByTerritory;
+  territoryNameById: Record<string, string>;
 
   selectedTerritoryId: string | null;
   turnLog: TurnLogEntry[];
@@ -218,6 +219,7 @@ export type CampaignState = {
   resolveCurrentTurn: (isAdjacent: (a: string, b: string) => boolean) => void;
   resolveBattles: (outcomes: BattleOutcome[]) => void;
   setAdjacencyByTerritory: (adjacency: Record<string, string[]>) => void;
+  setTerritoryNameById: (names: Record<string, string>) => void;
   setPhase: (p: Phase) => void;
   nextPhase: (isAdjacent: (a: string, b: string) => boolean) => void;
 
@@ -331,6 +333,7 @@ const initialState: Omit<
   | "setPlatoonOrderRecon"
   | "setPlatoonOrderIntel"
   | "setAdjacencyByTerritory"
+  | "setTerritoryNameById"
   | "submitFactionOrders"
   | "resolveCurrentTurn"
   | "resolveBattles"
@@ -393,6 +396,7 @@ const initialState: Omit<
   homelandUnlock: false,
   ownerByTerritory: {},
   intelByTerritory: {},
+  territoryNameById: {},
 
   selectedTerritoryId: null,
   selectedPlatoonId: null,
@@ -918,6 +922,7 @@ export const useCampaignStore = create<CampaignState>()(
         }),
       setAdjacencyByTerritory: (adjacency) =>
         set({ adjacencyByTerritory: adjacency }),
+      setTerritoryNameById: (names) => set({ territoryNameById: names }),
 
       setPhase: (p) =>
         set((s) => {

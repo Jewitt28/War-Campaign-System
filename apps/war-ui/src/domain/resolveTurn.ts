@@ -193,7 +193,7 @@ export function resolveTurn(args: {
           contestId: existing.id,
         };
         log.push(
-          `COMBAT UPDATED: ${territoryId} merged arrivals into contest ${existing.id}`,
+          `COMBAT UPDATED: ${territoryId} merged arrivals into existing contest`,
         );
       } else {
         // Create new contest

@@ -4,6 +4,10 @@ import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
 import { useCampaignStore } from "../store/useCampaignStore";
 import { factionLabel } from "../store/factionLabel";
 import { getFactionAccent } from "./factionColors";
+import {
+  formatTerritoryLabel,
+  formatTerritoryList,
+} from "./territoryLabel";
 
 type Props = {
   data: NormalizedData | null;
@@ -25,6 +29,7 @@ export default function NationCommandPanel({ data }: Props) {
   const orderDraftType = useCampaignStore((s) => s.orderDraftType);
   const setOrderDraftType = useCampaignStore((s) => s.setOrderDraftType);
   const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
+  const territoryNameById = useCampaignStore((s) => s.territoryNameById);
 
   const [openOrderPlatoonId, setOpenOrderPlatoonId] = useState<string | null>(
     null,
@@ -241,7 +246,10 @@ export default function NationCommandPanel({ data }: Props) {
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.85 }}>
                       {platoon.condition} · {platoon.strengthPct}% ·{" "}
-                      {platoon.territoryId}
+                      {formatTerritoryLabel(
+                        platoon.territoryId,
+                        territoryNameById,
+                      )}
                     </div>
                   </button>
                   {orderPanelOpen ? (
@@ -351,14 +359,32 @@ export default function NationCommandPanel({ data }: Props) {
         </div>
         {draftOrders.length ? (
           <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {draftOrders.map((order) => (
-              <li key={order.id}>
-                <b>{order.type}</b> · {order.platoonId}{" "}
-                {order.type === "RECON" || order.type === "INTEL"
-                  ? `→ ${(order.reconTargets ?? []).join(", ") || "—"}`
-                  : `→ ${order.path?.join(" → ") ?? order.from ?? "Hold"}`}
-              </li>
-            ))}
+            {draftOrders.map((order) => {
+              const platoonName =
+                platoonsById[order.platoonId]?.name ?? order.platoonId;
+              return (
+                <li key={order.id}>
+                  <b>{order.type}</b> · {platoonName}{" "}
+                  {order.type === "RECON" || order.type === "INTEL"
+                    ? `→ ${
+                        order.reconTargets?.length
+                          ? formatTerritoryList(
+                              order.reconTargets ?? [],
+                              territoryNameById,
+                            )
+                          : "—"
+                      }`
+                    : `→ ${
+                        order.path?.length
+                          ? formatTerritoryList(
+                              order.path ?? [],
+                              territoryNameById,
+                            )
+                          : formatTerritoryLabel(order.from, territoryNameById)
+                      }`}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <div style={{ fontSize: 12, opacity: 0.8 }}>
