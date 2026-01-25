@@ -62,8 +62,8 @@ export default function PlatoonsPanel() {
   }, [ensureSupplies]);
 
   const supplies = useMemo(
-    () => getSupplies(viewerFaction),
-    [getSupplies, viewerFaction],
+    () => getSupplies(viewerNation),
+    [getSupplies, viewerNation],
   );
 
   // const platoonsHere = useMemo(() => {
@@ -159,7 +159,7 @@ export default function PlatoonsPanel() {
     if (gain <= 0) return;
     if (!mustMatchNation) return;
 
-    const ok = spendSupplies(safeSelected.faction, cost, "Refit");
+    const ok = spendSupplies(safeSelected.nation, cost, "Refit");
     if (!ok) return;
 
     const nextCondition =
@@ -217,7 +217,7 @@ export default function PlatoonsPanel() {
     if (!mustMatchNation) return;
 
     const ok = spendSupplies(
-      safeSelected.faction,
+      safeSelected.nation,
       COST_UPGRADE_MP,
       "Mobility upgrade",
     );
@@ -236,7 +236,7 @@ export default function PlatoonsPanel() {
     if (!mustMatchNation) return;
 
     const ok = spendSupplies(
-      safeSelected.faction,
+      safeSelected.nation,
       COST_UPGRADE_CONDITION,
       "Readiness upgrade",
     );
@@ -260,7 +260,7 @@ export default function PlatoonsPanel() {
     if (!mustMatchNation) return;
     if (hasTrait(trait)) return;
 
-    const ok = spendSupplies(safeSelected.faction, cost, `Trait: ${trait}`);
+    const ok = spendSupplies(safeSelected.nation, cost, `Trait: ${trait}`);
     if (!ok) return;
 
     patchPlatoon(safeSelected.id, { traits: [...traits, trait] });
@@ -278,7 +278,7 @@ export default function PlatoonsPanel() {
 
     if (!currently) {
       const ok = spendSupplies(
-        safeSelected.faction,
+        safeSelected.nation,
         COST_TOGGLE_ENTRENCH,
         "Entrench",
       );
@@ -922,7 +922,7 @@ export default function PlatoonsPanel() {
               </div>
 
               <div style={{ fontSize: 12, opacity: 0.75, marginTop: 8 }}>
-                Note: supplies are spent from the platoon’s faction — switch
+                Note: supplies are spent from the platoon’s nation — switch
                 Viewer nation to match to apply upgrades/orders.
               </div>
             </>
