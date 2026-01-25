@@ -1,14 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
 import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
-import type { NormalizedData, Territory } from "../data/theatres";
-import type {
-  PlatoonCondition,
-  PlatoonOrder,
-  PlatoonTrait,
-} from "../domain/types";
-
-type Props = { data: NormalizedData | null };
+import type { PlatoonCondition, PlatoonTrait } from "../domain/types";
 
 const CONDITION_ORDER: PlatoonCondition[] = [
   "SHATTERED",
@@ -23,10 +16,6 @@ function nextBetterCondition(c: PlatoonCondition, steps = 1): PlatoonCondition {
   const idx = CONDITION_ORDER.indexOf(c);
   if (idx < 0) return c;
   return CONDITION_ORDER[clamp(idx + steps, 0, CONDITION_ORDER.length - 1)];
-}
-
-function territoryLabel(t: Territory | undefined) {
-  return t ? `${t.name} (${t.id})` : "Unknown";
 }
 
 function logAction(type: string, text: string) {
@@ -49,7 +38,7 @@ function patchPlatoon(platoonId: string, patch: any) {
   } as any);
 }
 
-export default function PlatoonsPanel({ data }: Props) {
+export default function PlatoonsPanel() {
   const selectedTerritoryId = useCampaignStore((s) => s.selectedTerritoryId);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
   const selectedPlatoonId = useCampaignStore((s) => s.selectedPlatoonId);
@@ -61,8 +50,6 @@ export default function PlatoonsPanel({ data }: Props) {
   );
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
-  const turnNumber = useCampaignStore((s) => s.turnNumber);
-  const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
 
   const ensureSupplies = useCampaignStore((s) => s.ensureSupplies);
   const getSupplies = useCampaignStore((s) => s.getSupplies);
@@ -94,17 +81,6 @@ export default function PlatoonsPanel({ data }: Props) {
     ? platoonsById[selectedPlatoonId]
     : undefined;
   const safeSelected = selectedPlatoon;
-
-  const [moveTo, setMoveTo] = useState<string>("");
-
-  const adjTargets = useMemo((): Territory[] => {
-    if (!data || !safeSelected) return [];
-    const from = data.territoryById.get(safeSelected.territoryId);
-    if (!from) return [];
-    return from.adj
-      .map((id) => data.territoryById.get(id))
-      .filter((t): t is Territory => !!t);
-  }, [data, safeSelected]);
 
   const [renameDraft, setRenameDraft] = useState<string>("");
   const [refitPct, setRefitPct] = useState<number>(10);
@@ -312,87 +288,6 @@ export default function PlatoonsPanel({ data }: Props) {
       "PLATOON",
       `${safeSelected.name} is now ${!currently ? "ENTRENCHED" : "NOT entrenched"}`,
     );
-  };
-
-  const setMoveOrder = () => {
-    if (!safeSelected) return;
-    if (!moveTo) return;
-    if (!mustMatchNation) return;
-
-    // Prefer a real store action if it exists (older code likely had this)
-    const s: any = useCampaignStore.getState();
-    const setMoveOrderAction = s.setMoveOrder as
-      | ((o: {
-          platoonId: string;
-          from: string;
-          to: string;
-          forcedMarch?: boolean;
-        }) => void)
-      | undefined;
-
-    if (setMoveOrderAction) {
-      setMoveOrderAction({
-        platoonId: safeSelected.id,
-        from: safeSelected.territoryId,
-        to: moveTo,
-        forcedMarch: false,
-      });
-      logAction(
-        "ORDERS",
-        `MOVE order: ${safeSelected.name} ${safeSelected.territoryId} → ${moveTo}`,
-      );
-      return;
-    }
-
-    // Fallback: write into ordersByTurn if no action exists
-    const turn = s.turnNumber ?? 1;
-
-    const order: PlatoonOrder = {
-      id: `${safeSelected.id}:${turn}:MOVE`,
-      turn,
-      faction: safeSelected.faction,
-      platoonId: safeSelected.id,
-      type: "MOVE",
-      from: safeSelected.territoryId,
-      path: [moveTo],
-      forcedMarch: false,
-      submittedAt: Date.now(),
-    };
-
-    const curFactionOrders: PlatoonOrder[] = (s.ordersByTurn?.[turn]?.[
-      safeSelected.faction
-    ] ?? []) as PlatoonOrder[];
-
-    useCampaignStore.setState({
-      ordersByTurn: {
-        ...(s.ordersByTurn ?? {}),
-        [turn]: {
-          ...(s.ordersByTurn?.[turn] ?? {}),
-          [safeSelected.faction]: [
-            // Replace any existing MOVE order for this platoon this turn
-            ...curFactionOrders.filter(
-              (o) =>
-                !(
-                  o.platoonId === safeSelected.id &&
-                  o.turn === turn &&
-                  o.type === "MOVE"
-                ),
-            ),
-            order,
-          ],
-        },
-      },
-    } as any);
-
-    logAction(
-      "ORDERS",
-      `MOVE order: ${safeSelected.name} ${safeSelected.territoryId} → ${moveTo}`,
-    );
-  };
-
-  const submitOrdersForPlatoon = () => {
-    const nationToSubmit = safeSelected?.nation ?? viewerNation;
-    submitFactionOrders(turnNumber, nationToSubmit);
   };
 
   return (
@@ -817,76 +712,6 @@ export default function PlatoonsPanel({ data }: Props) {
                 <div>
                   <b>Class:</b> {classStyles[selectedClass].label}
                 </div>
-              </div>
-
-              <hr
-                style={{
-                  borderColor: "rgba(255,255,255,.12)",
-                  margin: "10px 0",
-                }}
-              />
-
-              {/* MOVEMENT */}
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontWeight: 800 }}>Movement</div>
-
-                {!data ? (
-                  <div style={{ fontSize: 12, opacity: 0.75 }}>
-                    Territory list not available — NormalizedData is null. Load
-                    theatres data first.
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ fontSize: 12, opacity: 0.8 }}>
-                      From:{" "}
-                      <b>
-                        {territoryLabel(
-                          data.territoryById.get(safeSelected.territoryId),
-                        )}
-                      </b>
-                    </div>
-
-                    <select
-                      value={moveTo}
-                      onChange={(e) => setMoveTo(e.target.value)}
-                    >
-                      <option value="">Select adjacent territory…</option>
-                      {adjTargets.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name} ({t.id})
-                        </option>
-                      ))}
-                    </select>
-
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        disabled={!moveTo || !mustMatchNation}
-                        title={
-                          !mustMatchNation
-                            ? "Switch Viewer nation to match platoon nation to issue orders."
-                            : undefined
-                        }
-                        onClick={setMoveOrder}
-                      >
-                        Set MOVE Order
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={!mustMatchNation}
-                        onClick={submitOrdersForPlatoon}
-                      >
-                        Submit Orders (Nation)
-                      </button>
-                    </div>
-
-                    <div style={{ fontSize: 12, opacity: 0.75 }}>
-                      Adjacency is pulled from theatres_all.json. GM resolves
-                      movement during RESOLUTION.
-                    </div>
-                  </>
-                )}
               </div>
 
               <hr
