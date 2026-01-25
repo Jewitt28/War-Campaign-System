@@ -643,6 +643,100 @@ export default function MapBoard() {
     },
     [applyFogStyles, applyOrderTargets, highlightTerritory, territoriesById],
   );
+  const orderTargetTerritories = useMemo(() => {
+    if (
+      phase !== "ORDERS" ||
+      !orderDraftType ||
+      !selectedPlatoonId ||
+      !platoonsById[selectedPlatoonId]
+    ) {
+      return [];
+    }
+    const platoon = platoonsById[selectedPlatoonId];
+    if (!platoon) return [];
+    const baseTargets =
+      orderDraftType === "HOLD"
+        ? [platoon.territoryId]
+        : Array.from(
+            adjacencyByTerritory.get(platoon.territoryId) ?? new Set<string>(),
+          );
+    return baseTargets
+      .map((tid) => territoriesById.get(tid))
+      .filter(Boolean) as TerritoryInfo[];
+  }, [
+    adjacencyByTerritory,
+    orderDraftType,
+    phase,
+    platoonsById,
+    selectedPlatoonId,
+    territoriesById,
+  ]);
+  const orderTargetIds = useMemo(() => {
+    return new Set(orderTargetTerritories.map((t) => t.id));
+  }, [orderTargetTerritories]);
+
+  const orderStateRef = useRef({
+    phase,
+    orderDraftType,
+    selectedPlatoonId,
+    orderTargetIds,
+    turnNumber,
+    platoonsById,
+  });
+
+  useEffect(() => {
+    orderStateRef.current = {
+      phase,
+      orderDraftType,
+      selectedPlatoonId,
+      orderTargetIds,
+      turnNumber,
+      platoonsById,
+    };
+  }, [
+    phase,
+    orderDraftType,
+    selectedPlatoonId,
+    orderTargetIds,
+    turnNumber,
+    platoonsById,
+  ]);
+
+  const applyOrderTargets = useCallback(
+    (svg: SVGSVGElement) => {
+      if (!orderTargetTerritories.length || !orderDraftType) return;
+      const color =
+        orderDraftType === "MOVE"
+          ? "#38bdf8"
+          : orderDraftType === "HOLD"
+            ? "#f59e0b"
+            : orderDraftType === "RECON"
+              ? "#34d399"
+              : "#a855f7";
+      orderTargetTerritories.forEach((territory) => {
+        territory.shapeRefs.forEach((id) => {
+          const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
+          if (!p) return;
+          p.style.stroke = color;
+          p.style.strokeWidth = "2.2";
+          (p.style as any).vectorEffect = "non-scaling-stroke";
+        });
+      });
+    },
+    [orderDraftType, orderTargetTerritories],
+  );
+
+  const applyHighlightState = useCallback(
+    (svg: SVGSVGElement, territoryId: string | null) => {
+      applyFogStyles(svg);
+      applyOrderTargets(svg);
+      if (territoryId) {
+        const info = territoriesById.get(territoryId);
+        if (info) highlightTerritory(svg, info);
+      }
+    },
+    [applyFogStyles, applyOrderTargets, highlightTerritory, territoriesById],
+  );
 
   const ensureOverlayLayer = useCallback((svg: SVGSVGElement, id: string) => {
     let layer = svg.querySelector<SVGGElement>(`#${CSS.escape(id)}`);
@@ -968,6 +1062,7 @@ export default function MapBoard() {
 
             const lvl = getEffectiveVisibility(territory.id);
             if (!gmEffective && lvl === "NONE") return;
+
             const orderState = orderStateRef.current;
             if (
               orderState.phase === "ORDERS" &&
@@ -1009,7 +1104,6 @@ export default function MapBoard() {
                 }
               }
             }
-
             setSelectedTerritory(territory.id);
             applyHighlightState(svg, territory.id);
           };

@@ -257,6 +257,7 @@ function OrdersPhasePanel() {
   const turnNumber = useCampaignStore((s) => s.turnNumber);
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
+  const selectedPlatoonId = useCampaignStore((s) => s.selectedPlatoonId);
   const adjacencyByTerritory = useCampaignStore((s) => s.adjacencyByTerritory);
   const setPlatoonOrderMove = useCampaignStore((s) => s.setPlatoonOrderMove);
   const setPlatoonOrderHold = useCampaignStore((s) => s.setPlatoonOrderHold);
@@ -269,6 +270,9 @@ function OrdersPhasePanel() {
   const setOrderDraftType = useCampaignStore((s) => s.setOrderDraftType);
   const setSelectedPlatoonId = useCampaignStore((s) => s.setSelectedPlatoonId);
 
+  const [orderType, setOrderType] = useState<
+    "MOVE" | "HOLD" | "RECON" | "INTEL"
+  >("MOVE");
   const [orderType, setOrderType] = useState<
     "MOVE" | "HOLD" | "RECON" | "INTEL"
   >("MOVE");

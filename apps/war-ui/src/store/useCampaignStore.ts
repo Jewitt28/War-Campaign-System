@@ -138,7 +138,6 @@ export type CampaignState = {
   setPlayerFactionId: (faction: FactionKey | null) => void;
   setSelectedTerritory: (id: string | null) => void;
   setSelectedPlatoonId: (id: string | null) => void;
-
   setOrderDraftType: (type: PlatoonOrder["type"] | null) => void;
   // v1
   setHomeland: (factionKey: FactionKey, territoryId: string) => void;
@@ -304,6 +303,7 @@ const initialState: Omit<
   | "toggleTheatre"
   | "selectSetupFaction"
   | "setSelectedPlatoonId"
+  | "setOrderDraftType"
   | "createCustomFaction"
   | "createCustomNation"
   | "setOrderDraftType"
@@ -329,6 +329,7 @@ const initialState: Omit<
   | "setPlatoonOrderMove"
   | "setPlatoonOrderHold"
   | "setPlatoonOrderRecon"
+  | "setPlatoonOrderIntel"
   | "setAdjacencyByTerritory"
   | "submitFactionOrders"
   | "resolveCurrentTurn"
@@ -520,6 +521,7 @@ export const useCampaignStore = create<CampaignState>()(
 
       setSelectedTerritory: (id) => set({ selectedTerritoryId: id }),
       setSelectedPlatoonId: (id) => set({ selectedPlatoonId: id }),
+      setOrderDraftType: (type) => set({ orderDraftType: type }),
       setHomelandUnlock: (unlock) => set({ homelandUnlock: unlock }),
       setOrderDraftType: (type) => set({ orderDraftType: type }),
 
