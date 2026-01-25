@@ -1,10 +1,19 @@
 // apps/war-ui/src/map/MapBoard.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { loadTheatresData, withBase, type NormalizedData } from "../data/theatres";
+import {
+  loadTheatresData,
+  withBase,
+  type NormalizedData,
+} from "../data/theatres";
 import { getEffectiveVisibility as getRulesVisibility } from "../data/visibilityRules";
 import type { VisibilityLevel } from "../data/visibility";
-import { useCampaignStore, type CustomNation, type FactionKey, type OwnerKey } from "../store/useCampaignStore";
+import {
+  useCampaignStore,
+  type CustomNation,
+  type FactionKey,
+  type OwnerKey,
+} from "../store/useCampaignStore";
 import type { Contest } from "../domain/types";
 import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
 
@@ -30,10 +39,7 @@ const neutralFactionColor = "#6b7280";
 const BORDER_STROKE = "rgba(255,255,255,.55)";
 const BORDER_WIDTH = "1.25";
 
-function getOwnerFill(
-  owner: OwnerKey,
-  customNations: CustomNation[],
-) {
+function getOwnerFill(owner: OwnerKey, customNations: CustomNation[]) {
   if (owner === "neutral") return neutralFactionColor;
   if (owner === "contested") return "#a855f7";
   const customNation = owner.startsWith("custom:")
@@ -58,10 +64,7 @@ function getDefaultFactionForNation(
     : NATION_BY_ID[nation as BaseNationKey]?.defaultFaction;
 }
 
-function getNationAccent(
-  nation: string,
-  customNations: CustomNation[],
-) {
+function getNationAccent(nation: string, customNations: CustomNation[]) {
   const defaultFaction = getDefaultFactionForNation(nation, customNations);
   if (nation.startsWith("custom:")) {
     const customNation = customNations.find((n) => n.id === nation);
@@ -287,11 +290,18 @@ export default function MapBoard() {
   const mode = useCampaignStore((s) => s.mode);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
   const viewerNation = useCampaignStore((s) => s.viewerNation);
+  const phase = useCampaignStore((s) => s.phase);
   const activeTheatres = useCampaignStore((s) => s.activeTheatres);
 
   const selectedTerritoryId = useCampaignStore((s) => s.selectedTerritoryId);
   const selectedPlatoonId = useCampaignStore((s) => s.selectedPlatoonId);
   const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
+  const orderDraftType = useCampaignStore((s) => s.orderDraftType);
+  const turnNumber = useCampaignStore((s) => s.turnNumber);
+  const setPlatoonOrderMove = useCampaignStore((s) => s.setPlatoonOrderMove);
+  const setPlatoonOrderHold = useCampaignStore((s) => s.setPlatoonOrderHold);
+  const setPlatoonOrderRecon = useCampaignStore((s) => s.setPlatoonOrderRecon);
+  const setPlatoonOrderIntel = useCampaignStore((s) => s.setPlatoonOrderIntel);
 
   const intelByTerritory = useCampaignStore((s) => s.intelByTerritory);
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
@@ -506,8 +516,6 @@ export default function MapBoard() {
 
   const highlightTerritory = useCallback(
     (svg: SVGSVGElement, territory: TerritoryInfo) => {
-      applyFogStyles(svg);
-
       const lvl = getEffectiveVisibility(territory.id);
       if (!gmEffective && lvl === "NONE") return;
       const regionTerritories = regionTerritoriesById.get(territory.id);
@@ -535,12 +543,105 @@ export default function MapBoard() {
       });
     },
     [
-      applyFogStyles,
       getEffectiveVisibility,
       gmEffective,
       regionTerritoriesById,
       territoriesById,
     ],
+  );
+  const orderTargetTerritories = useMemo(() => {
+    if (
+      phase !== "ORDERS" ||
+      !orderDraftType ||
+      !selectedPlatoonId ||
+      !platoonsById[selectedPlatoonId]
+    ) {
+      return [];
+    }
+    const platoon = platoonsById[selectedPlatoonId];
+    if (!platoon) return [];
+    const baseTargets =
+      orderDraftType === "HOLD"
+        ? [platoon.territoryId]
+        : Array.from(
+            adjacencyByTerritory.get(platoon.territoryId) ?? new Set<string>(),
+          );
+    return baseTargets
+      .map((tid) => territoriesById.get(tid))
+      .filter(Boolean) as TerritoryInfo[];
+  }, [
+    adjacencyByTerritory,
+    orderDraftType,
+    phase,
+    platoonsById,
+    selectedPlatoonId,
+    territoriesById,
+  ]);
+  const orderTargetIds = useMemo(() => {
+    return new Set(orderTargetTerritories.map((t) => t.id));
+  }, [orderTargetTerritories]);
+
+  const orderStateRef = useRef({
+    phase,
+    orderDraftType,
+    selectedPlatoonId,
+    orderTargetIds,
+    turnNumber,
+    platoonsById,
+  });
+
+  useEffect(() => {
+    orderStateRef.current = {
+      phase,
+      orderDraftType,
+      selectedPlatoonId,
+      orderTargetIds,
+      turnNumber,
+      platoonsById,
+    };
+  }, [
+    phase,
+    orderDraftType,
+    selectedPlatoonId,
+    orderTargetIds,
+    turnNumber,
+    platoonsById,
+  ]);
+
+  const applyOrderTargets = useCallback(
+    (svg: SVGSVGElement) => {
+      if (!orderTargetTerritories.length || !orderDraftType) return;
+      const color =
+        orderDraftType === "MOVE"
+          ? "#38bdf8"
+          : orderDraftType === "HOLD"
+            ? "#f59e0b"
+            : orderDraftType === "RECON"
+              ? "#34d399"
+              : "#a855f7";
+      orderTargetTerritories.forEach((territory) => {
+        territory.shapeRefs.forEach((id) => {
+          const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
+          if (!p) return;
+          p.style.stroke = color;
+          p.style.strokeWidth = "2.2";
+          (p.style as any).vectorEffect = "non-scaling-stroke";
+        });
+      });
+    },
+    [orderDraftType, orderTargetTerritories],
+  );
+
+  const applyHighlightState = useCallback(
+    (svg: SVGSVGElement, territoryId: string | null) => {
+      applyFogStyles(svg);
+      applyOrderTargets(svg);
+      if (territoryId) {
+        const info = territoriesById.get(territoryId);
+        if (info) highlightTerritory(svg, info);
+      }
+    },
+    [applyFogStyles, applyOrderTargets, highlightTerritory, territoriesById],
   );
 
   const ensureOverlayLayer = useCallback((svg: SVGSVGElement, id: string) => {
@@ -672,7 +773,10 @@ export default function MapBoard() {
         circle.setAttribute("cx", centroid.x.toString());
         circle.setAttribute("cy", centroid.y.toString());
         circle.setAttribute("r", "3");
-        circle.setAttribute("fill", getOwnerFill(factions[0] as OwnerKey, customNations));
+        circle.setAttribute(
+          "fill",
+          getOwnerFill(factions[0] as OwnerKey, customNations),
+        );
         circle.setAttribute("stroke", "#111827");
         circle.setAttribute("stroke-width", "0.5");
         markerLayer.appendChild(circle);
@@ -864,9 +968,50 @@ export default function MapBoard() {
 
             const lvl = getEffectiveVisibility(territory.id);
             if (!gmEffective && lvl === "NONE") return;
+            const orderState = orderStateRef.current;
+            if (
+              orderState.phase === "ORDERS" &&
+              orderState.orderDraftType &&
+              orderState.selectedPlatoonId &&
+              orderState.orderTargetIds.has(territory.id)
+            ) {
+              const platoon =
+                orderState.platoonsById[orderState.selectedPlatoonId];
+              if (platoon) {
+                if (orderState.orderDraftType === "HOLD") {
+                  setPlatoonOrderHold(
+                    orderState.turnNumber,
+                    platoon.faction,
+                    platoon.id,
+                  );
+                } else if (orderState.orderDraftType === "RECON") {
+                  setPlatoonOrderRecon(
+                    orderState.turnNumber,
+                    platoon.faction,
+                    platoon.id,
+                    [territory.id],
+                  );
+                } else if (orderState.orderDraftType === "INTEL") {
+                  setPlatoonOrderIntel(
+                    orderState.turnNumber,
+                    platoon.faction,
+                    platoon.id,
+                    territory.id,
+                  );
+                } else if (orderState.orderDraftType === "MOVE") {
+                  setPlatoonOrderMove(
+                    orderState.turnNumber,
+                    platoon.faction,
+                    platoon.id,
+                    [territory.id],
+                    false,
+                  );
+                }
+              }
+            }
 
             setSelectedTerritory(territory.id);
-            highlightTerritory(svg, territory);
+            applyHighlightState(svg, territory.id);
           };
 
           const onEnter = (e: MouseEvent) => {
@@ -896,7 +1041,7 @@ export default function MapBoard() {
 
         const onSvgClick = () => {
           setSelectedTerritory(null);
-          applyFogStyles(svg);
+          applyHighlightState(svg, null);
         };
         svg.addEventListener("click", onSvgClick);
 
@@ -928,8 +1073,12 @@ export default function MapBoard() {
     fitToAllowed,
     updatePlatoonOverlays,
     getEffectiveVisibility,
-    highlightTerritory,
+    setPlatoonOrderHold,
+    setPlatoonOrderIntel,
+    setPlatoonOrderMove,
+    setPlatoonOrderRecon,
     setSelectedTerritory,
+    applyHighlightState,
   ]);
 
   // When selection changes externally, update highlight
@@ -938,26 +1087,8 @@ export default function MapBoard() {
       "svg",
     ) as SVGSVGElement | null;
     if (!svg) return;
-
-    if (!selectedTerritoryId) {
-      applyFogStyles(svg);
-      return;
-    }
-
-    for (const info of territoriesById.values()) {
-      if (info.id === selectedTerritoryId) {
-        highlightTerritory(svg, info);
-        return;
-      }
-    }
-
-    applyFogStyles(svg);
-  }, [
-    selectedTerritoryId,
-    territoriesById,
-    applyFogStyles,
-    highlightTerritory,
-  ]);
+    applyHighlightState(svg, selectedTerritoryId);
+  }, [selectedTerritoryId, applyHighlightState]);
   useEffect(() => {
     const svg = svgHostRef.current?.querySelector(
       "svg",

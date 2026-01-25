@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import { useCampaignStore } from "../store/useCampaignStore";
 
@@ -38,7 +38,12 @@ export default function CommandPanel({ data }: Props) {
   // Temporary: while in setup, treat UI as GM-capable so GM-only panels are available.
   const gmEffective = mode === "SETUP" || viewerMode === "GM";
 
-  const accentColor = getFactionAccent({ viewerNation, viewerFaction, customNations, customs });
+  const accentColor = getFactionAccent({
+    viewerNation,
+    viewerFaction,
+    customNations,
+    customs,
+  });
 
   const [tab, setTab] = useState<RightTab>("DASHBOARD");
 
@@ -257,14 +262,39 @@ function OrdersPhasePanel() {
   const setPlatoonOrderHold = useCampaignStore((s) => s.setPlatoonOrderHold);
   const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
   const setPlatoonOrderRecon = useCampaignStore((s) => s.setPlatoonOrderRecon);
+  const selectedPlatoonId = useCampaignStore((s) => s.selectedPlatoonId);
 
-  const [orderType, setOrderType] = useState<"MOVE" | "HOLD" | "RECON">("MOVE");
+  const setPlatoonOrderIntel = useCampaignStore((s) => s.setPlatoonOrderIntel);
+  const orderDraftType = useCampaignStore((s) => s.orderDraftType);
+  const setOrderDraftType = useCampaignStore((s) => s.setOrderDraftType);
+  const setSelectedPlatoonId = useCampaignStore((s) => s.setSelectedPlatoonId);
+
+  const [orderType, setOrderType] = useState<
+    "MOVE" | "HOLD" | "RECON" | "INTEL"
+  >("MOVE");
   const [orderPlatoonId, setOrderPlatoonId] = useState<string>("");
   const [forcedMarch, setForcedMarch] = useState(false);
   const [step1, setStep1] = useState("");
   const [step2, setStep2] = useState("");
   const [reconTarget1, setReconTarget1] = useState("");
   const [reconTarget2, setReconTarget2] = useState("");
+
+  useEffect(() => {
+    if (selectedPlatoonId && selectedPlatoonId !== orderPlatoonId) {
+      setOrderPlatoonId(selectedPlatoonId);
+      setStep1("");
+      setStep2("");
+      setReconTarget1("");
+      setReconTarget2("");
+      setForcedMarch(false);
+    }
+  }, [orderPlatoonId, selectedPlatoonId]);
+
+  useEffect(() => {
+    if (orderDraftType) {
+      setOrderType(orderDraftType);
+    }
+  }, [orderDraftType]);
 
   const currentOrders = useMemo(() => {
     const byTurn = ordersByTurn?.[turnNumber] ?? {};
@@ -315,6 +345,16 @@ function OrdersPhasePanel() {
       );
       return;
     }
+    if (orderType === "INTEL") {
+      if (!reconTarget1) return;
+      setPlatoonOrderIntel(
+        turnNumber,
+        selectedPlatoon.faction,
+        orderPlatoonId,
+        reconTarget1,
+      );
+      return;
+    }
     if (!step1) return;
     const path = forcedMarch && step2 ? [step1, step2] : [step1];
     setPlatoonOrderMove(
@@ -347,18 +387,38 @@ function OrdersPhasePanel() {
           <OrderCard
             title="Move"
             detail="Relocate platoons to adjacent territories or forced march."
+            isActive={orderDraftType === "MOVE"}
+            onClick={() => {
+              setOrderDraftType("MOVE");
+              setOrderType("MOVE");
+            }}
           />
           <OrderCard
             title="Hold"
             detail="Fortify positions and maintain defensive readiness."
+            isActive={orderDraftType === "HOLD"}
+            onClick={() => {
+              setOrderDraftType("HOLD");
+              setOrderType("HOLD");
+            }}
           />
           <OrderCard
             title="Recon"
             detail="Gather intel and reveal enemy positions."
+            isActive={orderDraftType === "RECON"}
+            onClick={() => {
+              setOrderDraftType("RECON");
+              setOrderType("RECON");
+            }}
           />
           <OrderCard
             title="Intel"
             detail="Assign intel assets to contested theatres."
+            isActive={orderDraftType === "INTEL"}
+            onClick={() => {
+              setOrderDraftType("INTEL");
+              setOrderType("INTEL");
+            }}
           />
         </div>
       </section>
@@ -379,6 +439,7 @@ function OrdersPhasePanel() {
               value={orderPlatoonId}
               onChange={(e) => {
                 setOrderPlatoonId(e.target.value);
+                setSelectedPlatoonId(e.target.value || null);
                 setStep1("");
                 setStep2("");
                 setReconTarget1("");
@@ -403,7 +464,13 @@ function OrdersPhasePanel() {
             <select
               value={orderType}
               onChange={(e) => {
-                setOrderType(e.target.value as "MOVE" | "HOLD" | "RECON");
+                const nextType = e.target.value as
+                  | "MOVE"
+                  | "HOLD"
+                  | "RECON"
+                  | "INTEL";
+                setOrderType(nextType);
+                setOrderDraftType(nextType);
                 setStep1("");
                 setStep2("");
                 setReconTarget1("");
@@ -414,6 +481,7 @@ function OrdersPhasePanel() {
               <option value="MOVE">Move</option>
               <option value="HOLD">Hold</option>
               <option value="RECON">Recon</option>
+              <option value="INTEL">Intel</option>
             </select>
           </div>
 
@@ -522,6 +590,27 @@ function OrdersPhasePanel() {
                 </div>
               )}
             </>
+          ) : orderType === "INTEL" ? (
+            <div>
+              <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
+                Intel target
+              </div>
+              <select
+                value={reconTarget1}
+                onChange={(e) => setReconTarget1(e.target.value)}
+                style={{ width: "100%" }}
+              >
+                <option value="">—</option>
+                {reconOptions.map((tid) => (
+                  <option key={tid} value={tid}>
+                    {tid}
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
+                Intel orders focus assets on a single adjacent territory.
+              </div>
+            </div>
           ) : (
             <div style={{ fontSize: 12, opacity: 0.7 }}>
               Hold keeps the platoon in place for the turn.
@@ -535,7 +624,8 @@ function OrdersPhasePanel() {
               disabled={
                 !orderPlatoonId ||
                 (orderType === "MOVE" && (!step1 || (forcedMarch && !step2))) ||
-                (orderType === "RECON" && !reconTarget1)
+                ((orderType === "RECON" || orderType === "INTEL") &&
+                  !reconTarget1)
               }
             >
               Add Order
@@ -563,7 +653,7 @@ function OrdersPhasePanel() {
             {currentOrders.map((order) => (
               <li key={order.id}>
                 <b>{order.type}</b> · {order.platoonId} →{" "}
-                {order.type === "RECON"
+                {order.type === "RECON" || order.type === "INTEL"
                   ? (order.reconTargets ?? []).join(", ") || "—"
                   : (order.path?.join(" → ") ?? order.from ?? "Hold")}{" "}
               </li>
@@ -753,21 +843,35 @@ function ResolutionPhasePanel() {
   );
 }
 
-function OrderCard({ title, detail }: { title: string; detail: string }) {
+function OrderCard({
+  title,
+  detail,
+  isActive,
+  onClick,
+}: {
+  title: string;
+  detail: string;
+  isActive?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
       style={{
         border: "1px solid rgba(255,255,255,.12)",
         borderRadius: 10,
         padding: 10,
         display: "grid",
         gap: 4,
-        background: "rgba(0,0,0,.12)",
+        background: isActive ? "rgba(59,130,246,.2)" : "rgba(0,0,0,.12)",
+        textAlign: "left",
+        cursor: "pointer",
       }}
     >
       <div style={{ fontWeight: 700 }}>{title}</div>
       <div style={{ fontSize: 12, opacity: 0.75 }}>{detail}</div>
-    </div>
+    </button>
   );
 }
 

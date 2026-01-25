@@ -21,7 +21,7 @@ export type Platoon = {
 
 export type PlatoonTrait = "RECON" | "ENGINEERS" | "MOTORIZED";
 
-export type OrderType = "HOLD" | "MOVE" | "RECON";
+export type OrderType = "HOLD" | "MOVE" | "RECON" | "INTEL";
 
 export type PlatoonOrder = {
   id: string;
@@ -35,7 +35,7 @@ export type PlatoonOrder = {
   from?: string;
   path?: string[]; // territory ids (length 1 = normal move, length 2 = forced march)
   forcedMarch?: boolean; // if path length 2
-  // RECON only:
+  // RECON/INTEL:
   reconTargets?: string[];
   submittedAt?: number;
 };

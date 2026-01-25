@@ -92,7 +92,11 @@ export type CampaignState = {
 
   // Existing faction/custom system (kept for now)
   customs: CustomFaction[];
-  createCustomNation: (name: string, defaultFaction: FactionKey, color: string) => void;
+  createCustomNation: (
+    name: string,
+    defaultFaction: FactionKey,
+    color: string,
+  ) => void;
   selectedSetupFaction: BaseFactionKey | "custom" | null;
   selectedCustomId: string | null;
 
@@ -117,6 +121,8 @@ export type CampaignState = {
   selectedTerritoryId: string | null;
   turnLog: TurnLogEntry[];
   selectedPlatoonId: string | null;
+  orderDraftType: PlatoonOrder["type"] | null;
+
   setMode: (m: Mode) => void;
   setPlayMode: (m: PlayMode) => void;
   setCommandHubExpanded: (expanded: boolean) => void;
@@ -132,6 +138,8 @@ export type CampaignState = {
   setPlayerFactionId: (faction: FactionKey | null) => void;
   setSelectedTerritory: (id: string | null) => void;
   setSelectedPlatoonId: (id: string | null) => void;
+
+  setOrderDraftType: (type: PlatoonOrder["type"] | null) => void;
   // v1
   setHomeland: (factionKey: FactionKey, territoryId: string) => void;
   applyHomeland: (nationKey: NationKey) => void;
@@ -198,6 +206,12 @@ export type CampaignState = {
     faction: FactionKey,
     platoonId: string,
     targets: string[],
+  ) => void;
+  setPlatoonOrderIntel: (
+    turn: number,
+    faction: FactionKey,
+    platoonId: string,
+    target: string,
   ) => void;
 
   submitFactionOrders: (turn: number, nation: NationKey) => void;
@@ -286,11 +300,14 @@ const initialState: Omit<
   | "setPlayMode"
   | "setCommandHubExpanded"
   | "setLeftPanelView"
+  | "createPlatoonWithLoadout"
   | "toggleTheatre"
   | "selectSetupFaction"
   | "setSelectedPlatoonId"
   | "createCustomFaction"
   | "createCustomNation"
+  | "setOrderDraftType"
+  | "setPlatoonOrderIntel"
   | "selectCustomFaction"
   | "setViewerFaction"
   | "setSelectedTerritory"
@@ -378,6 +395,7 @@ const initialState: Omit<
 
   selectedTerritoryId: null,
   selectedPlatoonId: null,
+  orderDraftType: null,
   turnLog: [],
 
   phase: "SETUP",
@@ -481,8 +499,8 @@ export const useCampaignStore = create<CampaignState>()(
             (s.viewerNation.startsWith("custom:")
               ? s.customNations.find((n) => n.id === s.viewerNation)
                   ?.defaultFaction
-              : NATION_BY_ID[s.viewerNation as BaseNationKey]?.defaultFaction) ??
-            "allies";
+              : NATION_BY_ID[s.viewerNation as BaseNationKey]
+                  ?.defaultFaction) ?? "allies";
           const nextDefault =
             (nation.startsWith("custom:")
               ? s.customNations.find((n) => n.id === nation)?.defaultFaction
@@ -503,6 +521,7 @@ export const useCampaignStore = create<CampaignState>()(
       setSelectedTerritory: (id) => set({ selectedTerritoryId: id }),
       setSelectedPlatoonId: (id) => set({ selectedPlatoonId: id }),
       setHomelandUnlock: (unlock) => set({ homelandUnlock: unlock }),
+      setOrderDraftType: (type) => set({ orderDraftType: type }),
 
       setRegions: (regions) => set({ regions }),
       setSelectedRegion: (id) => set({ selectedRegionId: id }),
@@ -768,7 +787,36 @@ export const useCampaignStore = create<CampaignState>()(
             reconTargets,
             submittedAt: list[existingIdx]?.submittedAt,
           };
+          if (existingIdx >= 0) list[existingIdx] = next;
+          else list.push(next);
+          byTurn[orderFaction] = list;
+          return { ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn } };
+        }),
+      setPlatoonOrderIntel: (turn, faction, platoonId, target) =>
+        set((s) => {
+          const platoon = s.platoonsById[platoonId];
+          if (!platoon) return s;
+          if (!playerCanActAsNation(s, platoon.nation)) return s;
 
+          const orderFaction = platoon.faction;
+
+          const byTurn: Record<string, PlatoonOrder[]> = {
+            ...(s.ordersByTurn[turn] ?? {}),
+          };
+          const list: PlatoonOrder[] = [...(byTurn[orderFaction] ?? [])];
+          const existingIdx = list.findIndex((o) => o.platoonId === platoonId);
+          const intelTargets = [target.trim()].filter(Boolean);
+
+          const next: PlatoonOrder = {
+            id: existingIdx >= 0 ? list[existingIdx].id : uid(),
+            turn,
+            faction: orderFaction,
+            platoonId,
+            type: "INTEL",
+            from: platoon.territoryId,
+            reconTargets: intelTargets,
+            submittedAt: list[existingIdx]?.submittedAt,
+          };
           if (existingIdx >= 0) list[existingIdx] = next;
           else list.push(next);
           byTurn[orderFaction] = list;
@@ -916,9 +964,8 @@ export const useCampaignStore = create<CampaignState>()(
             const pendingContests = Object.values(nextContests).filter(
               (contest) => contest?.status === "BATTLE_PENDING",
             );
-            const contestCount = Object.values(nextContests).filter(
-              Boolean,
-            ).length;
+            const contestCount =
+              Object.values(nextContests).filter(Boolean).length;
             const lockCount = Object.values(nextLocks).filter(Boolean).length;
 
             if (pendingContests.length === 0) {
