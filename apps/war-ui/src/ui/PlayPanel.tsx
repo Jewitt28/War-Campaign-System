@@ -4,6 +4,11 @@ import type { VisibilityLevel } from "../data/visibility";
 import { useCampaignStore } from "../store/useCampaignStore";
 import type { PlatoonOrder, BattleOutcome, Contest } from "../domain/types";
 import { NATIONS, type NationKey } from "../setup/NationDefinitions";
+import {
+  formatTerritoryLabel,
+  formatTerritoryList,
+  formatTerritoryText,
+} from "./territoryLabel";
 
 
 type Props = {
@@ -61,6 +66,7 @@ export default function PlayPanel({ data }: Props) {
     // log
     turnLog,
   } = useCampaignStore();
+  const territoryNameById = useCampaignStore((s) => s.territoryNameById);
 
   const isGM = viewerMode === "GM";
 
@@ -230,7 +236,11 @@ export default function PlayPanel({ data }: Props) {
 
             {activeGroup && (
               <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
-                Territories: {activeGroup.territories.join(", ")}
+                Territories:{" "}
+                {formatTerritoryList(
+                  activeGroup.territories,
+                  territoryNameById,
+                )}
               </div>
             )}
           </>
@@ -240,9 +250,11 @@ export default function PlayPanel({ data }: Props) {
 
       {selected ? (
         <>
-          <div style={{ fontWeight: 800 }}>{selected.name}</div>
+          <div style={{ fontWeight: 800 }}>
+            {formatTerritoryLabel(selected.id, territoryNameById)}
+          </div>
           <div style={{ fontSize: 12, opacity: 0.8 }}>
-            {selected.id} · {selected.theatreTitle}
+            {selected.theatreTitle}
           </div>
 
           {/* Combat / lock banner */}
@@ -332,7 +344,8 @@ export default function PlayPanel({ data }: Props) {
               .filter((p) => p.nation === viewerNation)
               .map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.territoryId})
+                  {p.name} (
+                  {formatTerritoryLabel(p.territoryId, territoryNameById)})
                 </option>
               ))}
           </select>
@@ -350,7 +363,7 @@ export default function PlayPanel({ data }: Props) {
                 <option value="">—</option>
                 {step1Options.map((tid) => (
                   <option key={tid} value={tid}>
-                    {tid}
+                    {formatTerritoryLabel(tid, territoryNameById)}
                   </option>
                 ))}
               </select>
@@ -363,7 +376,7 @@ export default function PlayPanel({ data }: Props) {
                   <option value="">—</option>
                   {step2Options.map((tid) => (
                     <option key={tid} value={tid}>
-                      {tid}
+                      {formatTerritoryLabel(tid, territoryNameById)}
                     </option>
                   ))}
                 </select>
@@ -389,18 +402,29 @@ export default function PlayPanel({ data }: Props) {
               <div style={{ opacity: 0.75 }}>None</div>
             ) : (
               <div style={{ display: "grid", gap: 4, marginTop: 4 }}>
-                {currentNationOrders.map((o) => (
-                  <div key={o.id}>
-                    {o.type} · platoon {o.platoonId} · from {o.from ?? "?"} · path {(o.path ?? []).join(" -> ") || "—"}{" "}
-                    {o.submittedAt ? "· SUBMITTED" : "· draft"}
-                  </div>
-                ))}
+                {currentNationOrders.map((o) => {
+                  const platoonName =
+                    platoonsById[o.platoonId]?.name ?? o.platoonId;
+                  return (
+                    <div key={o.id}>
+                      {o.type} · platoon {platoonName} · from{" "}
+                      {formatTerritoryLabel(o.from, territoryNameById)} · path{" "}
+                      {(o.path ?? []).length
+                        ? formatTerritoryList(o.path ?? [], territoryNameById)
+                        : "—"}{" "}
+                      {o.submittedAt ? "· SUBMITTED" : "· draft"}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
           <div style={{ fontSize: 12, opacity: 0.8, marginTop: 8 }}>
-            Adjacents: {selected.adj.join(", ") || "none"}
+            Adjacents:{" "}
+            {selected.adj.length
+              ? formatTerritoryList(selected.adj, territoryNameById)
+              : "none"}
           </div>
         </>
       ) : (
@@ -415,7 +439,8 @@ export default function PlayPanel({ data }: Props) {
           ? "No entries yet."
           : turnLog.slice(0, 30).map((e) => (
               <div key={e.ts}>
-                <b>{e.type}</b> · {new Date(e.ts).toLocaleTimeString()} · {e.text}
+                <b>{e.type}</b> · {new Date(e.ts).toLocaleTimeString()} ·{" "}
+                {formatTerritoryText(e.text, territoryNameById)}
               </div>
             ))}
       </div>
@@ -434,7 +459,11 @@ export default function PlayPanel({ data }: Props) {
                 return (
                   <div key={c.id} style={{ padding: 8, borderRadius: 8, border: "1px solid rgba(255,255,255,.12)" }}>
                     <div style={{ fontWeight: 700 }}>
-                      {c.territoryId}: {c.attackerFaction} vs {c.defenderFaction}
+                      {formatTerritoryLabel(
+                        c.territoryId,
+                        territoryNameById,
+                      )}
+                      : {c.attackerFaction} vs {c.defenderFaction}
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>

@@ -9,6 +9,10 @@ import TurnLogPanel from "./TurnLogPanel";
 import CommandHub from "./CommandHub";
 import BattlesPanel from "./BattlesPanel";
 import { getFactionAccent } from "./factionColors";
+import {
+  formatTerritoryLabel,
+  formatTerritoryText,
+} from "./territoryLabel";
 
 type Props = { data: NormalizedData | null };
 
@@ -183,6 +187,7 @@ export default function CommandPanel({ data }: Props) {
 function MapInspector() {
   const selectedTerritoryId = useCampaignStore((s) => s.selectedTerritoryId);
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
+  const territoryNameById = useCampaignStore((s) => s.territoryNameById);
 
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
@@ -226,7 +231,8 @@ function MapInspector() {
         }}
       >
         <div>
-          <b>ID:</b> {selectedTerritoryId ?? "—"}
+          <b>Territory:</b>{" "}
+          {formatTerritoryLabel(selectedTerritoryId, territoryNameById)}
         </div>
 
         {selectedTerritoryId ? (
@@ -253,6 +259,7 @@ function ResolutionPhasePanel() {
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
   const locksByTerritory = useCampaignStore((s) => s.locksByTerritory);
   const turnLog = useCampaignStore((s) => s.turnLog);
+  const territoryNameById = useCampaignStore((s) => s.territoryNameById);
 
   const relevantContests = useMemo(() => {
     return Object.values(contestsByTerritory)
@@ -305,7 +312,8 @@ function ResolutionPhasePanel() {
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {recentNotes.map((entry) => (
               <li key={entry.id}>
-                <b>{entry.type}</b> · {entry.text}
+                <b>{entry.type}</b> ·{" "}
+                {formatTerritoryText(entry.text, territoryNameById)}
               </li>
             ))}
           </ul>
@@ -351,8 +359,11 @@ function ResolutionPhasePanel() {
                   }}
                 >
                   <div style={{ fontWeight: 700 }}>
-                    {contest?.territoryId} · {contest?.attackerFaction} vs{" "}
-                    {contest?.defenderFaction}
+                    {formatTerritoryLabel(
+                      contest?.territoryId,
+                      territoryNameById,
+                    )}{" "}
+                    · {contest?.attackerFaction} vs {contest?.defenderFaction}
                   </div>
                   <div style={{ fontSize: 12, opacity: 0.8 }}>
                     Status: <b>{statusLabel}</b>{" "}

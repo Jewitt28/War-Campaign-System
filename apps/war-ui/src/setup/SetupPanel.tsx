@@ -9,6 +9,7 @@ import { loadTheatresData } from "../data/theatres";
 import type { RegionDef } from "../data/regions";
 import { deriveFactionsFromNations } from "./nationSelectors";
 import { factionLabel } from "../store/factionLabel";
+import { formatTerritoryLabel } from "../ui/territoryLabel";
 
 type Status = "TODO" | "DONE" | "LOCKED";
 
@@ -667,7 +668,7 @@ export default function SetupPanel() {
                     >
                       {(activeRegion?.territories ?? []).map((tid) => (
                         <option key={tid} value={tid}>
-                          {territoryNameById[tid] ? `${territoryNameById[tid]} (${tid})` : tid}
+                          {formatTerritoryLabel(tid, territoryNameById)}
                         </option>
                       ))}
                     </select>
@@ -713,7 +714,8 @@ export default function SetupPanel() {
                         NATIONS.find((x) => x.id === nid);
                       return (
                         <div key={nid}>
-                          <b>{n?.name ?? nid}</b>: {territoryNameById[tid] ? `${territoryNameById[tid]} (${tid})` : tid}
+                          <b>{n?.name ?? nid}</b>:{" "}
+                          {formatTerritoryLabel(tid, territoryNameById)}
                         </div>
                       );
                     })}

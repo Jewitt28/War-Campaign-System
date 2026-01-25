@@ -19,6 +19,9 @@ export default function App() {
   const setAdjacencyByTerritory = useCampaignStore(
     (s) => s.setAdjacencyByTerritory,
   );
+  const setTerritoryNameById = useCampaignStore(
+    (s) => s.setTerritoryNameById,
+  );
 
   useEffect(() => {
     loadTheatresData()
@@ -29,9 +32,17 @@ export default function App() {
           adjacency[territory.id] = territory.adj ?? [];
         }
         setAdjacencyByTerritory(adjacency);
+        setTerritoryNameById(
+          Object.fromEntries(
+            loaded.territories.map((territory) => [
+              territory.id,
+              territory.name,
+            ]),
+          ),
+        );
       })
       .catch(console.error);
-  }, [setAdjacencyByTerritory]);
+  }, [setAdjacencyByTerritory, setTerritoryNameById]);
 
   const showSetup = mode === "SETUP" && viewerMode === "GM";
   const showLeftPanel =

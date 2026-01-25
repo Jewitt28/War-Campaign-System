@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useCampaignStore } from "../store/useCampaignStore";
 import type { BattleOutcome, Contest } from "../domain/types";
 import { NATIONS, type NationKey } from "../setup/NationDefinitions";
+import { formatTerritoryLabel } from "./territoryLabel";
 
 const clamp = (n: number, lo: number, hi: number) =>
   Math.min(Math.max(n, lo), hi);
@@ -32,6 +33,7 @@ export default function BattlesPanel() {
   const phase = useCampaignStore((s) => s.phase);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
   const resolveBattles = useCampaignStore((s) => s.resolveBattles);
+  const territoryNameById = useCampaignStore((s) => s.territoryNameById);
 
   // “Current player” selector (for the wider UX you described)
   const viewerNation = useCampaignStore((s) => s.viewerNation);
@@ -207,7 +209,8 @@ export default function BattlesPanel() {
                 }}
               >
                 <div style={{ fontWeight: 800 }}>
-                  {c.territoryId}: {c.attackerFaction} vs {c.defenderFaction}
+                  {formatTerritoryLabel(c.territoryId, territoryNameById)}:{" "}
+                  {c.attackerFaction} vs {c.defenderFaction}
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
                   {c.status}
