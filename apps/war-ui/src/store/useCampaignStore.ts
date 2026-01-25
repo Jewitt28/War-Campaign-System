@@ -523,7 +523,6 @@ export const useCampaignStore = create<CampaignState>()(
       setSelectedPlatoonId: (id) => set({ selectedPlatoonId: id }),
       setOrderDraftType: (type) => set({ orderDraftType: type }),
       setHomelandUnlock: (unlock) => set({ homelandUnlock: unlock }),
-      setOrderDraftType: (type) => set({ orderDraftType: type }),
 
       setRegions: (regions) => set({ regions }),
       setSelectedRegion: (id) => set({ selectedRegionId: id }),

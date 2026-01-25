@@ -313,7 +313,9 @@ function TopBar({ data }: { data: NormalizedData | null }) {
           </button>
         )}
         <button type="button" onClick={toggleViewerMode}>
-          {viewerMode === "GM" ? "GM View" : "Player View"}
+          {viewerMode === "GM"
+            ? "Switch to Player View"
+            : "Switch to GM View"}
         </button>
 
         <button
