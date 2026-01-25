@@ -223,7 +223,7 @@ export default function NationCommandPanel({ data }: Props) {
             {draftOrders.map((order) => (
               <li key={order.id}>
                 <b>{order.type}</b> · {order.platoonId}{" "}
-                {order.type === "RECON"
+                {order.type === "RECON" || order.type === "INTEL"
                   ? `→ ${(order.reconTargets ?? []).join(", ") || "—"}`
                   : `→ ${order.path?.join(" → ") ?? order.from ?? "Hold"}`}
               </li>
