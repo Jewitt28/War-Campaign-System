@@ -302,6 +302,7 @@ export default function MapBoard() {
   const setPlatoonOrderHold = useCampaignStore((s) => s.setPlatoonOrderHold);
   const setPlatoonOrderRecon = useCampaignStore((s) => s.setPlatoonOrderRecon);
   const setPlatoonOrderIntel = useCampaignStore((s) => s.setPlatoonOrderIntel);
+  const setOrderDraftType = useCampaignStore((s) => s.setOrderDraftType);
 
   const intelByTerritory = useCampaignStore((s) => s.intelByTerritory);
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
@@ -1008,6 +1009,7 @@ export default function MapBoard() {
                     false,
                   );
                 }
+                setOrderDraftType(null);
               }
             }
             setSelectedTerritory(territory.id);
@@ -1077,6 +1079,7 @@ export default function MapBoard() {
     setPlatoonOrderIntel,
     setPlatoonOrderMove,
     setPlatoonOrderRecon,
+    setOrderDraftType,
     setSelectedTerritory,
     applyHighlightState,
   ]);

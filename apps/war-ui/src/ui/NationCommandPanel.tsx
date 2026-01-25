@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
 import { useCampaignStore } from "../store/useCampaignStore";
@@ -15,12 +15,23 @@ export default function NationCommandPanel({ data }: Props) {
   const customNations = useCampaignStore((s) => s.customNations);
   const customs = useCampaignStore((s) => s.customs);
   const turnNumber = useCampaignStore((s) => s.turnNumber);
+  const phase = useCampaignStore((s) => s.phase);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
   const suppliesByFaction = useCampaignStore((s) => s.suppliesByFaction);
   const selectedPlatoonId = useCampaignStore((s) => s.selectedPlatoonId);
   const setSelectedPlatoonId = useCampaignStore((s) => s.setSelectedPlatoonId);
   const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
+  const orderDraftType = useCampaignStore((s) => s.orderDraftType);
+  const setOrderDraftType = useCampaignStore((s) => s.setOrderDraftType);
+  const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
+
+  const [openOrderPlatoonId, setOpenOrderPlatoonId] = useState<string | null>(
+    null,
+  );
+  const [pendingOrderPlatoonId, setPendingOrderPlatoonId] = useState<
+    string | null
+  >(null);
 
   const nationLabel =
     (viewerNation.startsWith("custom:")
@@ -65,6 +76,27 @@ export default function NationCommandPanel({ data }: Props) {
     customNations,
     customs,
   });
+
+  useEffect(() => {
+    if (phase !== "ORDERS") {
+      setOpenOrderPlatoonId(null);
+      setPendingOrderPlatoonId(null);
+      setOrderDraftType(null);
+    }
+  }, [phase, setOrderDraftType]);
+
+  useEffect(() => {
+    if (orderDraftType && selectedPlatoonId) {
+      setPendingOrderPlatoonId(selectedPlatoonId);
+    }
+  }, [orderDraftType, selectedPlatoonId]);
+
+  useEffect(() => {
+    if (!orderDraftType && pendingOrderPlatoonId) {
+      setOpenOrderPlatoonId(null);
+      setPendingOrderPlatoonId(null);
+    }
+  }, [orderDraftType, pendingOrderPlatoonId]);
 
   return (
     <div
@@ -155,56 +187,133 @@ export default function NationCommandPanel({ data }: Props) {
                 status === "submitted"
                   ? "Submitted order"
                   : status === "draft"
-                    ? "Draft order"
-                    : "No order";
+                  ? "Draft order"
+                  : "No order";
+              const orderPanelOpen =
+                phase === "ORDERS" && openOrderPlatoonId === platoon.id;
               return (
-                <button
-                  key={platoon.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedPlatoonId(platoon.id);
-                    setSelectedTerritory(platoon.territoryId);
-                  }}
-                  style={{
-                    textAlign: "left",
-                    padding: "8px 10px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(255,255,255,.12)",
-                    background:
-                      selectedPlatoonId === platoon.id
-                        ? "rgba(255,255,255,.06)"
-                        : "rgba(0,0,0,.12)",
-                    cursor: "pointer",
-                    display: "grid",
-                    gap: 4,
-                  }}
-                >
-                  <div
+                <div key={platoon.id} style={{ display: "grid", gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPlatoonId(platoon.id);
+                      setSelectedTerritory(platoon.territoryId);
+                      if (phase === "ORDERS") {
+                        setOpenOrderPlatoonId(platoon.id);
+                        setOrderDraftType(null);
+                        setPendingOrderPlatoonId(null);
+                      }
+                    }}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 8,
+                      textAlign: "left",
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: "1px solid rgba(255,255,255,.12)",
+                      background:
+                        selectedPlatoonId === platoon.id
+                          ? "rgba(255,255,255,.06)"
+                          : "rgba(0,0,0,.12)",
+                      cursor: "pointer",
+                      display: "grid",
+                      gap: 4,
                     }}
                   >
-                    <div style={{ fontWeight: 800 }}>{platoon.name}</div>
-                    <span
-                      title={statusLabel}
+                    <div
                       style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: "50%",
-                        background: statusColor,
-                        boxShadow: `0 0 6px ${statusColor}66`,
-                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 8,
                       }}
-                    />
-                  </div>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>
-                    {platoon.condition} · {platoon.strengthPct}% ·{" "}
-                    {platoon.territoryId}
-                  </div>
-                </button>
+                    >
+                      <div style={{ fontWeight: 800 }}>{platoon.name}</div>
+                      <span
+                        title={statusLabel}
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          background: statusColor,
+                          boxShadow: `0 0 6px ${statusColor}66`,
+                          flexShrink: 0,
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.85 }}>
+                      {platoon.condition} · {platoon.strengthPct}% ·{" "}
+                      {platoon.territoryId}
+                    </div>
+                  </button>
+                  {orderPanelOpen ? (
+                    <div
+                      style={{
+                        border: "1px solid rgba(255,255,255,.12)",
+                        borderRadius: 10,
+                        padding: 10,
+                        background: "rgba(0,0,0,.18)",
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ fontWeight: 700 }}>
+                        Issue order · Turn {turnNumber}
+                      </div>
+                      <div style={{ fontSize: 12, opacity: 0.7 }}>
+                        Choose an order type, then select a highlighted
+                        territory on the map.
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 6,
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(120px, 1fr))",
+                        }}
+                      >
+                        {(
+                          [
+                            ["MOVE", "Move"],
+                            ["HOLD", "Hold"],
+                            ["RECON", "Recon"],
+                            ["INTEL", "Intel"],
+                          ] as const
+                        ).map(([value, label]) => {
+                          const isActive =
+                            orderDraftType === value &&
+                            selectedPlatoonId === platoon.id;
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => {
+                                setSelectedPlatoonId(platoon.id);
+                                setOrderDraftType(value);
+                                setPendingOrderPlatoonId(platoon.id);
+                              }}
+                              style={{
+                                textAlign: "left",
+                                padding: "6px 8px",
+                                borderRadius: 8,
+                                border: "1px solid rgba(255,255,255,.12)",
+                                background: isActive
+                                  ? "rgba(59,130,246,.2)"
+                                  : "rgba(0,0,0,.12)",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div style={{ fontSize: 12, opacity: 0.75 }}>
+                        {orderDraftType && selectedPlatoonId === platoon.id
+                          ? "Targets are highlighted on the map. Click one to draft the order."
+                          : "No order type selected yet."}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               );
             })}
           </div>
@@ -222,7 +331,24 @@ export default function NationCommandPanel({ data }: Props) {
           padding: 12,
         }}
       >
-        <h3 style={{ marginTop: 0 }}>Draft Orders</h3>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            flexWrap: "wrap",
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: 0 }}>Draft Orders</h3>
+          <button
+            type="button"
+            onClick={() => submitFactionOrders(turnNumber, viewerNation)}
+            disabled={!draftOrders.length}
+          >
+            Submit Orders
+          </button>
+        </div>
         {draftOrders.length ? (
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {draftOrders.map((order) => (
@@ -236,7 +362,7 @@ export default function NationCommandPanel({ data }: Props) {
           </ul>
         ) : (
           <div style={{ fontSize: 12, opacity: 0.8 }}>
-            No draft orders yet. Use the Orders tab to issue actions.
+            No draft orders yet. Select a platoon above to issue actions.
           </div>
         )}
       </section>

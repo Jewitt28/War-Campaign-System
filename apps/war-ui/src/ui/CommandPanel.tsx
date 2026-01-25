@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import { useCampaignStore } from "../store/useCampaignStore";
 
@@ -15,7 +15,6 @@ type Props = { data: NormalizedData | null };
 // Keep these compatible with your existing GMTools/PlayerDashboard expectations.
 export type Tab =
   | "DASHBOARD"
-  | "ORDERS"
   | "RESOLUTION"
   | "BATTLES"
   | "INTEL"
@@ -51,7 +50,6 @@ export default function CommandPanel({ data }: Props) {
     useMemo(() => {
       return [
         { id: "DASHBOARD", label: "Dashboard" },
-        { id: "ORDERS", label: "Orders" },
         { id: "RESOLUTION", label: "Resolution" },
         { id: "BATTLES", label: "Battles" },
         { id: "PLATOONS", label: "Platoons" },
@@ -63,7 +61,7 @@ export default function CommandPanel({ data }: Props) {
   const playerTabsByPhase: Record<string, RightTab[]> = useMemo(
     () => ({
       SETUP: ["DASHBOARD", "LOG"],
-      ORDERS: ["DASHBOARD", "ORDERS", "PLATOONS", "LOG"],
+      ORDERS: ["DASHBOARD", "PLATOONS", "LOG"],
       RESOLUTION: ["DASHBOARD", "RESOLUTION", "LOG"],
       BATTLES: ["DASHBOARD", "BATTLES", "LOG"],
     }),
@@ -95,8 +93,6 @@ export default function CommandPanel({ data }: Props) {
           <CommandHub data={data} variant="full" />
         );
       // return gmEffective ? <GMTools data={data} setTab={tab} /> : <CommandHub data={data}  />;
-      case "ORDERS":
-        return <OrdersPhasePanel />;
       case "RESOLUTION":
         return <ResolutionPhasePanel />;
       case "BATTLES":
@@ -114,7 +110,7 @@ export default function CommandPanel({ data }: Props) {
           <div>Not available in PLAYER mode.</div>
         );
       case "PLATOONS":
-        return <PlatoonsPanel data={data} />;
+        return <PlatoonsPanel />;
       default:
         return null;
     }
@@ -252,423 +248,6 @@ function MapInspector() {
     </div>
   );
 }
-function OrdersPhasePanel() {
-  const viewerNation = useCampaignStore((s) => s.viewerNation);
-  const turnNumber = useCampaignStore((s) => s.turnNumber);
-  const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
-  const platoonsById = useCampaignStore((s) => s.platoonsById);
-  const selectedPlatoonId = useCampaignStore((s) => s.selectedPlatoonId);
-  const adjacencyByTerritory = useCampaignStore((s) => s.adjacencyByTerritory);
-  const setPlatoonOrderMove = useCampaignStore((s) => s.setPlatoonOrderMove);
-  const setPlatoonOrderHold = useCampaignStore((s) => s.setPlatoonOrderHold);
-  const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
-  const setPlatoonOrderRecon = useCampaignStore((s) => s.setPlatoonOrderRecon);
-  const setPlatoonOrderIntel = useCampaignStore((s) => s.setPlatoonOrderIntel);
-  const orderDraftType = useCampaignStore((s) => s.orderDraftType);
-  const setOrderDraftType = useCampaignStore((s) => s.setOrderDraftType);
-  const setSelectedPlatoonId = useCampaignStore((s) => s.setSelectedPlatoonId);
-
-  const [orderType, setOrderType] = useState<
-    "MOVE" | "HOLD" | "RECON" | "INTEL"
-  >("MOVE");
-  const [orderPlatoonId, setOrderPlatoonId] = useState<string>("");
-  const [forcedMarch, setForcedMarch] = useState(false);
-  const [step1, setStep1] = useState("");
-  const [step2, setStep2] = useState("");
-  const [reconTarget1, setReconTarget1] = useState("");
-  const [reconTarget2, setReconTarget2] = useState("");
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (selectedPlatoonId && selectedPlatoonId !== orderPlatoonId) {
-      setOrderPlatoonId(selectedPlatoonId);
-      setStep1("");
-      setStep2("");
-      setReconTarget1("");
-      setReconTarget2("");
-      setForcedMarch(false);
-    }
-  }, [orderPlatoonId, selectedPlatoonId]);
-
-  useEffect(() => {
-    if (orderDraftType) {
-      setOrderType(orderDraftType);
-    }
-  }, [orderDraftType]);
-
-  const currentOrders = useMemo(() => {
-    const byTurn = ordersByTurn?.[turnNumber] ?? {};
-    return Object.values(byTurn)
-      .flat()
-      .filter((o) => {
-        const platoon = platoonsById[o.platoonId];
-        return platoon?.nation === viewerNation && !o.submittedAt;
-      });
-  }, [ordersByTurn, platoonsById, turnNumber, viewerNation]);
-  const eligiblePlatoons = useMemo(
-    () => Object.values(platoonsById).filter((p) => p.nation === viewerNation),
-    [platoonsById, viewerNation],
-  );
-
-  const selectedPlatoon = orderPlatoonId
-    ? platoonsById[orderPlatoonId]
-    : undefined;
-  const step1Options = useMemo(() => {
-    if (!selectedPlatoon) return [];
-    return adjacencyByTerritory[selectedPlatoon.territoryId] ?? [];
-  }, [adjacencyByTerritory, selectedPlatoon]);
-
-  const step2Options = useMemo(() => {
-    if (!forcedMarch || !step1) return [];
-    return adjacencyByTerritory[step1] ?? [];
-  }, [adjacencyByTerritory, forcedMarch, step1]);
-
-  const reconOptions = step1Options;
-  const canReconTwice = !!selectedPlatoon?.traits?.includes("RECON");
-
-  const createOrder = () => {
-    if (!orderPlatoonId || !selectedPlatoon) return;
-    if (orderType === "HOLD") {
-      setPlatoonOrderHold(turnNumber, selectedPlatoon.faction, orderPlatoonId);
-      return;
-    }
-    if (orderType === "RECON") {
-      if (!reconTarget1) return;
-      const targets = canReconTwice
-        ? [reconTarget1, reconTarget2].filter(Boolean)
-        : [reconTarget1];
-      setPlatoonOrderRecon(
-        turnNumber,
-        selectedPlatoon.faction,
-        orderPlatoonId,
-        targets,
-      );
-      return;
-    }
-    if (orderType === "INTEL") {
-      if (!reconTarget1) return;
-      setPlatoonOrderIntel(
-        turnNumber,
-        selectedPlatoon.faction,
-        orderPlatoonId,
-        reconTarget1,
-      );
-      return;
-    }
-    if (!step1) return;
-    const path = forcedMarch && step2 ? [step1, step2] : [step1];
-    setPlatoonOrderMove(
-      turnNumber,
-      selectedPlatoon.faction,
-      orderPlatoonId,
-      path,
-      forcedMarch,
-    );
-  };
-  return (
-    <div style={{ padding: 16, display: "grid", gap: 12 }}>
-      <div>
-        <h2 style={{ margin: 0 }}>Orders Phase</h2>
-        <div style={{ opacity: 0.8 }}>
-          Issue movement, hold, or recon orders for <b>{viewerNation}</b>. Turn{" "}
-          <b>{turnNumber}</b>.
-        </div>
-      </div>
-
-      <section
-        style={{
-          border: "1px solid rgba(255,255,255,.12)",
-          borderRadius: 12,
-          padding: 12,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Available Orders</h3>
-        <div style={{ display: "grid", gap: 8 }}>
-          <OrderCard
-            title="Move"
-            detail="Relocate platoons to adjacent territories or forced march."
-            isActive={orderDraftType === "MOVE"}
-            onClick={() => {
-              setOrderDraftType("MOVE");
-              setOrderType("MOVE");
-            }}
-          />
-          <OrderCard
-            title="Hold"
-            detail="Fortify positions and maintain defensive readiness."
-            isActive={orderDraftType === "HOLD"}
-            onClick={() => {
-              setOrderDraftType("HOLD");
-              setOrderType("HOLD");
-            }}
-          />
-          <OrderCard
-            title="Recon"
-            detail="Gather intel and reveal enemy positions."
-            isActive={orderDraftType === "RECON"}
-            onClick={() => {
-              setOrderDraftType("RECON");
-              setOrderType("RECON");
-            }}
-          />
-          <OrderCard
-            title="Intel"
-            detail="Assign intel assets to contested theatres."
-            isActive={orderDraftType === "INTEL"}
-            onClick={() => {
-              setOrderDraftType("INTEL");
-              setOrderType("INTEL");
-            }}
-          />
-        </div>
-      </section>
-      <section
-        style={{
-          border: "1px solid rgba(255,255,255,.12)",
-          borderRadius: 12,
-          padding: 12,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Create Order</h3>
-        <div style={{ display: "grid", gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
-              Platoon
-            </div>
-            <select
-              value={orderPlatoonId}
-              onChange={(e) => {
-                setOrderPlatoonId(e.target.value);
-                setSelectedPlatoonId(e.target.value || null);
-                setStep1("");
-                setStep2("");
-                setReconTarget1("");
-                setReconTarget2("");
-                setForcedMarch(false);
-              }}
-              style={{ width: "100%" }}
-            >
-              <option value="">— Select —</option>
-              {eligiblePlatoons.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.territoryId})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
-              Order type
-            </div>
-            <select
-              value={orderType}
-              onChange={(e) => {
-                const nextType = e.target.value as
-                  | "MOVE"
-                  | "HOLD"
-                  | "RECON"
-                  | "INTEL";
-                setOrderType(nextType);
-                setOrderDraftType(nextType);
-                setStep1("");
-                setStep2("");
-                setReconTarget1("");
-                setReconTarget2("");
-              }}
-              style={{ width: "100%" }}
-            >
-              <option value="MOVE">Move</option>
-              <option value="HOLD">Hold</option>
-              <option value="RECON">Recon</option>
-              <option value="INTEL">Intel</option>
-            </select>
-          </div>
-
-          {orderType === "MOVE" ? (
-            <>
-              <label style={{ fontSize: 12, opacity: 0.9 }}>
-                <input
-                  type="checkbox"
-                  checked={forcedMarch}
-                  onChange={(e) => {
-                    setForcedMarch(e.target.checked);
-                    setStep2("");
-                  }}
-                />{" "}
-                Forced march (2 steps)
-              </label>
-
-              <div>
-                <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
-                  Step 1
-                </div>
-                <select
-                  value={step1}
-                  onChange={(e) => {
-                    setStep1(e.target.value);
-                    setStep2("");
-                  }}
-                  style={{ width: "100%" }}
-                >
-                  <option value="">—</option>
-                  {step1Options.map((tid) => (
-                    <option key={tid} value={tid}>
-                      {tid}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {forcedMarch ? (
-                <div>
-                  <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
-                    Step 2
-                  </div>
-                  <select
-                    value={step2}
-                    onChange={(e) => setStep2(e.target.value)}
-                    style={{ width: "100%" }}
-                  >
-                    <option value="">—</option>
-                    {step2Options.map((tid) => (
-                      <option key={tid} value={tid}>
-                        {tid}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-            </>
-          ) : orderType === "RECON" ? (
-            <>
-              <div>
-                <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
-                  Recon target
-                </div>
-                <select
-                  value={reconTarget1}
-                  onChange={(e) => {
-                    setReconTarget1(e.target.value);
-                    if (e.target.value === reconTarget2) {
-                      setReconTarget2("");
-                    }
-                  }}
-                  style={{ width: "100%" }}
-                >
-                  <option value="">—</option>
-                  {reconOptions.map((tid) => (
-                    <option key={tid} value={tid}>
-                      {tid}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {canReconTwice ? (
-                <div>
-                  <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
-                    Recon target (second)
-                  </div>
-                  <select
-                    value={reconTarget2}
-                    onChange={(e) => setReconTarget2(e.target.value)}
-                    style={{ width: "100%" }}
-                  >
-                    <option value="">—</option>
-                    {reconOptions
-                      .filter((tid) => tid !== reconTarget1)
-                      .map((tid) => (
-                        <option key={tid} value={tid}>
-                          {tid}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              ) : (
-                <div style={{ fontSize: 12, opacity: 0.7 }}>
-                  Recon reveals intel about one adjacent territory.
-                </div>
-              )}
-            </>
-          ) : orderType === "INTEL" ? (
-            <div>
-              <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
-                Intel target
-              </div>
-              <select
-                value={reconTarget1}
-                onChange={(e) => setReconTarget1(e.target.value)}
-                style={{ width: "100%" }}
-              >
-                <option value="">—</option>
-                {reconOptions.map((tid) => (
-                  <option key={tid} value={tid}>
-                    {tid}
-                  </option>
-                ))}
-              </select>
-              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>
-                Intel orders focus assets on a single adjacent territory.
-              </div>
-            </div>
-          ) : (
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
-              Hold keeps the platoon in place for the turn.
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={createOrder}
-              disabled={
-                !orderPlatoonId ||
-                (orderType === "MOVE" && (!step1 || (forcedMarch && !step2))) ||
-                ((orderType === "RECON" || orderType === "INTEL") &&
-                  !reconTarget1)
-              }
-            >
-              Add Order
-            </button>
-            <button
-              type="button"
-              onClick={() => submitFactionOrders(turnNumber, viewerNation)}
-            >
-              Submit Orders
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section
-        style={{
-          border: "1px solid rgba(255,255,255,.12)",
-          borderRadius: 12,
-          padding: 12,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Draft Orders</h3>
-        {currentOrders.length ? (
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {currentOrders.map((order) => (
-              <li key={order.id}>
-                <b>{order.type}</b> · {order.platoonId} →{" "}
-                {order.type === "RECON" || order.type === "INTEL"
-                  ? (order.reconTargets ?? []).join(", ") || "—"
-                  : (order.path?.join(" → ") ?? order.from ?? "Hold")}{" "}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div style={{ fontSize: 12, opacity: 0.7 }}>
-            No draft orders yet. Use the Platoons tab or map to issue orders.
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
 function ResolutionPhasePanel() {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
@@ -840,38 +419,6 @@ function ResolutionPhasePanel() {
         </div>
       ) : null}
     </div>
-  );
-}
-
-function OrderCard({
-  title,
-  detail,
-  isActive,
-  onClick,
-}: {
-  title: string;
-  detail: string;
-  isActive?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        border: "1px solid rgba(255,255,255,.12)",
-        borderRadius: 10,
-        padding: 10,
-        display: "grid",
-        gap: 4,
-        background: isActive ? "rgba(59,130,246,.2)" : "rgba(0,0,0,.12)",
-        textAlign: "left",
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ fontWeight: 700 }}>{title}</div>
-      <div style={{ fontSize: 12, opacity: 0.75 }}>{detail}</div>
-    </button>
   );
 }
 
