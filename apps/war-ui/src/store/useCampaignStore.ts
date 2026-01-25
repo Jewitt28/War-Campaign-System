@@ -117,6 +117,7 @@ export type CampaignState = {
   selectedTerritoryId: string | null;
   turnLog: TurnLogEntry[];
   selectedPlatoonId: string | null;
+  orderDraftType: PlatoonOrder["type"] | null;
   setMode: (m: Mode) => void;
   setPlayMode: (m: PlayMode) => void;
   setCommandHubExpanded: (expanded: boolean) => void;
@@ -132,6 +133,7 @@ export type CampaignState = {
   setPlayerFactionId: (faction: FactionKey | null) => void;
   setSelectedTerritory: (id: string | null) => void;
   setSelectedPlatoonId: (id: string | null) => void;
+  setOrderDraftType: (type: PlatoonOrder["type"] | null) => void;
   // v1
   setHomeland: (factionKey: FactionKey, territoryId: string) => void;
   applyHomeland: (nationKey: NationKey) => void;
@@ -198,6 +200,12 @@ export type CampaignState = {
     faction: FactionKey,
     platoonId: string,
     targets: string[],
+  ) => void;
+  setPlatoonOrderIntel: (
+    turn: number,
+    faction: FactionKey,
+    platoonId: string,
+    target: string,
   ) => void;
 
   submitFactionOrders: (turn: number, nation: NationKey) => void;
@@ -289,6 +297,7 @@ const initialState: Omit<
   | "toggleTheatre"
   | "selectSetupFaction"
   | "setSelectedPlatoonId"
+  | "setOrderDraftType"
   | "createCustomFaction"
   | "createCustomNation"
   | "selectCustomFaction"
@@ -312,6 +321,7 @@ const initialState: Omit<
   | "setPlatoonOrderMove"
   | "setPlatoonOrderHold"
   | "setPlatoonOrderRecon"
+  | "setPlatoonOrderIntel"
   | "setAdjacencyByTerritory"
   | "submitFactionOrders"
   | "resolveCurrentTurn"
@@ -378,6 +388,7 @@ const initialState: Omit<
 
   selectedTerritoryId: null,
   selectedPlatoonId: null,
+  orderDraftType: null,
   turnLog: [],
 
   phase: "SETUP",
@@ -502,6 +513,7 @@ export const useCampaignStore = create<CampaignState>()(
 
       setSelectedTerritory: (id) => set({ selectedTerritoryId: id }),
       setSelectedPlatoonId: (id) => set({ selectedPlatoonId: id }),
+      setOrderDraftType: (type) => set({ orderDraftType: type }),
       setHomelandUnlock: (unlock) => set({ homelandUnlock: unlock }),
 
       setRegions: (regions) => set({ regions }),
@@ -766,6 +778,37 @@ export const useCampaignStore = create<CampaignState>()(
             type: "RECON",
             from: platoon.territoryId,
             reconTargets,
+            submittedAt: list[existingIdx]?.submittedAt,
+          };
+
+          if (existingIdx >= 0) list[existingIdx] = next;
+          else list.push(next);
+          byTurn[orderFaction] = list;
+          return { ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn } };
+        }),
+      setPlatoonOrderIntel: (turn, faction, platoonId, target) =>
+        set((s) => {
+          const platoon = s.platoonsById[platoonId];
+          if (!platoon) return s;
+          if (!playerCanActAsNation(s, platoon.nation)) return s;
+
+          const orderFaction = platoon.faction;
+
+          const byTurn: Record<string, PlatoonOrder[]> = {
+            ...(s.ordersByTurn[turn] ?? {}),
+          };
+          const list: PlatoonOrder[] = [...(byTurn[orderFaction] ?? [])];
+          const existingIdx = list.findIndex((o) => o.platoonId === platoonId);
+          const intelTargets = [target.trim()].filter(Boolean);
+
+          const next: PlatoonOrder = {
+            id: existingIdx >= 0 ? list[existingIdx].id : uid(),
+            turn,
+            faction: orderFaction,
+            platoonId,
+            type: "INTEL",
+            from: platoon.territoryId,
+            reconTargets: intelTargets,
             submittedAt: list[existingIdx]?.submittedAt,
           };
 
