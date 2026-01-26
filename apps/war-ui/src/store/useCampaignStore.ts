@@ -285,6 +285,88 @@ function prerequisitesMet(
   return node.prerequisites.every((id) => completed.includes(id));
 }
 
+type ResearchRecommendationState = Pick<
+  CampaignState,
+  | "researchByNation"
+  | "customNations"
+  | "platoonsById"
+  | "suppliesByNation"
+  | "territoryNameById"
+  | "intelByTerritory"
+>;
+
+export function buildResearchRecommendations(
+  state: ResearchRecommendationState,
+  nationId: NationKey,
+): ResearchRecommendation[] {
+  const researchState = state.researchByNation[nationId] ?? defaultResearchState();
+  const nationFaction = getNationFaction(nationId, state.customNations);
+  const activeNode = researchState.activeResearchId
+    ? RESEARCH_NODES_BY_ID[researchState.activeResearchId]
+    : null;
+
+  const alliedResearchTrees = new Set<ResearchTree>();
+  for (const [otherNation, otherState] of Object.entries(
+    state.researchByNation,
+  )) {
+    if (otherNation === nationId) continue;
+    if (!otherState.activeResearchId) continue;
+    const otherFaction = getNationFaction(
+      otherNation as NationKey,
+      state.customNations,
+    );
+    if (otherFaction !== nationFaction) continue;
+    const otherNode = RESEARCH_NODES_BY_ID[otherState.activeResearchId];
+    if (otherNode) alliedResearchTrees.add(otherNode.tree);
+  }
+
+  const platoonCount = Object.values(state.platoonsById).filter(
+    (platoon) => platoon.nation === nationId,
+  ).length;
+  const supplies = state.suppliesByNation?.[nationId] ?? 0;
+  const unsuppliedRatio =
+    platoonCount === 0
+      ? 0
+      : Math.max(0, (platoonCount - supplies) / platoonCount);
+
+  const territoryIds = Object.keys(state.territoryNameById);
+  const knownTerritories = territoryIds.filter((id) => {
+    const level = state.intelByTerritory[id]?.[nationId];
+    return level && level !== "NONE";
+  }).length;
+  const intelCoverage =
+    territoryIds.length === 0 ? 0 : knownTerritories / territoryIds.length;
+
+  return RESEARCH_NODES.filter((node) =>
+    prerequisitesMet(node.id, researchState.completedResearch, activeNode?.id),
+  )
+    .map((node) => {
+      let score = 0;
+      const reasons: string[] = [];
+
+      if (node.tree === "LOGISTICS" && unsuppliedRatio > 0.25) {
+        score += 3;
+        reasons.push("More than 25% of forces are unsupplied.");
+      }
+      if (node.tree === "INTELLIGENCE" && intelCoverage < 0.5) {
+        score += 3;
+        reasons.push("Intel coverage is below 50%.");
+      }
+      if (alliedResearchTrees.has(node.tree)) {
+        score -= 2;
+        reasons.push("Allied nation is already researching this tree.");
+      }
+
+      return {
+        nodeId: node.id,
+        score,
+        reasons,
+      };
+    })
+    .filter((rec) => rec.score !== 0)
+    .sort((a, b) => b.score - a.score);
+}
+
 function advanceResearchForNewTurn(
   researchByNation: Record<NationKey, NationResearchState>,
 ) {
@@ -1254,75 +1336,7 @@ export const useCampaignStore = create<CampaignState>()(
           };
         }),
       getResearchRecommendations: (nationId) => {
-        const s = get();
-        const state = s.researchByNation[nationId] ?? defaultResearchState();
-        const nationFaction = getNationFaction(nationId, s.customNations);
-        const activeNode = state.activeResearchId
-          ? RESEARCH_NODES_BY_ID[state.activeResearchId]
-          : null;
-
-        const alliedResearchTrees = new Set<ResearchTree>();
-        for (const [otherNation, otherState] of Object.entries(
-          s.researchByNation,
-        )) {
-          if (otherNation === nationId) continue;
-          if (!otherState.activeResearchId) continue;
-          const otherFaction = getNationFaction(
-            otherNation as NationKey,
-            s.customNations,
-          );
-          if (otherFaction !== nationFaction) continue;
-          const otherNode = RESEARCH_NODES_BY_ID[otherState.activeResearchId];
-          if (otherNode) alliedResearchTrees.add(otherNode.tree);
-        }
-
-        const platoonCount = Object.values(s.platoonsById).filter(
-          (platoon) => platoon.nation === nationId,
-        ).length;
-        const supplies = s.suppliesByNation?.[nationId] ?? 0;
-        const unsuppliedRatio =
-          platoonCount === 0
-            ? 0
-            : Math.max(0, (platoonCount - supplies) / platoonCount);
-
-        const territoryIds = Object.keys(s.territoryNameById);
-        const knownTerritories = territoryIds.filter((id) => {
-          const level = s.intelByTerritory[id]?.[nationId];
-          return level && level !== "NONE";
-        }).length;
-        const intelCoverage =
-          territoryIds.length === 0
-            ? 0
-            : knownTerritories / territoryIds.length;
-
-        return RESEARCH_NODES.filter((node) =>
-          prerequisitesMet(node.id, state.completedResearch, activeNode?.id),
-        )
-          .map((node) => {
-            let score = 0;
-            const reasons: string[] = [];
-
-            if (node.tree === "LOGISTICS" && unsuppliedRatio > 0.25) {
-              score += 3;
-              reasons.push("More than 25% of forces are unsupplied.");
-            }
-            if (node.tree === "INTELLIGENCE" && intelCoverage < 0.5) {
-              score += 3;
-              reasons.push("Intel coverage is below 50%.");
-            }
-            if (alliedResearchTrees.has(node.tree)) {
-              score -= 2;
-              reasons.push("Allied nation is already researching this tree.");
-            }
-
-            return {
-              nodeId: node.id,
-              score,
-              reasons,
-            };
-          })
-          .filter((rec) => rec.score !== 0)
-          .sort((a, b) => b.score - a.score);
+        return buildResearchRecommendations(get(), nationId);
       },
 
       clearLocksAndContests: () =>
