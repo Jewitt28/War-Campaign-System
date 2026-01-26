@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
 import { canPickNationHomeland, getFactionKeyForNation } from "./SetupRules";
@@ -113,9 +113,12 @@ export default function SetupPanel() {
   // ----- Derived stage state -----
   const anyTheatreActive = useMemo(() => Object.values(activeTheatres).some(Boolean), [activeTheatres]);
 
-  const enabledNationIds = useMemo(
-    () => Object.entries(nationsEnabledMap).filter(([, v]) => v).map(([k]) => k),
-    [nationsEnabledMap]
+  const enabledNationIds = useMemo<NationKey[]>(
+    () =>
+      Object.entries(nationsEnabledMap)
+        .filter(([, v]) => v)
+        .map(([k]) => k as NationKey),
+    [nationsEnabledMap],
   );
 
   const allNations = useMemo(
@@ -141,18 +144,21 @@ export default function SetupPanel() {
     [activeTheatres]
   );
 
-  const nationLabel = (nationId: NationKey | null) => {
-    if (!nationId) return "—";
-    const custom = customNations.find((n) => n.id === nationId);
-    return custom?.name ?? NATIONS.find((n) => n.id === nationId)?.name ?? nationId;
-  };
+  const nationLabel = useCallback(
+    (nationId: NationKey | null) => {
+      if (!nationId) return "—";
+      const custom = customNations.find((n) => n.id === nationId);
+      return custom?.name ?? NATIONS.find((n) => n.id === nationId)?.name ?? nationId;
+    },
+    [customNations],
+  );
   const missingHomelandNations = useMemo(
     () => enabledNationIds.filter((nid) => !homelandsByNation[nid]),
     [enabledNationIds, homelandsByNation],
   );
   const missingHomelandNames = useMemo(
     () => missingHomelandNations.map((nid) => nationLabel(nid)).join(", "),
-    [missingHomelandNations],
+    [missingHomelandNations, nationLabel],
   );
 
   const derivedFactionsLabel = useMemo(() => {
@@ -237,33 +243,26 @@ export default function SetupPanel() {
       .catch((e) => console.error("Failed to load theatres data", e));
   }, [setRegions, setSelectedRegion, setSelectedTerritory]);
 
-  const activeRegion = useMemo(() => regionGroups.find((g) => g.id === regionId) ?? null, [regionGroups, regionId]);
+  const derivedRegionId = useMemo(() => {
+    if (!selectedTerritoryId) return regionId;
+    const regionFromSelection = regionGroups.find((group) =>
+      group.territories?.includes(selectedTerritoryId),
+    );
+    return regionFromSelection?.id ?? regionId;
+  }, [regionGroups, regionId, selectedTerritoryId]);
+
+  const activeRegion = useMemo(
+    () => regionGroups.find((g) => g.id === derivedRegionId) ?? null,
+    [regionGroups, derivedRegionId],
+  );
 
   const safeRegionTerritoryId = useMemo(() => {
     const list = activeRegion?.territories ?? [];
     if (list.length === 0) return "";
+    if (selectedTerritoryId && list.includes(selectedTerritoryId)) return selectedTerritoryId;
     if (list.includes(regionTerritoryId)) return regionTerritoryId;
     return list[0];
-  }, [activeRegion, regionTerritoryId]);
-
-  useEffect(() => {
-    if (!selectedTerritoryId) return;
-    if (regionGroups.length === 0) return;
-    const nextRegion = regionGroups.find((group) =>
-      group.territories?.includes(selectedTerritoryId),
-    );
-    if (!nextRegion) return;
-    if (regionId !== nextRegion.id) {
-      setRegionId(nextRegion.id);
-      setSelectedRegion(nextRegion.id);
-    }
-    setRegionTerritoryId(selectedTerritoryId);
-  }, [
-    regionGroups,
-    regionId,
-    selectedTerritoryId,
-    setSelectedRegion,
-  ]);
+  }, [activeRegion, regionTerritoryId, selectedTerritoryId]);
 
   const canSetHomeland = !!selectedSetupNation && !!safeRegionTerritoryId;
 
@@ -467,7 +466,7 @@ export default function SetupPanel() {
                 >
                   <input type="checkbox" checked={!!nationsEnabledMap[n.id]} onChange={() => toggleNationEnabled(n.id)} />
                   <span>
-                    {n.flag ? `${n.flag} ` : ""}
+                    {"flag" in n && n.flag ? `${n.flag} ` : ""}
                     {n.name}
                   </span>
                 </label>
@@ -488,7 +487,7 @@ export default function SetupPanel() {
                 <option value="">— Select —</option>
                 {allNations.filter((n) => nationsEnabledMap[n.id]).map((n) => (
                   <option key={n.id} value={n.id}>
-                    {n.flag ? `${n.flag} ` : ""}
+                    {"flag" in n && n.flag ? `${n.flag} ` : ""}
                     {n.name}
                   </option>
                 ))}
@@ -629,7 +628,7 @@ export default function SetupPanel() {
                   <option value="">— Select —</option>
                   {allNations.filter((n) => nationsEnabledMap[n.id]).map((n) => (
                     <option key={n.id} value={n.id}>
-                      {n.flag ? `${n.flag} ` : ""}
+                      {"flag" in n && n.flag ? `${n.flag} ` : ""}
                       {n.name}
                     </option>
                   ))}
@@ -664,7 +663,7 @@ export default function SetupPanel() {
                   <label style={{ display: "grid", gap: 4 }}>
                     <span style={{ fontSize: 12, opacity: 0.85 }}>Region</span>
                     <select
-                      value={regionId}
+                      value={derivedRegionId}
                       onChange={(e) => {
                         const nextRegionId = e.target.value;
                         setRegionId(nextRegionId);
