@@ -14,6 +14,13 @@ import {
   formatTerritoryList,
 } from "./territoryLabel";
 import type { Platoon, PlatoonCondition, PlatoonTrait } from "../domain/types";
+import {
+  getPlatoonArchetypeById,
+  getPlatoonArchetypeByTrait,
+  getPlatoonArchetypeForTraits,
+  normalizePlatoonTrait,
+  type PlatoonArchetypeId,
+} from "../domain/platoonArchetypes";
 
 const CONDITION_ORDER: PlatoonCondition[] = [
   "SHATTERED",
@@ -208,17 +215,17 @@ export default function NationCommandPanel({ data }: Props) {
   const COST_TOGGLE_ENTRENCH = 10;
   const COST_TRAIT_RECON = 20;
   const COST_TRAIT_ENGINEERS = 20;
-  const COST_TRAIT_MOTORIZED = 30;
+  const COST_TRAIT_ARMOURED = 30;
 
   const traitCosts: Record<PlatoonTrait, number> = {
     RECON: COST_TRAIT_RECON,
     ENGINEERS: COST_TRAIT_ENGINEERS,
-    MOTORIZED: COST_TRAIT_MOTORIZED,
+    ARMOURED: COST_TRAIT_ARMOURED,
   };
   const traitInfo: Record<PlatoonTrait, string> = {
-    RECON: "Recon orders can target up to 2 territories.",
-    ENGINEERS: "Support-focused platoon. (Rules coming soon.)",
-    MOTORIZED: "Mobile platoon. (Rules coming soon.)",
+    RECON: getPlatoonArchetypeByTrait("RECON").summary,
+    ENGINEERS: getPlatoonArchetypeByTrait("ENGINEERS").summary,
+    ARMOURED: getPlatoonArchetypeByTrait("ARMOURED").summary,
   };
 
   const canAfford = (cost: number) => supplies >= cost;
@@ -232,17 +239,30 @@ export default function NationCommandPanel({ data }: Props) {
     SHATTERED: "#ef4444",
   };
   const classStyles: Record<
-    "INFANTRY" | PlatoonTrait,
+    PlatoonArchetypeId,
     { label: string; color: string }
   > = {
-    INFANTRY: { label: "Infantry", color: "#94a3b8" },
-    RECON: { label: "Recon", color: "#38bdf8" },
-    ENGINEERS: { label: "Engineers", color: "#fbbf24" },
-    MOTORIZED: { label: "Motorized", color: "#a78bfa" },
+    INFANTRY: {
+      label: getPlatoonArchetypeById("INFANTRY").label,
+      color: "#94a3b8",
+    },
+    RECON: { label: getPlatoonArchetypeById("RECON").label, color: "#38bdf8" },
+    ENGINEERS: {
+      label: getPlatoonArchetypeById("ENGINEERS").label,
+      color: "#fbbf24",
+    },
+    ARMOURED: {
+      label: getPlatoonArchetypeById("ARMOURED").label,
+      color: "#a78bfa",
+    },
   };
-  const getPlatoonClass = (platoonTraits?: PlatoonTrait[]) => {
-    const trait = platoonTraits?.[0];
-    return trait && classStyles[trait] ? trait : "INFANTRY";
+  const getPlatoonClass = (platoonTraits?: Array<PlatoonTrait | string>) =>
+    getPlatoonArchetypeForTraits(platoonTraits).id;
+  const formatTraits = (platoonTraits?: Array<PlatoonTrait | string>) => {
+    const normalized = (platoonTraits ?? [])
+      .map((trait) => normalizePlatoonTrait(trait))
+      .filter((trait): trait is PlatoonTrait => Boolean(trait));
+    return normalized.length ? normalized.join(", ") : "";
   };
   const strengthColor = (strengthPct: number) => {
     if (strengthPct >= 75) return conditionColor.FRESH;
@@ -331,10 +351,12 @@ export default function NationCommandPanel({ data }: Props) {
     );
   };
 
-  const traits: PlatoonTrait[] = (expandedPlatoon?.traits ??
-    []) as PlatoonTrait[];
+  const traits: PlatoonTrait[] = (expandedPlatoon?.traits ?? [])
+    .map((trait) => normalizePlatoonTrait(trait))
+    .filter((trait): trait is PlatoonTrait => Boolean(trait));
   const hasTrait = (t: PlatoonTrait) => traits.includes(t);
-  const selectedClass = getPlatoonClass(traits);
+  const selectedArchetype = getPlatoonArchetypeForTraits(traits);
+  const selectedClass = selectedArchetype.id;
 
   const addTrait = (trait: PlatoonTrait, cost: number) => {
     if (!expandedPlatoon) return;
@@ -558,7 +580,7 @@ export default function NationCommandPanel({ data }: Props) {
                       </span>
                     </span>
                   </label>
-                  {(["RECON", "ENGINEERS", "MOTORIZED"] as PlatoonTrait[]).map(
+                  {(["RECON", "ENGINEERS", "ARMOURED"] as PlatoonTrait[]).map(
                     (trait) => (
                       <label
                         key={trait}
@@ -740,9 +762,7 @@ export default function NationCommandPanel({ data }: Props) {
         {platoons.length ? (
           <div style={{ display: "grid", gap: 8 }}>
             {platoons.map((platoon) => {
-              const platoonClass = getPlatoonClass(
-                platoon.traits as PlatoonTrait[],
-              );
+              const platoonClass = getPlatoonClass(platoon.traits);
               const status = orderStatusByPlatoon.get(platoon.id) ?? "none";
               const statusColor =
                 status === "submitted"
@@ -878,8 +898,8 @@ export default function NationCommandPanel({ data }: Props) {
                       {platoon.condition} ·{" "}
                       {platoon.strengthPct}% · MP {platoon.mpBase}
                       {platoon.entrenched ? " · ENTRENCHED" : ""}
-                      {(platoon.traits?.length ?? 0) > 0
-                        ? ` · ${platoon.traits?.join(", ")}`
+                      {formatTraits(platoon.traits)
+                        ? ` · ${formatTraits(platoon.traits)}`
                         : ""}
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.7 }}>
@@ -999,12 +1019,21 @@ export default function NationCommandPanel({ data }: Props) {
                         </div>
                         <div>
                           <b>Traits:</b>{" "}
-                          {(expandedPlatoon.traits?.length ?? 0)
-                            ? expandedPlatoon.traits?.join(", ")
-                            : "—"}
+                          {formatTraits(expandedPlatoon.traits) || "—"}
                         </div>
                         <div>
                           <b>Class:</b> {classStyles[selectedClass].label}
+                        </div>
+                        <div>
+                          <b>Campaign Role:</b> {selectedArchetype.role}
+                        </div>
+                        <div>
+                          <b>Strengths:</b>{" "}
+                          {selectedArchetype.strengths.join(", ")}
+                        </div>
+                        <div>
+                          <b>Weaknesses:</b>{" "}
+                          {selectedArchetype.weaknesses.join(", ")}
                         </div>
                       </div>
 
@@ -1181,22 +1210,22 @@ export default function NationCommandPanel({ data }: Props) {
                         <button
                           type="button"
                           onClick={() =>
-                            addTrait("MOTORIZED", COST_TRAIT_MOTORIZED)
+                            addTrait("ARMOURED", COST_TRAIT_ARMOURED)
                           }
                           disabled={
-                            hasTrait("MOTORIZED") ||
+                            hasTrait("ARMOURED") ||
                             !mustMatchNation ||
-                            !canAfford(COST_TRAIT_MOTORIZED)
+                            !canAfford(COST_TRAIT_ARMOURED)
                           }
                         >
-                          Motorized (cost {COST_TRAIT_MOTORIZED}){" "}
-                          {hasTrait("MOTORIZED") ? "· OWNED" : ""}
+                          Armoured (cost {COST_TRAIT_ARMOURED}){" "}
+                          {hasTrait("ARMOURED") ? "· OWNED" : ""}
                         </button>
 
                         <div style={{ fontSize: 12, opacity: 0.75 }}>
                           Effects get wired into turn resolution next
-                          (Recon→intel, Engineers→defense/locks,
-                          Motorized→movement).
+                          (Recon→intel, Engineers→fortifications,
+                          Armoured→breakthrough/logistics).
                         </div>
                       </div>
 
