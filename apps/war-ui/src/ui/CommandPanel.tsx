@@ -9,6 +9,7 @@ import DoctrinePanel from "./DoctrinePanel";
 import TurnLogPanel from "./TurnLogPanel";
 import CommandHub from "./CommandHub";
 import BattlesPanel from "./BattlesPanel";
+import UpgradesPanel from "./UpgradesPanel";
 import { getFactionAccent } from "./factionColors";
 import {
   formatTerritoryLabel,
@@ -21,6 +22,7 @@ type Props = { data: NormalizedData | null };
 export type Tab =
   | "DASHBOARD"
   | "DOCTRINE"
+  | "UPGRADES"
   | "RESOLUTION"
   | "BATTLES"
   | "INTEL"
@@ -57,6 +59,7 @@ export default function CommandPanel({ data }: Props) {
       return [
         { id: "DASHBOARD", label: "Dashboard" },
         { id: "DOCTRINE", label: "Doctrine" },
+        { id: "UPGRADES", label: "Upgrades" },
         { id: "RESOLUTION", label: "Resolution" },
         { id: "BATTLES", label: "Battles" },
         { id: "PLATOONS", label: "Platoons" },
@@ -67,8 +70,8 @@ export default function CommandPanel({ data }: Props) {
 
   const playerTabsByPhase: Record<string, RightTab[]> = useMemo(
     () => ({
-      SETUP: ["DASHBOARD", "DOCTRINE", "LOG"],
-      ORDERS: ["DASHBOARD", "DOCTRINE", "PLATOONS", "LOG"],
+      SETUP: ["DASHBOARD", "DOCTRINE", "UPGRADES", "LOG"],
+      ORDERS: ["DASHBOARD", "DOCTRINE", "UPGRADES", "PLATOONS", "LOG"],
       RESOLUTION: ["DASHBOARD", "RESOLUTION", "LOG"],
       BATTLES: ["DASHBOARD", "BATTLES", "LOG"],
     }),
@@ -104,6 +107,8 @@ export default function CommandPanel({ data }: Props) {
         return <ResolutionPhasePanel />;
       case "DOCTRINE":
         return <DoctrinePanel />;
+      case "UPGRADES":
+        return <UpgradesPanel />;
       case "BATTLES":
         return gmEffective ? (
           <BattlesPanel />

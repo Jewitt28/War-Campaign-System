@@ -11,58 +11,74 @@ import {
 } from "../../data/research";
 import {
   UPGRADES_BY_ID,
+  type AppliedUpgrade,
   type NationUpgradesState,
   type UpgradeEffect,
 } from "../../data/upgrades";
+import type { Platoon } from "../../domain/types";
 import type { NationKey } from "../../setup/NationDefinitions";
 
 export type DoctrineDerivedStats = {
   orderFlexibility: number;
+  movementBonus: number;
   forcedMarchRiskReduction: number;
   withdrawalBonus: number;
   offenseBonus: number;
   defenseBonus: number;
-  supplyTolerance: number;
-  reconIntelBonus: number;
-  fortifyBuildSpeed: number;
-  momentumGainBonus: number;
-  unlockedActions: string[];
 };
 
-export type StrategicModifiers = DoctrineDerivedStats & {
-  supplyRangeBonus: number;
-  supplyDisruptionReduction: number;
-  intelDecayReduction: number;
-  reconActionBonus: number;
-  fortSlotBonus: number;
+export type StrategicModifiers = {
+  movementBonus: number;
+  forcedMarchRiskReduction: number;
+  withdrawalBonus: number;
+  offenseBonus: number;
+  defenseBonus: number;
+  supplyHubBonusByTerritory: Record<string, number>;
+  fortSlotsBonusByTerritory: Record<string, number>;
+  reconBonusByTerritory: Record<string, number>;
+};
+
+export type PlatoonModifiers = {
+  movementBonus: number;
+  forcedMarchRiskReduction: number;
+  withdrawalBonus: number;
+  offenseBonus: number;
+  defenseBonus: number;
 };
 
 type StrategicModifierState = {
   nationDoctrineState: Record<NationKey, NationDoctrineState>;
   nationResearchState: Record<NationKey, NationResearchState>;
   nationUpgradesState: Record<NationKey, NationUpgradesState>;
+  platoonsById?: Record<string, Platoon>;
 };
 
 const emptyDoctrineStats = (): DoctrineDerivedStats => ({
   orderFlexibility: 0,
+  movementBonus: 0,
   forcedMarchRiskReduction: 0,
   withdrawalBonus: 0,
   offenseBonus: 0,
   defenseBonus: 0,
-  supplyTolerance: 0,
-  reconIntelBonus: 0,
-  fortifyBuildSpeed: 0,
-  momentumGainBonus: 0,
-  unlockedActions: [],
 });
 
 const emptyStrategicModifiers = (): StrategicModifiers => ({
-  ...emptyDoctrineStats(),
-  supplyRangeBonus: 0,
-  supplyDisruptionReduction: 0,
-  intelDecayReduction: 0,
-  reconActionBonus: 0,
-  fortSlotBonus: 0,
+  movementBonus: 0,
+  forcedMarchRiskReduction: 0,
+  withdrawalBonus: 0,
+  offenseBonus: 0,
+  defenseBonus: 0,
+  supplyHubBonusByTerritory: {},
+  fortSlotsBonusByTerritory: {},
+  reconBonusByTerritory: {},
+});
+
+const emptyPlatoonModifiers = (): PlatoonModifiers => ({
+  movementBonus: 0,
+  forcedMarchRiskReduction: 0,
+  withdrawalBonus: 0,
+  offenseBonus: 0,
+  defenseBonus: 0,
 });
 
 type ModifierEffect = DoctrineEffect | UpgradeEffect;
@@ -74,6 +90,9 @@ const applyDoctrineEffect = (
   switch (effect.type) {
     case "ORDER_FLEXIBILITY":
       stats.orderFlexibility += effect.value;
+      break;
+    case "MOVEMENT_BONUS":
+      stats.movementBonus += effect.value;
       break;
     case "FORCED_MARCH_RISK_REDUCTION":
       stats.forcedMarchRiskReduction += effect.value;
@@ -87,22 +106,29 @@ const applyDoctrineEffect = (
     case "OFFENSE_BONUS":
       stats.offenseBonus += effect.value;
       break;
-    case "SUPPLY_TOLERANCE":
-      stats.supplyTolerance += effect.value;
-      break;
-    case "RECON_INTEL_BONUS":
-      stats.reconIntelBonus += effect.value;
-      break;
-    case "FORTIFY_BUILD_SPEED":
-      stats.fortifyBuildSpeed += effect.value;
-      break;
-    case "MOMENTUM_GAIN_BONUS":
-      stats.momentumGainBonus += effect.value;
-      break;
     case "DECEPTION_UNLOCK":
-      stats.unlockedActions.push(effect.actionId);
       break;
     case "DIPLOMACY_PRESSURE_MOD":
+      break;
+    case "SUPPLY_TOLERANCE":
+      break;
+    case "RECON_INTEL_BONUS":
+      break;
+    case "FORTIFY_BUILD_SPEED":
+      break;
+    case "MOMENTUM_GAIN_BONUS":
+      break;
+    case "SUPPLY_HUB":
+      break;
+    case "FORT_SLOTS":
+      break;
+    case "AA_COVER":
+      break;
+    case "RECON_BONUS":
+      break;
+    case "INTEL_VISIBILITY_BONUS":
+      break;
+    case "ORDER_SLOT_BONUS":
       break;
     default: {
       const _exhaustiveCheck: never = effect;
@@ -112,37 +138,101 @@ const applyDoctrineEffect = (
 };
 
 const applyResearchEffect = (
-  stats: StrategicModifiers,
+  stats: DoctrineDerivedStats,
   effect: ResearchEffect,
 ) => {
   switch (effect.type) {
-    case "SUPPLY_RANGE_BONUS":
-      stats.supplyRangeBonus += effect.value;
-      break;
-    case "SUPPLY_DISRUPTION_REDUCTION":
-      stats.supplyDisruptionReduction += effect.value;
-      break;
-    case "INTEL_DECAY_REDUCTION":
-      stats.intelDecayReduction += effect.value;
-      break;
-    case "RECON_ACTION_BONUS":
-      stats.reconActionBonus += effect.value;
-      break;
-    case "FORT_SLOT_BONUS":
-      stats.fortSlotBonus += effect.value;
-      break;
     case "WITHDRAWAL_BONUS":
       stats.withdrawalBonus += effect.value;
       break;
+    case "SUPPLY_RANGE_BONUS":
+    case "SUPPLY_DISRUPTION_REDUCTION":
+    case "INTEL_DECAY_REDUCTION":
+    case "RECON_ACTION_BONUS":
+    case "FORT_SLOT_BONUS":
     case "DIPLOMACY_ACTION_UNLOCK":
-      stats.unlockedActions.push(effect.actionId);
-      break;
     case "UPGRADE_UNLOCK":
       break;
     default: {
       const _exhaustiveCheck: never = effect;
       return _exhaustiveCheck;
     }
+  }
+};
+
+const addTerritoryBonus = (
+  record: Record<string, number>,
+  territoryId: string,
+  value: number,
+) => {
+  record[territoryId] = (record[territoryId] ?? 0) + value;
+};
+
+const applyUpgradeEffectToStrategic = (
+  stats: StrategicModifiers,
+  effect: UpgradeEffect,
+  scope: AppliedUpgrade["scope"],
+  territoryId?: string,
+) => {
+  if (scope === "TERRITORY" && territoryId) {
+    switch (effect.type) {
+      case "SUPPLY_HUB":
+        addTerritoryBonus(stats.supplyHubBonusByTerritory, territoryId, effect.value);
+        return;
+      case "FORT_SLOTS":
+        addTerritoryBonus(stats.fortSlotsBonusByTerritory, territoryId, effect.value);
+        return;
+      case "RECON_BONUS":
+        addTerritoryBonus(stats.reconBonusByTerritory, territoryId, effect.value);
+        return;
+      default:
+        break;
+    }
+  }
+
+  switch (effect.type) {
+    case "MOVEMENT_BONUS":
+      stats.movementBonus += effect.value;
+      break;
+    case "FORCED_MARCH_RISK_REDUCTION":
+      stats.forcedMarchRiskReduction += effect.value;
+      break;
+    case "WITHDRAWAL_SUCCESS_BONUS":
+      stats.withdrawalBonus += effect.value;
+      break;
+    case "OFFENSE_BONUS":
+      stats.offenseBonus += effect.value;
+      break;
+    case "DEFENSE_BONUS":
+      stats.defenseBonus += effect.value;
+      break;
+    default:
+      break;
+  }
+};
+
+const applyUpgradeEffectToPlatoon = (
+  stats: PlatoonModifiers,
+  effect: UpgradeEffect,
+) => {
+  switch (effect.type) {
+    case "MOVEMENT_BONUS":
+      stats.movementBonus += effect.value;
+      break;
+    case "FORCED_MARCH_RISK_REDUCTION":
+      stats.forcedMarchRiskReduction += effect.value;
+      break;
+    case "WITHDRAWAL_SUCCESS_BONUS":
+      stats.withdrawalBonus += effect.value;
+      break;
+    case "OFFENSE_BONUS":
+      stats.offenseBonus += effect.value;
+      break;
+    case "DEFENSE_BONUS":
+      stats.defenseBonus += effect.value;
+      break;
+    default:
+      break;
   }
 };
 
@@ -187,35 +277,74 @@ export const getDoctrineDerivedStats = (
     trait.effects.forEach((effect) => applyDoctrineEffect(stats, effect));
   }
 
-  return stats;
-};
-
-export const getStrategicModifiers = (
-  state: StrategicModifierState,
-  nationId: NationKey,
-): StrategicModifiers => {
-  const researchState = state.nationResearchState[nationId];
-  const upgradesState = state.nationUpgradesState[nationId];
-
-  if (!researchState || !upgradesState) {
-    return emptyStrategicModifiers();
-  }
-
-  const stats: StrategicModifiers = {
-    ...emptyStrategicModifiers(),
-    ...getDoctrineDerivedStats(state, nationId),
-  };
-
   for (const nodeId of researchState.completedResearch) {
     const node = RESEARCH_NODES_BY_ID[nodeId];
     if (!node) continue;
     node.effects.forEach((effect) => applyResearchEffect(stats, effect));
   }
 
-  for (const upgradeId of upgradesState.appliedUpgrades) {
-    const upgrade = UPGRADES_BY_ID[upgradeId];
+  return stats;
+};
+
+export const getNationStrategicModifiers = (
+  state: StrategicModifierState,
+  nationId: NationKey,
+): StrategicModifiers => {
+  const upgradesState = state.nationUpgradesState[nationId];
+
+  if (!upgradesState) {
+    return emptyStrategicModifiers();
+  }
+
+  const doctrineStats = getDoctrineDerivedStats(state, nationId);
+  const stats: StrategicModifiers = {
+    ...emptyStrategicModifiers(),
+    movementBonus: doctrineStats.movementBonus,
+    forcedMarchRiskReduction: doctrineStats.forcedMarchRiskReduction,
+    withdrawalBonus: doctrineStats.withdrawalBonus,
+    offenseBonus: doctrineStats.offenseBonus,
+    defenseBonus: doctrineStats.defenseBonus,
+  };
+
+  for (const applied of upgradesState.applied) {
+    const upgrade = UPGRADES_BY_ID[applied.defId];
     if (!upgrade) continue;
-    upgrade.effects.forEach((effect) => applyDoctrineEffect(stats, effect));
+    const territoryId =
+      applied.scope === "TERRITORY" ? applied.territoryId : undefined;
+    upgrade.effects.forEach((effect) =>
+      applyUpgradeEffectToStrategic(stats, effect, applied.scope, territoryId),
+    );
+  }
+
+  return stats;
+};
+
+export const getPlatoonModifiers = (
+  state: StrategicModifierState,
+  platoonId: string,
+): PlatoonModifiers => {
+  const platoon = state.platoonsById?.[platoonId];
+  if (!platoon) return emptyPlatoonModifiers();
+
+  const nationModifiers = getNationStrategicModifiers(state, platoon.nation);
+  const upgradesState = state.nationUpgradesState[platoon.nation];
+
+  const stats: PlatoonModifiers = {
+    movementBonus: nationModifiers.movementBonus,
+    forcedMarchRiskReduction: nationModifiers.forcedMarchRiskReduction,
+    withdrawalBonus: nationModifiers.withdrawalBonus,
+    offenseBonus: nationModifiers.offenseBonus,
+    defenseBonus: nationModifiers.defenseBonus,
+  };
+
+  if (!upgradesState) return stats;
+
+  for (const applied of upgradesState.applied) {
+    if (applied.scope !== "FORCE") continue;
+    if (applied.platoonId !== platoonId) continue;
+    const upgrade = UPGRADES_BY_ID[applied.defId];
+    if (!upgrade) continue;
+    upgrade.effects.forEach((effect) => applyUpgradeEffectToPlatoon(stats, effect));
   }
 
   return stats;
