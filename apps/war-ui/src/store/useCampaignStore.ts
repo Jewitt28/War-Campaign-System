@@ -229,7 +229,11 @@ export type CampaignState = {
   suppliesByNation: SuppliesByNation;
   ensureSupplies: () => void;
   getSupplies: (nation: NationKey) => number;
-  spendSupplies: (nation: NationKey, amount: number, reason?: string) => boolean;
+  spendSupplies: (
+    nation: NationKey,
+    amount: number,
+    reason?: string,
+  ) => boolean;
   addSupplies: (nation: NationKey, amount: number, reason?: string) => void;
 };
 
@@ -514,6 +518,7 @@ export const useCampaignStore = create<CampaignState>()(
           return {
             viewerNation: nation,
             viewerFaction: shouldSyncFaction ? nextDefault : s.viewerFaction,
+            selectedTerritoryId: null,
           };
         }),
 
