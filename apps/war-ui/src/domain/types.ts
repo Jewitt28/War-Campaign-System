@@ -19,7 +19,7 @@ export type Platoon = {
   entrenched?: boolean; // NEW (upgrade #3 uses this)
 };
 
-export type PlatoonTrait = "RECON" | "ENGINEERS" | "MOTORIZED";
+export type PlatoonTrait = "RECON" | "ENGINEERS" | "ARMOURED";
 
 export type OrderType = "HOLD" | "MOVE" | "RECON" | "INTEL";
 

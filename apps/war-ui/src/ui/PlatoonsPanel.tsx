@@ -2,6 +2,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCampaignStore, type FactionKey } from "../store/useCampaignStore";
 import type { PlatoonCondition, PlatoonTrait } from "../domain/types";
+import {
+  getPlatoonArchetypeById,
+  getPlatoonArchetypeByTrait,
+  getPlatoonArchetypeForTraits,
+  normalizePlatoonTrait,
+  type PlatoonArchetypeId,
+} from "../domain/platoonArchetypes";
 import { formatTerritoryLabel } from "./territoryLabel";
 import { getFactionAccent } from "./factionColors";
 import { factionLabel } from "../store/factionLabel";
@@ -113,17 +120,17 @@ export default function PlatoonsPanel() {
   const COST_TOGGLE_ENTRENCH = 10;
   const COST_TRAIT_RECON = 20;
   const COST_TRAIT_ENGINEERS = 20;
-  const COST_TRAIT_MOTORIZED = 30;
+  const COST_TRAIT_ARMOURED = 30;
 
   const traitCosts: Record<PlatoonTrait, number> = {
     RECON: COST_TRAIT_RECON,
     ENGINEERS: COST_TRAIT_ENGINEERS,
-    MOTORIZED: COST_TRAIT_MOTORIZED,
+    ARMOURED: COST_TRAIT_ARMOURED,
   };
   const traitInfo: Record<PlatoonTrait, string> = {
-    RECON: "Recon orders can target up to 2 territories.",
-    ENGINEERS: "Support-focused platoon. (Rules coming soon.)",
-    MOTORIZED: "Mobile platoon. (Rules coming soon.)",
+    RECON: getPlatoonArchetypeByTrait("RECON").summary,
+    ENGINEERS: getPlatoonArchetypeByTrait("ENGINEERS").summary,
+    ARMOURED: getPlatoonArchetypeByTrait("ARMOURED").summary,
   };
 
   const canAfford = (cost: number) => supplies >= cost;
@@ -137,17 +144,30 @@ export default function PlatoonsPanel() {
     SHATTERED: "#ef4444",
   };
   const classStyles: Record<
-    "INFANTRY" | PlatoonTrait,
+    PlatoonArchetypeId,
     { label: string; color: string }
   > = {
-    INFANTRY: { label: "Infantry", color: "#94a3b8" },
-    RECON: { label: "Recon", color: "#38bdf8" },
-    ENGINEERS: { label: "Engineers", color: "#fbbf24" },
-    MOTORIZED: { label: "Motorized", color: "#a78bfa" },
+    INFANTRY: {
+      label: getPlatoonArchetypeById("INFANTRY").label,
+      color: "#94a3b8",
+    },
+    RECON: { label: getPlatoonArchetypeById("RECON").label, color: "#38bdf8" },
+    ENGINEERS: {
+      label: getPlatoonArchetypeById("ENGINEERS").label,
+      color: "#fbbf24",
+    },
+    ARMOURED: {
+      label: getPlatoonArchetypeById("ARMOURED").label,
+      color: "#a78bfa",
+    },
   };
-  const getPlatoonClass = (platoonTraits?: PlatoonTrait[]) => {
-    const trait = platoonTraits?.[0];
-    return trait && classStyles[trait] ? trait : "INFANTRY";
+  const getPlatoonClass = (platoonTraits?: Array<PlatoonTrait | string>) =>
+    getPlatoonArchetypeForTraits(platoonTraits).id;
+  const formatTraits = (platoonTraits?: Array<PlatoonTrait | string>) => {
+    const normalized = (platoonTraits ?? [])
+      .map((trait) => normalizePlatoonTrait(trait))
+      .filter((trait): trait is PlatoonTrait => Boolean(trait));
+    return normalized.length ? normalized.join(", ") : "";
   };
   const strengthColor = (strengthPct: number) => {
     if (strengthPct >= 75) return conditionColor.FRESH;
@@ -268,9 +288,12 @@ export default function PlatoonsPanel() {
     );
   };
 
-  const traits: PlatoonTrait[] = (safeSelected?.traits ?? []) as PlatoonTrait[];
+  const traits: PlatoonTrait[] = (safeSelected?.traits ?? [])
+    .map((trait) => normalizePlatoonTrait(trait))
+    .filter((trait): trait is PlatoonTrait => Boolean(trait));
   const hasTrait = (t: PlatoonTrait) => traits.includes(t);
-  const selectedClass = getPlatoonClass(traits);
+  const selectedArchetype = getPlatoonArchetypeForTraits(traits);
+  const selectedClass = selectedArchetype.id;
 
   const addTrait = (trait: PlatoonTrait, cost: number) => {
     if (!safeSelected) return;
@@ -447,7 +470,7 @@ export default function PlatoonsPanel() {
                       </span>
                     </span>
                   </label>
-                  {(["RECON", "ENGINEERS", "MOTORIZED"] as PlatoonTrait[]).map(
+                  {(["RECON", "ENGINEERS", "ARMOURED"] as PlatoonTrait[]).map(
                     (trait) => (
                       <label
                         key={trait}
@@ -596,9 +619,7 @@ export default function PlatoonsPanel() {
           ) : (
             <div style={{ display: "grid", gap: 8 }}>
               {visiblePlatoons.map((p) => {
-                const platoonClass = getPlatoonClass(
-                  p.traits as PlatoonTrait[],
-                );
+                const platoonClass = getPlatoonClass(p.traits);
                 return (
                   <button
                     key={p.id}
@@ -660,8 +681,8 @@ export default function PlatoonsPanel() {
                       {nationLabel(p.nation, customNations)} · {p.condition} ·{" "}
                       {p.strengthPct}% · MP {p.mpBase}
                       {p.entrenched ? " · ENTRENCHED" : ""}
-                      {(p.traits?.length ?? 0) > 0
-                        ? ` · ${p.traits?.join(", ")}`
+                      {formatTraits(p.traits)
+                        ? ` · ${formatTraits(p.traits)}`
                         : ""}
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.7 }}>
@@ -718,12 +739,19 @@ export default function PlatoonsPanel() {
                 </div>
                 <div>
                   <b>Traits:</b>{" "}
-                  {(safeSelected.traits?.length ?? 0)
-                    ? safeSelected.traits?.join(", ")
-                    : "—"}
+                  {formatTraits(safeSelected.traits) || "—"}
                 </div>
                 <div>
                   <b>Class:</b> {classStyles[selectedClass].label}
+                </div>
+                <div>
+                  <b>Campaign Role:</b> {selectedArchetype.role}
+                </div>
+                <div>
+                  <b>Strengths:</b> {selectedArchetype.strengths.join(", ")}
+                </div>
+                <div>
+                  <b>Weaknesses:</b> {selectedArchetype.weaknesses.join(", ")}
                 </div>
               </div>
 
@@ -884,20 +912,20 @@ export default function PlatoonsPanel() {
 
                 <button
                   type="button"
-                  onClick={() => addTrait("MOTORIZED", COST_TRAIT_MOTORIZED)}
+                  onClick={() => addTrait("ARMOURED", COST_TRAIT_ARMOURED)}
                   disabled={
-                    hasTrait("MOTORIZED") ||
+                    hasTrait("ARMOURED") ||
                     !mustMatchNation ||
-                    !canAfford(COST_TRAIT_MOTORIZED)
+                    !canAfford(COST_TRAIT_ARMOURED)
                   }
                 >
-                  Motorized (cost {COST_TRAIT_MOTORIZED}){" "}
-                  {hasTrait("MOTORIZED") ? "· OWNED" : ""}
+                  Armoured (cost {COST_TRAIT_ARMOURED}){" "}
+                  {hasTrait("ARMOURED") ? "· OWNED" : ""}
                 </button>
 
                 <div style={{ fontSize: 12, opacity: 0.75 }}>
                   Effects get wired into turn resolution next (Recon→intel,
-                  Engineers→defense/locks, Motorized→movement).
+                  Engineers→fortifications, Armoured→breakthrough/logistics).
                 </div>
               </div>
 
