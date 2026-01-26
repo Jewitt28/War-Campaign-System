@@ -146,6 +146,14 @@ export default function SetupPanel() {
     const custom = customNations.find((n) => n.id === nationId);
     return custom?.name ?? NATIONS.find((n) => n.id === nationId)?.name ?? nationId;
   };
+  const missingHomelandNations = useMemo(
+    () => enabledNationIds.filter((nid) => !homelandsByNation[nid]),
+    [enabledNationIds, homelandsByNation],
+  );
+  const missingHomelandNames = useMemo(
+    () => missingHomelandNations.map((nid) => nationLabel(nid)).join(", "),
+    [missingHomelandNations],
+  );
 
   const derivedFactionsLabel = useMemo(() => {
     const derived = deriveFactionsFromNations(nationsEnabledMap, customNations);
@@ -161,6 +169,8 @@ export default function SetupPanel() {
       s3: stage3Done ? "DONE" : "TODO",
     };
   }, [locked, stage1Done, stage2Done, stage3Done]);
+
+  const canLockSetup = isGM && missingHomelandNations.length === 0;
 
   // ----- Collapsible UI state -----
   // Important: no effect-driven setState (satisfy react-hooks/set-state-in-effect).
@@ -754,6 +764,12 @@ export default function SetupPanel() {
           justifyContent: "flex-end",
         }}
       >
+        {missingHomelandNations.length > 0 && (
+          <div style={{ width: "100%", fontSize: 12, opacity: 0.85 }}>
+            Assign a homeland for each enabled nation to lock setup. Missing:{" "}
+            <b>{missingHomelandNames}</b>
+          </div>
+        )}
         <button onClick={resetAll} disabled={!isGM}>
           Reset
         </button>
@@ -761,11 +777,11 @@ export default function SetupPanel() {
         {mode === "SETUP" ? (
           <button
             onClick={() => {
-              if (!isGM) return;
+              if (!canLockSetup) return;
               setMode("PLAY");
               collapseAll();
             }}
-            disabled={!isGM}
+            disabled={!canLockSetup}
           >
             Lock Setup
           </button>
@@ -784,11 +800,11 @@ export default function SetupPanel() {
 
         <button
           onClick={() => {
-            if (!isGM) return;
+            if (!canLockSetup) return;
             autoSetupWorld();
             collapseAll();
           }}
-          disabled={!isGM}
+          disabled={!canLockSetup}
         >
           Lock Setup & Start Game
         </button>
