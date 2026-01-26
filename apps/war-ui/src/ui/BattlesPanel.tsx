@@ -1,5 +1,6 @@
 // apps/war-ui/src/ui/BattlesPanel.tsx
 import { useMemo, useState } from "react";
+import { shallow } from "zustand/shallow";
 import { useCampaignStore } from "../store/useCampaignStore";
 import type { BattleOutcome, Contest } from "../domain/types";
 import { NATIONS, type NationKey } from "../setup/NationDefinitions";
@@ -35,11 +36,14 @@ export default function BattlesPanel() {
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
   const resolveBattles = useCampaignStore((s) => s.resolveBattles);
   const territoryNameById = useCampaignStore((s) => s.territoryNameById);
-  const strategicState = useCampaignStore((s) => ({
-    nationDoctrineState: s.nationDoctrineState,
-    nationResearchState: s.nationResearchState,
-    nationUpgradesState: s.nationUpgradesState,
-  }));
+  const strategicState = useCampaignStore(
+    (s) => ({
+      nationDoctrineState: s.nationDoctrineState,
+      nationResearchState: s.nationResearchState,
+      nationUpgradesState: s.nationUpgradesState,
+    }),
+    shallow,
+  );
 
   // “Current player” selector (for the wider UX you described)
   const viewerNation = useCampaignStore((s) => s.viewerNation);
