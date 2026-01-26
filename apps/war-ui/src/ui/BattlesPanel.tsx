@@ -4,7 +4,7 @@ import { useCampaignStore } from "../store/useCampaignStore";
 import type { BattleOutcome, Contest } from "../domain/types";
 import { NATIONS, type NationKey } from "../setup/NationDefinitions";
 import { formatTerritoryLabel } from "./territoryLabel";
-import { getStrategicModifiers } from "../strategy/selectors/getStrategicModifiers";
+import { getNationStrategicModifiers } from "../strategy/selectors/getStrategicModifiers";
 
 const clamp = (n: number, lo: number, hi: number) =>
   Math.min(Math.max(n, lo), hi);
@@ -197,11 +197,11 @@ export default function BattlesPanel() {
               attackerConditionHit: 0,
               defenderConditionHit: 0,
             };
-            const attackerModifiers = getStrategicModifiers(
+            const attackerModifiers = getNationStrategicModifiers(
               strategicState,
               c.attackerFaction,
             );
-            const defenderModifiers = getStrategicModifiers(
+            const defenderModifiers = getNationStrategicModifiers(
               strategicState,
               c.defenderFaction,
             );

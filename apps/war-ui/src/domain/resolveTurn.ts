@@ -7,6 +7,7 @@ import type {
   TerritoryLock,
   PlatoonCondition,
 } from "./types";
+import type { PlatoonModifiers } from "../strategy/selectors/getStrategicModifiers";
 
 const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
 
@@ -34,6 +35,7 @@ export function resolveTurn(args: {
 
   locksByTerritory: Record<string, TerritoryLock | undefined>;
   contestsByTerritory: Record<string, Contest | undefined>;
+  getPlatoonModifiers?: (platoonId: string) => PlatoonModifiers | null;
 }) {
   const nextPlatoons: Record<string, Platoon> = { ...args.platoonsById };
   const nextOwners: Record<string, OwnerKey> = { ...args.ownerByTerritory };
@@ -92,7 +94,9 @@ export function resolveTurn(args: {
     }
 
     // Movement points
-    const maxSteps = p.mpBase ?? 1;
+    const modifiers = args.getPlatoonModifiers?.(p.id) ?? null;
+    const movementBonus = modifiers?.movementBonus ?? 0;
+    const maxSteps = (p.mpBase ?? 1) + movementBonus;
     const allowedSteps = o.forcedMarch ? maxSteps + 1 : maxSteps;
 
     if (path.length > allowedSteps) {

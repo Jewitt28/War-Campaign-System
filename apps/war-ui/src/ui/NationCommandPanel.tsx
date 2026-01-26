@@ -8,7 +8,7 @@ import {
 import { factionLabel } from "../store/factionLabel";
 import { nationLabel } from "../store/nationLabel";
 import { getFactionAccent } from "./factionColors";
-import { getStrategicModifiers } from "../strategy/selectors/getStrategicModifiers";
+import { getDoctrineDerivedStats } from "../strategy/selectors/getStrategicModifiers";
 import {
   formatTerritoryLabel,
   formatTerritoryList,
@@ -83,9 +83,9 @@ export default function NationCommandPanel({ data }: Props) {
   const nationDoctrineState = useCampaignStore((s) => s.nationDoctrineState);
   const nationResearchState = useCampaignStore((s) => s.nationResearchState);
   const nationUpgradesState = useCampaignStore((s) => s.nationUpgradesState);
-  const strategicModifiers = useMemo(
+  const doctrineStats = useMemo(
     () =>
-      getStrategicModifiers(
+      getDoctrineDerivedStats(
         {
           nationDoctrineState,
           nationResearchState,
@@ -158,7 +158,7 @@ export default function NationCommandPanel({ data }: Props) {
     () => getSupplies(viewerNation),
     [getSupplies, viewerNation],
   );
-  const canCancelOrders = strategicModifiers.orderFlexibility > 0;
+  const canCancelOrders = doctrineStats.orderFlexibility > 0;
   const accentColor = getFactionAccent({
     viewerNation,
     viewerFaction,
@@ -1272,7 +1272,7 @@ export default function NationCommandPanel({ data }: Props) {
           </button>
         </div>
         <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
-          Order flexibility: <b>{strategicModifiers.orderFlexibility}</b>{" "}
+          Order flexibility: <b>{doctrineStats.orderFlexibility}</b>{" "}
           {canCancelOrders
             ? "(draft orders can be canceled)"
             : "(no edits without doctrine/upgrades)"}

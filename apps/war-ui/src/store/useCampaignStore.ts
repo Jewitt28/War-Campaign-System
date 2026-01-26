@@ -17,6 +17,8 @@ import {
   type NationDoctrineState,
 } from "../data/doctrine";
 import { UPGRADES_BY_ID, type NationUpgradesState } from "../data/upgrades";
+import { getUpgradeEligibility } from "../strategy/selectors/getUpgradeEligibility";
+import { getPlatoonModifiers } from "../strategy/selectors/getStrategicModifiers";
 import {
   NATION_BY_ID,
   type BaseNationKey,
@@ -264,6 +266,21 @@ export type CampaignState = {
   ) => boolean;
   addSupplies: (nation: NationKey, amount: number, reason?: string) => void;
 
+  // Resources (upgrade points)
+  resourcePointsByNation: Record<NationKey, number>;
+  ensureResourcePoints: () => void;
+  getResourcePoints: (nation: NationKey) => number;
+  spendResourcePoints: (
+    nation: NationKey,
+    amount: number,
+    reason?: string,
+  ) => boolean;
+  addResourcePoints: (
+    nation: NationKey,
+    amount: number,
+    reason?: string,
+  ) => void;
+
   // Research
   nationResearchState: Record<NationKey, NationResearchState>;
   startResearch: (nation: NationKey, nodeId: string) => void;
@@ -279,7 +296,13 @@ export type CampaignState = {
 
   // Upgrades
   nationUpgradesState: Record<NationKey, NationUpgradesState>;
-  applyUpgrade: (nation: NationKey, upgradeId: string) => void;
+  applyUpgrade: (args: {
+    nation: NationKey;
+    upgradeId: string;
+    territoryId?: string | null;
+    platoonId?: string | null;
+  }) => void;
+  removeUpgrade: (nation: NationKey, upgradeInstanceId: string) => void;
 };
 
 const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
@@ -300,7 +323,7 @@ const defaultDoctrineState = (): NationDoctrineState => ({
 });
 
 const defaultUpgradesState = (): NationUpgradesState => ({
-  appliedUpgrades: [],
+  applied: [],
 });
 
 function getNationFaction(
@@ -565,6 +588,10 @@ const initialState: Omit<
   | "getSupplies"
   | "addSupplies"
   | "spendSupplies"
+  | "ensureResourcePoints"
+  | "getResourcePoints"
+  | "addResourcePoints"
+  | "spendResourcePoints"
   | "setViewerNation"
   | "startResearch"
   | "cancelResearch"
@@ -573,6 +600,7 @@ const initialState: Omit<
   | "equipDoctrineTrait"
   | "unequipDoctrineTrait"
   | "applyUpgrade"
+  | "removeUpgrade"
 > = {
   mode: "SETUP",
   playMode: "ONE_SCREEN",
@@ -663,6 +691,9 @@ const initialState: Omit<
 
   suppliesByNation: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [nation.id, 100]),
+  ),
+  resourcePointsByNation: Object.fromEntries(
+    Object.values(NATION_BY_ID).map((nation) => [nation.id, 15]),
   ),
   nationResearchState: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [
@@ -775,6 +806,10 @@ export const useCampaignStore = create<CampaignState>()(
           nationUpgradesState: {
             ...s.nationUpgradesState,
             [id]: defaultUpgradesState(),
+          },
+          resourcePointsByNation: {
+            ...s.resourcePointsByNation,
+            [id]: 15,
           },
           factions: s.factions.map((faction) =>
             faction.id === defaultFaction
@@ -1202,6 +1237,16 @@ export const useCampaignStore = create<CampaignState>()(
               locksByTerritory: s.locksByTerritory,
               contestsByTerritory: s.contestsByTerritory,
               isAdjacent,
+              getPlatoonModifiers: (platoonId) =>
+                getPlatoonModifiers(
+                  {
+                    nationDoctrineState: s.nationDoctrineState,
+                    nationResearchState: s.nationResearchState,
+                    nationUpgradesState: s.nationUpgradesState,
+                    platoonsById: s.platoonsById,
+                  },
+                  platoonId,
+                ),
             });
 
           return {
@@ -1432,6 +1477,80 @@ export const useCampaignStore = create<CampaignState>()(
         }
       },
 
+      // -------- Resource points (upgrades) --------
+      ensureResourcePoints: () => {
+        const s = get();
+        const m = { ...(s.resourcePointsByNation ?? {}) };
+
+        for (const nation of Object.values(NATION_BY_ID)) {
+          if (m[nation.id] == null) m[nation.id] = 15;
+        }
+
+        for (const c of s.customNations ?? []) {
+          if (m[c.id] == null) m[c.id] = 15;
+        }
+
+        set({ resourcePointsByNation: m });
+      },
+
+      getResourcePoints: (nation: NationKey) => {
+        const s = get();
+        return (s.resourcePointsByNation?.[nation] ?? 0) | 0;
+      },
+
+      spendResourcePoints: (nation: NationKey, amount: number, reason?: string) => {
+        const s = get();
+        const cur = s.resourcePointsByNation?.[nation] ?? 0;
+        const cost = Math.max(0, Math.floor(amount));
+        if (cur < cost) return false;
+
+        const next = cur - cost;
+        set({
+          resourcePointsByNation: { ...s.resourcePointsByNation, [nation]: next },
+        });
+
+        if (Array.isArray(s.turnLog) && cost > 0) {
+          set({
+            turnLog: [
+              {
+                ts: Date.now(),
+                type: "SUPPLY",
+                text: `${nation} spent ${cost} resource points${reason ? ` (${reason})` : ""} (now ${next})`,
+                id: uid(),
+              },
+              ...s.turnLog,
+            ],
+          });
+        }
+
+        return true;
+      },
+
+      addResourcePoints: (nation: NationKey, amount: number, reason?: string) => {
+        const s = get();
+        const add = Math.max(0, Math.floor(amount));
+        const cur = s.resourcePointsByNation?.[nation] ?? 0;
+        const next = cur + add;
+
+        set({
+          resourcePointsByNation: { ...s.resourcePointsByNation, [nation]: next },
+        });
+
+        if (Array.isArray(s.turnLog) && add > 0) {
+          set({
+            turnLog: [
+              {
+                ts: Date.now(),
+                type: "SUPPLY",
+                text: `${nation} gained ${add} resource points${reason ? ` (${reason})` : ""} (now ${next})`,
+                id: uid(),
+              },
+              ...s.turnLog,
+            ],
+          });
+        }
+      },
+
       // -------- Research --------
       startResearch: (nation, nodeId) =>
         set((s) => {
@@ -1623,7 +1742,7 @@ export const useCampaignStore = create<CampaignState>()(
         }),
 
       // -------- Upgrades --------
-      applyUpgrade: (nation, upgradeId) =>
+      applyUpgrade: ({ nation, upgradeId, territoryId, platoonId }) =>
         set((s) => {
           if (!playerCanActAsNation(s, nation)) return s;
           const upgrade = UPGRADES_BY_ID[upgradeId];
@@ -1631,32 +1750,88 @@ export const useCampaignStore = create<CampaignState>()(
 
           const current =
             s.nationUpgradesState[nation] ?? defaultUpgradesState();
-          if (current.appliedUpgrades.includes(upgradeId)) return s;
-
           const researchState =
             s.nationResearchState[nation] ?? defaultResearchState();
-          const unlocked = researchState.completedResearch.some((nodeId) => {
-            const node = RESEARCH_NODES_BY_ID[nodeId];
-            if (!node) return false;
-            if (node.unlocksUpgrades?.includes(upgradeId)) return true;
-            return node.effects.some(
-              (effect) =>
-                effect.type === "UPGRADE_UNLOCK" &&
-                effect.upgradeId === upgradeId,
-            );
+          const doctrineState =
+            s.nationDoctrineState[nation] ?? defaultDoctrineState();
+          const resourcePoints = s.resourcePointsByNation?.[nation] ?? 0;
+          const eligibility = getUpgradeEligibility({
+            upgrade,
+            doctrineState,
+            researchState,
+            upgradesState: current,
+            resourcePoints,
+            territoryId,
+            platoonId,
           });
-          if (!unlocked) return s;
+          if (!eligibility.eligible) return s;
+
+          const appliedId = uid();
+          const applied =
+            upgrade.scope === "NATION"
+              ? { id: appliedId, defId: upgrade.id, scope: "NATION" as const }
+              : upgrade.scope === "TERRITORY" && territoryId
+                ? {
+                    id: appliedId,
+                    defId: upgrade.id,
+                    scope: "TERRITORY" as const,
+                    territoryId,
+                  }
+                : upgrade.scope === "FORCE" && platoonId
+                  ? {
+                      id: appliedId,
+                      defId: upgrade.id,
+                      scope: "FORCE" as const,
+                      platoonId,
+                    }
+                  : null;
+
+          if (!applied) return s;
+
+          const nextPoints = resourcePoints - upgrade.cost.points;
 
           return {
             nationUpgradesState: {
               ...s.nationUpgradesState,
               [nation]: {
                 ...current,
-                appliedUpgrades: [...current.appliedUpgrades, upgradeId],
+                applied: [...current.applied, applied],
+              },
+            },
+            resourcePointsByNation: {
+              ...s.resourcePointsByNation,
+              [nation]: nextPoints,
+            },
+            turnLog: [
+              logNote(
+                `Upgrade applied: ${nation} → ${upgrade.name} (-${upgrade.cost.points} RP).`,
+              ),
+              ...s.turnLog,
+            ],
+          };
+        }),
+
+      removeUpgrade: (nation, upgradeInstanceId) =>
+        set((s) => {
+          if (!requireGM(s)) return s;
+          const current =
+            s.nationUpgradesState[nation] ?? defaultUpgradesState();
+          if (!current.applied.some((entry) => entry.id === upgradeInstanceId)) {
+            return s;
+          }
+
+          return {
+            nationUpgradesState: {
+              ...s.nationUpgradesState,
+              [nation]: {
+                ...current,
+                applied: current.applied.filter(
+                  (entry) => entry.id !== upgradeInstanceId,
+                ),
               },
             },
             turnLog: [
-              logNote(`Upgrade applied: ${nation} → ${upgrade.name}.`),
+              logNote(`Upgrade removed (admin): ${nation} → ${upgradeInstanceId}.`),
               ...s.turnLog,
             ],
           };
