@@ -5,6 +5,7 @@ import { factionLabel } from "../store/factionLabel";
 import { nationLabel } from "../store/nationLabel";
 import type { NationKey } from "../setup/NationDefinitions";
 import { getFactionAccent } from "./factionColors";
+import ResearchTreePanel from "./ResearchTreePanel";
 
 type Props = {
   data: NormalizedData | null;
@@ -703,7 +704,11 @@ export default function CommandHub({ data, variant = "full" }: Props) {
             ),
           )}
         </div>
-        {strategyAction ? (
+        {strategyAction === "Research" ? (
+          <div style={{ marginTop: 12 }}>
+            <ResearchTreePanel />
+          </div>
+        ) : strategyAction ? (
           <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
             {strategyAction} panel opening is queued for a future workflow.
           </div>

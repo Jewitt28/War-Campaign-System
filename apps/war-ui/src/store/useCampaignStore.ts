@@ -3,6 +3,13 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { visibilityOrder, type VisibilityLevel } from "../data/visibility";
 import {
+  RESEARCH_NODES,
+  RESEARCH_NODES_BY_ID,
+  type NationResearchState,
+  type ResearchRecommendation,
+  type ResearchTree,
+} from "../data/research";
+import {
   NATION_BY_ID,
   type BaseNationKey,
   type NationKey,
@@ -231,12 +238,80 @@ export type CampaignState = {
   getSupplies: (nation: NationKey) => number;
   spendSupplies: (nation: NationKey, amount: number, reason?: string) => boolean;
   addSupplies: (nation: NationKey, amount: number, reason?: string) => void;
+
+  // Research
+  researchByNation: Record<NationKey, NationResearchState>;
+  startResearch: (nation: NationKey, nodeId: string) => void;
+  cancelResearch: (nation: NationKey) => void;
+  getResearchRecommendations: (nationId: NationKey) => ResearchRecommendation[];
 };
 
 const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
 
 function logNote(text: string, type: TurnLogType = "NOTE"): TurnLogEntry {
   return { ts: Date.now(), type, text, id: uid() };
+}
+
+const defaultResearchState = (): NationResearchState => ({
+  progressTurns: 0,
+  completedResearch: [],
+});
+
+function getNationFaction(
+  nation: NationKey,
+  customNations: CustomNation[],
+): BaseFactionKey {
+  if (nation.startsWith("custom:")) {
+    return (
+      customNations.find((n) => n.id === nation)?.defaultFaction ?? "allies"
+    );
+  }
+  return NATION_BY_ID[nation as BaseNationKey]?.defaultFaction ?? "allies";
+}
+
+function prerequisitesMet(
+  nodeId: string,
+  completed: string[],
+  activeId?: string,
+) {
+  const node = RESEARCH_NODES_BY_ID[nodeId];
+  if (!node) return false;
+  if (completed.includes(nodeId)) return false;
+  if (activeId && activeId !== nodeId) return false;
+  return node.prerequisites.every((id) => completed.includes(id));
+}
+
+function advanceResearchForNewTurn(
+  researchByNation: Record<NationKey, NationResearchState>,
+) {
+  const nextResearch: Record<NationKey, NationResearchState> = {
+    ...researchByNation,
+  };
+  const logs: TurnLogEntry[] = [];
+
+  for (const [nationId, state] of Object.entries(researchByNation)) {
+    if (!state.activeResearchId) continue;
+    const node = RESEARCH_NODES_BY_ID[state.activeResearchId];
+    if (!node) continue;
+    const nextProgress = state.progressTurns + 1;
+    if (nextProgress >= node.timeTurns) {
+      const completed = Array.from(
+        new Set([...state.completedResearch, node.id]),
+      );
+      nextResearch[nationId as NationKey] = {
+        progressTurns: 0,
+        completedResearch: completed,
+      };
+      logs.push(logNote(`Research complete: ${nationId} finished ${node.name}.`));
+    } else {
+      nextResearch[nationId as NationKey] = {
+        ...state,
+        progressTurns: nextProgress,
+      };
+    }
+  }
+
+  return { nextResearch, logs };
 }
 
 function requireGM(s: CampaignState) {
@@ -347,6 +422,9 @@ const initialState: Omit<
   | "addSupplies"
   | "spendSupplies"
   | "setViewerNation"
+  | "startResearch"
+  | "cancelResearch"
+  | "getResearchRecommendations"
 > = {
   mode: "SETUP",
   playMode: "ONE_SCREEN",
@@ -415,6 +493,12 @@ const initialState: Omit<
   suppliesByNation: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [nation.id, 100]),
   ),
+  researchByNation: Object.fromEntries(
+    Object.values(NATION_BY_ID).map((nation) => [
+      nation.id,
+      defaultResearchState(),
+    ]),
+  ) as Record<NationKey, NationResearchState>,
 };
 function consumeSubmittedOrdersForTurn(
   ordersByTurn: Record<number, Record<string, PlatoonOrder[]>>,
@@ -491,6 +575,10 @@ export const useCampaignStore = create<CampaignState>()(
           selectedSetupNation: id,
           viewerNation: id,
           viewerFaction: defaultFaction,
+          researchByNation: {
+            ...s.researchByNation,
+            [id]: defaultResearchState(),
+          },
         }));
       },
 
@@ -974,6 +1062,8 @@ export const useCampaignStore = create<CampaignState>()(
 
             if (pendingContests.length === 0) {
               const nextViewerFaction = factions[(idx + 2) % factions.length];
+              const { nextResearch, logs: researchLogs } =
+                advanceResearchForNewTurn(s.researchByNation);
               return {
                 phase: "ORDERS" as const,
                 turnNumber: s.turnNumber + 1,
@@ -983,6 +1073,7 @@ export const useCampaignStore = create<CampaignState>()(
                 locksByTerritory: nextLocks,
                 contestsByTerritory: nextContests,
                 intelByTerritory: nextIntel,
+                researchByNation: nextResearch,
                 ordersByTurn: consumeSubmittedOrdersForTurn(
                   s.ordersByTurn,
                   s.turnNumber,
@@ -992,6 +1083,7 @@ export const useCampaignStore = create<CampaignState>()(
                     `Skipped Battles phase (no pending contests; ${contestCount} contests, ${lockCount} locks).`,
                     "BATTLE",
                   ),
+                  ...researchLogs,
                   ...reconLog.map((t) => logNote(t, "ORDERS")),
                   ...log.map((t) => logNote(t)),
                   ...s.turnLog,
@@ -1020,10 +1112,15 @@ export const useCampaignStore = create<CampaignState>()(
           }
 
           // BATTLES -> next turn -> ORDERS
+          const { nextResearch, logs: researchLogs } = advanceResearchForNewTurn(
+            s.researchByNation,
+          );
           return {
             phase: "ORDERS" as const,
             turnNumber: s.turnNumber + 1,
             viewerFaction: rotatedFaction,
+            researchByNation: nextResearch,
+            turnLog: [...researchLogs, ...s.turnLog],
           };
         }),
 
@@ -1095,6 +1192,132 @@ export const useCampaignStore = create<CampaignState>()(
             ],
           });
         }
+      },
+
+      // -------- Research --------
+      startResearch: (nation, nodeId) =>
+        set((s) => {
+          if (!playerCanActAsNation(s, nation)) return s;
+          const node = RESEARCH_NODES_BY_ID[nodeId];
+          if (!node) return s;
+
+          const current = s.researchByNation[nation] ?? defaultResearchState();
+          if (current.activeResearchId) return s;
+          if (current.completedResearch.includes(nodeId)) return s;
+          const hasPrereqs = node.prerequisites.every((id) =>
+            current.completedResearch.includes(id),
+          );
+          if (!hasPrereqs) return s;
+
+          return {
+            researchByNation: {
+              ...s.researchByNation,
+              [nation]: {
+                activeResearchId: nodeId,
+                startedTurn: s.turnNumber,
+                progressTurns: 0,
+                completedResearch: current.completedResearch,
+              },
+            },
+            turnLog: [
+              logNote(`Research started: ${nation} began ${node.name}.`),
+              ...s.turnLog,
+            ],
+          };
+        }),
+      cancelResearch: (nation) =>
+        set((s) => {
+          if (!playerCanActAsNation(s, nation)) return s;
+          const current = s.researchByNation[nation];
+          if (!current?.activeResearchId) return s;
+          const node = RESEARCH_NODES_BY_ID[current.activeResearchId];
+          if (!node) return s;
+          if (node.tier >= 2 && current.progressTurns >= 1) return s;
+
+          return {
+            researchByNation: {
+              ...s.researchByNation,
+              [nation]: {
+                progressTurns: 0,
+                completedResearch: current.completedResearch,
+              },
+            },
+            turnLog: [
+              logNote(`Research cancelled: ${nation} halted ${node.name}.`),
+              ...s.turnLog,
+            ],
+          };
+        }),
+      getResearchRecommendations: (nationId) => {
+        const s = get();
+        const state = s.researchByNation[nationId] ?? defaultResearchState();
+        const nationFaction = getNationFaction(nationId, s.customNations);
+        const activeNode = state.activeResearchId
+          ? RESEARCH_NODES_BY_ID[state.activeResearchId]
+          : null;
+
+        const alliedResearchTrees = new Set<ResearchTree>();
+        for (const [otherNation, otherState] of Object.entries(
+          s.researchByNation,
+        )) {
+          if (otherNation === nationId) continue;
+          if (!otherState.activeResearchId) continue;
+          const otherFaction = getNationFaction(
+            otherNation as NationKey,
+            s.customNations,
+          );
+          if (otherFaction !== nationFaction) continue;
+          const otherNode = RESEARCH_NODES_BY_ID[otherState.activeResearchId];
+          if (otherNode) alliedResearchTrees.add(otherNode.tree);
+        }
+
+        const platoonCount = Object.values(s.platoonsById).filter(
+          (platoon) => platoon.nation === nationId,
+        ).length;
+        const supplies = s.suppliesByNation?.[nationId] ?? 0;
+        const unsuppliedRatio =
+          platoonCount === 0
+            ? 0
+            : Math.max(0, (platoonCount - supplies) / platoonCount);
+
+        const territoryIds = Object.keys(s.territoryNameById);
+        const knownTerritories = territoryIds.filter((id) => {
+          const level = s.intelByTerritory[id]?.[nationId];
+          return level && level !== "NONE";
+        }).length;
+        const intelCoverage =
+          territoryIds.length === 0
+            ? 0
+            : knownTerritories / territoryIds.length;
+
+        return RESEARCH_NODES.filter((node) =>
+          prerequisitesMet(node.id, state.completedResearch, activeNode?.id),
+        )
+          .map((node) => {
+            let score = 0;
+            const reasons: string[] = [];
+
+            if (node.tree === "LOGISTICS" && unsuppliedRatio > 0.25) {
+              score += 3;
+              reasons.push("More than 25% of forces are unsupplied.");
+            }
+            if (node.tree === "INTELLIGENCE" && intelCoverage < 0.5) {
+              score += 3;
+              reasons.push("Intel coverage is below 50%.");
+            }
+            if (alliedResearchTrees.has(node.tree)) {
+              score -= 2;
+              reasons.push("Allied nation is already researching this tree.");
+            }
+
+            return {
+              nodeId: node.id,
+              score,
+              reasons,
+            };
+          })
+          .filter((rec) => rec.score !== 0)
+          .sort((a, b) => b.score - a.score);
       },
 
       clearLocksAndContests: () =>
