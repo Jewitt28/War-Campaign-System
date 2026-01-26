@@ -5,6 +5,7 @@ import { useCampaignStore } from "../store/useCampaignStore";
 import PlayerDashboard from "../player/PlayerDashboard";
 
 import PlatoonsPanel from "./PlatoonsPanel";
+import DoctrinePanel from "./DoctrinePanel";
 import TurnLogPanel from "./TurnLogPanel";
 import CommandHub from "./CommandHub";
 import BattlesPanel from "./BattlesPanel";
@@ -19,6 +20,7 @@ type Props = { data: NormalizedData | null };
 // Keep these compatible with your existing GMTools/PlayerDashboard expectations.
 export type Tab =
   | "DASHBOARD"
+  | "DOCTRINE"
   | "RESOLUTION"
   | "BATTLES"
   | "INTEL"
@@ -54,6 +56,7 @@ export default function CommandPanel({ data }: Props) {
     useMemo(() => {
       return [
         { id: "DASHBOARD", label: "Dashboard" },
+        { id: "DOCTRINE", label: "Doctrine" },
         { id: "RESOLUTION", label: "Resolution" },
         { id: "BATTLES", label: "Battles" },
         { id: "PLATOONS", label: "Platoons" },
@@ -64,8 +67,8 @@ export default function CommandPanel({ data }: Props) {
 
   const playerTabsByPhase: Record<string, RightTab[]> = useMemo(
     () => ({
-      SETUP: ["DASHBOARD", "LOG"],
-      ORDERS: ["DASHBOARD", "PLATOONS", "LOG"],
+      SETUP: ["DASHBOARD", "DOCTRINE", "LOG"],
+      ORDERS: ["DASHBOARD", "DOCTRINE", "PLATOONS", "LOG"],
       RESOLUTION: ["DASHBOARD", "RESOLUTION", "LOG"],
       BATTLES: ["DASHBOARD", "BATTLES", "LOG"],
     }),
@@ -99,6 +102,8 @@ export default function CommandPanel({ data }: Props) {
       // return gmEffective ? <GMTools data={data} setTab={tab} /> : <CommandHub data={data}  />;
       case "RESOLUTION":
         return <ResolutionPhasePanel />;
+      case "DOCTRINE":
+        return <DoctrinePanel />;
       case "BATTLES":
         return gmEffective ? (
           <BattlesPanel />
