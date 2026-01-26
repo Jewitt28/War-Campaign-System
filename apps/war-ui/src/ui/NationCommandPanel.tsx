@@ -80,8 +80,25 @@ export default function NationCommandPanel({ data }: Props) {
   const ensureSupplies = useCampaignStore((s) => s.ensureSupplies);
   const getSupplies = useCampaignStore((s) => s.getSupplies);
   const spendSupplies = useCampaignStore((s) => s.spendSupplies);
-  const strategicModifiers = useCampaignStore((s) =>
-    getStrategicModifiers(s, s.viewerNation),
+  const nationDoctrineState = useCampaignStore((s) => s.nationDoctrineState);
+  const nationResearchState = useCampaignStore((s) => s.nationResearchState);
+  const nationUpgradesState = useCampaignStore((s) => s.nationUpgradesState);
+  const strategicModifiers = useMemo(
+    () =>
+      getStrategicModifiers(
+        {
+          nationDoctrineState,
+          nationResearchState,
+          nationUpgradesState,
+        },
+        viewerNation,
+      ),
+    [
+      nationDoctrineState,
+      nationResearchState,
+      nationUpgradesState,
+      viewerNation,
+    ],
   );
 
   const [openOrderPlatoonId, setOpenOrderPlatoonId] = useState<string | null>(
