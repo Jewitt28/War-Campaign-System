@@ -8,6 +8,7 @@ import {
 import { factionLabel } from "../store/factionLabel";
 import { nationLabel } from "../store/nationLabel";
 import { getFactionAccent } from "./factionColors";
+import { getStrategicModifiers } from "../strategy/selectors/getStrategicModifiers";
 import {
   formatTerritoryLabel,
   formatTerritoryList,
@@ -71,6 +72,7 @@ export default function NationCommandPanel({ data }: Props) {
   const orderDraftType = useCampaignStore((s) => s.orderDraftType);
   const setOrderDraftType = useCampaignStore((s) => s.setOrderDraftType);
   const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
+  const cancelDraftOrder = useCampaignStore((s) => s.cancelDraftOrder);
   const territoryNameById = useCampaignStore((s) => s.territoryNameById);
   const createPlatoonWithLoadout = useCampaignStore(
     (s) => s.createPlatoonWithLoadout,
@@ -78,6 +80,9 @@ export default function NationCommandPanel({ data }: Props) {
   const ensureSupplies = useCampaignStore((s) => s.ensureSupplies);
   const getSupplies = useCampaignStore((s) => s.getSupplies);
   const spendSupplies = useCampaignStore((s) => s.spendSupplies);
+  const strategicModifiers = useCampaignStore((s) =>
+    getStrategicModifiers(s, s.viewerNation),
+  );
 
   const [openOrderPlatoonId, setOpenOrderPlatoonId] = useState<string | null>(
     null,
@@ -136,6 +141,7 @@ export default function NationCommandPanel({ data }: Props) {
     () => getSupplies(viewerNation),
     [getSupplies, viewerNation],
   );
+  const canCancelOrders = strategicModifiers.orderFlexibility > 0;
   const accentColor = getFactionAccent({
     viewerNation,
     viewerFaction,
@@ -1248,31 +1254,57 @@ export default function NationCommandPanel({ data }: Props) {
             Submit Orders
           </button>
         </div>
+        <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
+          Order flexibility: <b>{strategicModifiers.orderFlexibility}</b>{" "}
+          {canCancelOrders
+            ? "(draft orders can be canceled)"
+            : "(no edits without doctrine/upgrades)"}
+        </div>
         {draftOrders.length ? (
           <ul style={{ margin: 0, paddingLeft: 18 }}>
             {draftOrders.map((order) => {
               const platoonName =
                 platoonsById[order.platoonId]?.name ?? order.platoonId;
               return (
-                <li key={order.id}>
-                  <b>{order.type}</b> · {platoonName}{" "}
-                  {order.type === "RECON" || order.type === "INTEL"
-                    ? `→ ${
-                        order.reconTargets?.length
-                          ? formatTerritoryList(
-                              order.reconTargets ?? [],
-                              territoryNameById,
-                            )
-                          : "—"
-                      }`
-                    : `→ ${
-                        order.path?.length
-                          ? formatTerritoryList(
-                              order.path ?? [],
-                              territoryNameById,
-                            )
-                          : formatTerritoryLabel(order.from, territoryNameById)
-                      }`}
+                <li
+                  key={order.id}
+                  style={{ display: "flex", gap: 8, alignItems: "center" }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <b>{order.type}</b> · {platoonName}{" "}
+                    {order.type === "RECON" || order.type === "INTEL"
+                      ? `→ ${
+                          order.reconTargets?.length
+                            ? formatTerritoryList(
+                                order.reconTargets ?? [],
+                                territoryNameById,
+                              )
+                            : "—"
+                        }`
+                      : `→ ${
+                          order.path?.length
+                            ? formatTerritoryList(
+                                order.path ?? [],
+                                territoryNameById,
+                              )
+                            : formatTerritoryLabel(
+                                order.from,
+                                territoryNameById,
+                              )
+                        }`}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => cancelDraftOrder(turnNumber, order.id)}
+                    disabled={!canCancelOrders}
+                    title={
+                      canCancelOrders
+                        ? "Cancel draft order"
+                        : "Requires order flexibility"
+                    }
+                  >
+                    Cancel
+                  </button>
                 </li>
               );
             })}

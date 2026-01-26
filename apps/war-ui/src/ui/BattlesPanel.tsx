@@ -4,6 +4,7 @@ import { useCampaignStore } from "../store/useCampaignStore";
 import type { BattleOutcome, Contest } from "../domain/types";
 import { NATIONS, type NationKey } from "../setup/NationDefinitions";
 import { formatTerritoryLabel } from "./territoryLabel";
+import { getStrategicModifiers } from "../strategy/selectors/getStrategicModifiers";
 
 const clamp = (n: number, lo: number, hi: number) =>
   Math.min(Math.max(n, lo), hi);
@@ -34,6 +35,11 @@ export default function BattlesPanel() {
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
   const resolveBattles = useCampaignStore((s) => s.resolveBattles);
   const territoryNameById = useCampaignStore((s) => s.territoryNameById);
+  const strategicState = useCampaignStore((s) => ({
+    nationDoctrineState: s.nationDoctrineState,
+    nationResearchState: s.nationResearchState,
+    nationUpgradesState: s.nationUpgradesState,
+  }));
 
   // “Current player” selector (for the wider UX you described)
   const viewerNation = useCampaignStore((s) => s.viewerNation);
@@ -191,6 +197,14 @@ export default function BattlesPanel() {
               attackerConditionHit: 0,
               defenderConditionHit: 0,
             };
+            const attackerModifiers = getStrategicModifiers(
+              strategicState,
+              c.attackerFaction,
+            );
+            const defenderModifiers = getStrategicModifiers(
+              strategicState,
+              c.defenderFaction,
+            );
 
             const update = (patch: Partial<BattleOutcome>) => {
               setBattleOutcomes((s) => ({
@@ -214,6 +228,16 @@ export default function BattlesPanel() {
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
                   {c.status}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
+                  <div>
+                    Attacker mods: Offense +{attackerModifiers.offenseBonus} ·
+                    Withdrawal +{attackerModifiers.withdrawalBonus}
+                  </div>
+                  <div>
+                    Defender mods: Defense +{defenderModifiers.defenseBonus} ·
+                    Withdrawal +{defenderModifiers.withdrawalBonus}
+                  </div>
                 </div>
 
                 <div

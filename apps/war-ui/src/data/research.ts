@@ -154,6 +154,19 @@ export const RESEARCH_NODES: ResearchNode[] = [
     locksIn: true,
     effects: [{ type: "INTEL_DECAY_REDUCTION", value: 25 }],
   },
+  {
+    id: "FORT_DEPTH_WORKS",
+    tree: "FORTIFICATIONS",
+    tier: 2,
+    name: "Defense in Depth Works",
+    description: "Layered fortification work improves withdrawal discipline.",
+    prerequisites: [],
+    costBand: "MEDIUM",
+    timeTurns: 2,
+    visibility: "OBSERVED",
+    locksIn: true,
+    effects: [{ type: "WITHDRAWAL_BONUS", value: 5 }],
+  },
 ];
 
 export const RESEARCH_NODES_BY_ID = Object.fromEntries(

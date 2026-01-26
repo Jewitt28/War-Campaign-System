@@ -12,6 +12,9 @@ import {
   buildResearchRecommendations,
   useCampaignStore,
 } from "../store/useCampaignStore";
+import StrategicNodeCard, {
+  type StrategicNodeStatus,
+} from "./StrategicNodeCard";
 
 const TIER_LABELS: Record<ResearchNode["tier"], string> = {
   1: "Tier I – Foundational",
@@ -19,14 +22,7 @@ const TIER_LABELS: Record<ResearchNode["tier"], string> = {
   3: "Tier III – Strategic",
 };
 
-type NodeStatus = "LOCKED" | "AVAILABLE" | "ACTIVE" | "COMPLETED";
-
-type NodeCardProps = {
-  node: ResearchNode;
-  status: NodeStatus;
-  selected: boolean;
-  onSelect: (id: string) => void;
-};
+type NodeStatus = StrategicNodeStatus;
 
 function nodeStatus(
   node: ResearchNode,
@@ -62,56 +58,6 @@ function describeEffect(effect: ResearchEffect) {
     default:
       return "Unknown effect";
   }
-}
-
-function StrategicNodeCard({
-  node,
-  status,
-  selected,
-  onSelect,
-}: NodeCardProps) {
-  const statusColor =
-    status === "ACTIVE"
-      ? "#8ad4ff"
-      : status === "COMPLETED"
-        ? "#8dffb2"
-        : status === "AVAILABLE"
-          ? "#ffd28a"
-          : "rgba(255,255,255,0.2)";
-
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(node.id)}
-      style={{
-        border: `1px solid ${statusColor}`,
-        borderRadius: 10,
-        padding: 10,
-        textAlign: "left",
-        background: selected
-          ? "rgba(255,255,255,0.12)"
-          : "rgba(0,0,0,0.2)",
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ fontWeight: 700, marginBottom: 4 }}>{node.name}</div>
-      <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
-        {node.costBand} · {node.timeTurns} turns · {node.visibility}
-      </div>
-      <div style={{ fontSize: 12, opacity: 0.8 }}>{node.description}</div>
-      <div
-        style={{
-          marginTop: 8,
-          fontSize: 11,
-          textTransform: "uppercase",
-          letterSpacing: 0.6,
-          opacity: 0.7,
-        }}
-      >
-        {status}
-      </div>
-    </button>
-  );
 }
 
 function NodeDetailPanel({
@@ -214,7 +160,7 @@ function NodeDetailPanel({
 export default function ResearchTreePanel() {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const customNations = useCampaignStore((s) => s.customNations);
-  const researchByNation = useCampaignStore((s) => s.researchByNation);
+  const nationResearchState = useCampaignStore((s) => s.nationResearchState);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
   const suppliesByNation = useCampaignStore((s) => s.suppliesByNation);
   const territoryNameById = useCampaignStore((s) => s.territoryNameById);
@@ -225,7 +171,7 @@ export default function ResearchTreePanel() {
     () =>
       buildResearchRecommendations(
         {
-          researchByNation,
+          nationResearchState,
           customNations,
           platoonsById,
           suppliesByNation,
@@ -235,7 +181,7 @@ export default function ResearchTreePanel() {
         viewerNation,
       ),
     [
-      researchByNation,
+      nationResearchState,
       customNations,
       platoonsById,
       suppliesByNation,
@@ -250,7 +196,7 @@ export default function ResearchTreePanel() {
   );
 
   const researchState =
-    researchByNation[viewerNation] ??
+    nationResearchState[viewerNation] ??
     ({ progressTurns: 0, completedResearch: [] } as NationResearchState);
 
   const selectedNode = selectedNodeId
@@ -351,11 +297,20 @@ export default function ResearchTreePanel() {
                           {nodesInTier.map((node) => (
                             <StrategicNodeCard
                               key={node.id}
-                              node={node}
+                              title={node.name}
+                              subtitle={`${node.costBand} · ${node.timeTurns} turns · ${node.visibility}`}
+                              description={node.description}
                               status={nodeStatus(node, researchState)}
                               selected={selectedNodeId === node.id}
-                              onSelect={setSelectedNodeId}
-                            />
+                              onSelect={() => setSelectedNodeId(node.id)}
+                            >
+                              {node.unlocksDoctrineTraits?.length ? (
+                                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                                  Unlocks doctrine traits:{" "}
+                                  {node.unlocksDoctrineTraits.join(", ")}
+                                </div>
+                              ) : null}
+                            </StrategicNodeCard>
                           ))}
                         </div>
                       ) : (
