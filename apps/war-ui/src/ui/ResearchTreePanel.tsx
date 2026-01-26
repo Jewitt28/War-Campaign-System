@@ -8,7 +8,10 @@ import {
   type ResearchNode,
 } from "../data/research";
 import { nationLabel } from "../store/nationLabel";
-import { useCampaignStore } from "../store/useCampaignStore";
+import {
+  buildResearchRecommendations,
+  useCampaignStore,
+} from "../store/useCampaignStore";
 
 const TIER_LABELS: Record<ResearchNode["tier"], string> = {
   1: "Tier I – Foundational",
@@ -212,10 +215,34 @@ export default function ResearchTreePanel() {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const customNations = useCampaignStore((s) => s.customNations);
   const researchByNation = useCampaignStore((s) => s.researchByNation);
+  const platoonsById = useCampaignStore((s) => s.platoonsById);
+  const suppliesByNation = useCampaignStore((s) => s.suppliesByNation);
+  const territoryNameById = useCampaignStore((s) => s.territoryNameById);
+  const intelByTerritory = useCampaignStore((s) => s.intelByTerritory);
   const startResearch = useCampaignStore((s) => s.startResearch);
   const cancelResearch = useCampaignStore((s) => s.cancelResearch);
-  const recommendations = useCampaignStore((s) =>
-    s.getResearchRecommendations(viewerNation),
+  const recommendations = useMemo(
+    () =>
+      buildResearchRecommendations(
+        {
+          researchByNation,
+          customNations,
+          platoonsById,
+          suppliesByNation,
+          territoryNameById,
+          intelByTerritory,
+        },
+        viewerNation,
+      ),
+    [
+      researchByNation,
+      customNations,
+      platoonsById,
+      suppliesByNation,
+      territoryNameById,
+      intelByTerritory,
+      viewerNation,
+    ],
   );
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
