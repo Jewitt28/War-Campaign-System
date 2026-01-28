@@ -73,10 +73,12 @@ export default function PlatoonsPanel() {
     ensureSupplies();
   }, [ensureSupplies]);
 
-  const supplies = useMemo(
-    () => getSupplies(viewerNation),
-    [getSupplies, viewerNation],
-  );
+  // const supplies = useMemo(
+  //   () => getSupplies(viewerNation),
+  //   [getSupplies, viewerNation],
+  // );
+
+  const supplies = getSupplies(viewerNation);
   const accentColor = getFactionAccent({
     viewerNation,
     viewerFaction,
@@ -396,9 +398,7 @@ export default function PlatoonsPanel() {
                   alignItems: "center",
                 }}
               >
-                <div style={{ fontWeight: 900 }}>
-                  Platoon Creation Wizard
-                </div>
+                <div style={{ fontWeight: 900 }}>Platoon Creation Wizard</div>
                 <button type="button" onClick={closeCreateWizard}>
                   Close
                 </button>
@@ -564,8 +564,8 @@ export default function PlatoonsPanel() {
                         ? classStyles[wizardTrait].label
                         : classStyles.INFANTRY.label}
                     </b>{" "}
-                    · MP <b>{wizardMpBase}</b> · Readiness <b>FRESH</b> · Strength{" "}
-                    <b>100%</b>
+                    · MP <b>{wizardMpBase}</b> · Readiness <b>FRESH</b> ·
+                    Strength <b>100%</b>
                   </div>
                 </div>
               ) : null}
@@ -627,7 +627,7 @@ export default function PlatoonsPanel() {
                     onClick={() => {
                       setSelectedPlatoonId(p.id);
                       setSelectedTerritory(p.territoryId);
-                      setMoveTo("");
+                      // setMoveTo("");
                     }}
                     style={{
                       textAlign: "left",
@@ -722,8 +722,7 @@ export default function PlatoonsPanel() {
                   {nationLabel(safeSelected.nation, customNations)}
                 </div>
                 <div>
-                  <b>Faction:</b>{" "}
-                  {factionLabel(safeSelected.faction, customs)}
+                  <b>Faction:</b> {factionLabel(safeSelected.faction, customs)}
                 </div>
                 <div>
                   <b>Condition:</b> {safeSelected.condition}
@@ -738,8 +737,7 @@ export default function PlatoonsPanel() {
                   <b>Entrenched:</b> {safeSelected.entrenched ? "Yes" : "No"}
                 </div>
                 <div>
-                  <b>Traits:</b>{" "}
-                  {formatTraits(safeSelected.traits) || "—"}
+                  <b>Traits:</b> {formatTraits(safeSelected.traits) || "—"}
                 </div>
                 <div>
                   <b>Class:</b> {classStyles[selectedClass].label}

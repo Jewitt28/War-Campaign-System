@@ -1,6 +1,6 @@
 // apps/war-ui/src/ui/BattlesPanel.tsx
 import { useMemo, useState } from "react";
-import { shallow } from "zustand/shallow";
+// import { shallow } from "zustand/shallow";
 import { useCampaignStore } from "../store/useCampaignStore";
 import type { BattleOutcome, Contest } from "../domain/types";
 import { NATIONS, type NationKey } from "../setup/NationDefinitions";
@@ -42,7 +42,7 @@ export default function BattlesPanel() {
       nationResearchState: s.nationResearchState,
       nationUpgradesState: s.nationUpgradesState,
     }),
-    shallow,
+    // shallow,
   );
 
   // “Current player” selector (for the wider UX you described)
@@ -120,7 +120,7 @@ export default function BattlesPanel() {
           >
             {nationOptions.map((nation) => (
               <option key={nation.id} value={nation.id}>
-                {nation.flag ? `${nation.flag} ` : ""}
+                {/* {nation.flag ? `${nation.flag} ` : ""} */}
                 {nation.name}
               </option>
             ))}
@@ -171,7 +171,7 @@ export default function BattlesPanel() {
           >
             {nationOptions.map((nation) => (
               <option key={nation.id} value={nation.id}>
-                {nation.flag ? `${nation.flag} ` : ""}
+                {/* {nation.flag ? `${nation.flag} ` : ""} */}
                 {nation.name}
               </option>
             ))}

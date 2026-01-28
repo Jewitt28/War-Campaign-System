@@ -30,9 +30,16 @@ export type UpgradeDef = {
   maxPerPlatoon?: number;
   unique?: boolean;
   effects: UpgradeEffect[];
-  tags?: ("SUPPLY" | "INTEL" | "FORT" | "OPS" | "AIR" | "NAVAL" | "DIPLOMACY")[];
+  tags?: (
+    | "SUPPLY"
+    | "INTEL"
+    | "FORT"
+    | "OPS"
+    | "AIR"
+    | "NAVAL"
+    | "DIPLOMACY"
+  )[];
 };
-
 export type AppliedUpgrade =
   | { id: string; defId: string; scope: "NATION" }
   | { id: string; defId: string; scope: "TERRITORY"; territoryId: string }

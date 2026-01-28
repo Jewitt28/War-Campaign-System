@@ -325,17 +325,21 @@ const defaultDoctrineState = (): NationDoctrineState => ({
 const defaultUpgradesState = (): NationUpgradesState => ({
   applied: [],
 });
+const isBaseFactionKey = (f: FactionKey): f is BaseFactionKey =>
+  f === "allies" || f === "axis" || f === "ussr";
 
 function getNationFaction(
   nation: NationKey,
   customNations: CustomNation[],
 ): BaseFactionKey {
   if (nation.startsWith("custom:")) {
-    return (
-      customNations.find((n) => n.id === nation)?.defaultFaction ?? "allies"
-    );
+    const f =
+      customNations.find((n) => n.id === nation)?.defaultFaction ?? "allies";
+    return isBaseFactionKey(f) ? f : "allies";
   }
-  return NATION_BY_ID[nation as BaseNationKey]?.defaultFaction ?? "allies";
+
+  const f = NATION_BY_ID[nation as BaseNationKey]?.defaultFaction ?? "allies";
+  return isBaseFactionKey(f as FactionKey) ? (f as BaseFactionKey) : "allies";
 }
 
 function prerequisitesMet(
@@ -468,7 +472,9 @@ function advanceResearchForNewTurn(
         progressTurns: 0,
         completedResearch: completed,
       };
-      logs.push(logNote(`Research complete: ${nationId} finished ${node.name}.`));
+      logs.push(
+        logNote(`Research complete: ${nationId} finished ${node.name}.`),
+      );
     } else {
       nextResearch[nationId as NationKey] = {
         ...state,
@@ -694,7 +700,8 @@ const initialState: Omit<
   ),
   resourcePointsByNation: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [nation.id, 15]),
-  ),
+  ) as Record<NationKey, number>,
+
   nationResearchState: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [
       nation.id,
@@ -1030,7 +1037,7 @@ export const useCampaignStore = create<CampaignState>()(
           };
         }),
 
-      setPlatoonOrderMove: (turn, faction, platoonId, path, forcedMarch) =>
+      setPlatoonOrderMove: (turn, _faction, platoonId, path, forcedMarch) =>
         set((s) => {
           const platoon = s.platoonsById[platoonId];
           if (!platoon) return s;
@@ -1064,7 +1071,7 @@ export const useCampaignStore = create<CampaignState>()(
           byTurn[orderFaction] = list;
           return { ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn } };
         }),
-      setPlatoonOrderHold: (turn, faction, platoonId) =>
+      setPlatoonOrderHold: (turn, _faction, platoonId) =>
         set((s) => {
           const platoon = s.platoonsById[platoonId];
           if (!platoon) return s;
@@ -1093,7 +1100,7 @@ export const useCampaignStore = create<CampaignState>()(
           byTurn[orderFaction] = list;
           return { ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn } };
         }),
-      setPlatoonOrderRecon: (turn, faction, platoonId, targets) =>
+      setPlatoonOrderRecon: (turn, _faction, platoonId, targets) =>
         set((s) => {
           const platoon = s.platoonsById[platoonId];
           if (!platoon) return s;
@@ -1126,7 +1133,7 @@ export const useCampaignStore = create<CampaignState>()(
           byTurn[orderFaction] = list;
           return { ordersByTurn: { ...s.ordersByTurn, [turn]: byTurn } };
         }),
-      setPlatoonOrderIntel: (turn, faction, platoonId, target) =>
+      setPlatoonOrderIntel: (turn, _faction, platoonId, target) =>
         set((s) => {
           const platoon = s.platoonsById[platoonId];
           if (!platoon) return s;
@@ -1395,9 +1402,8 @@ export const useCampaignStore = create<CampaignState>()(
           }
 
           // BATTLES -> next turn -> ORDERS
-          const { nextResearch, logs: researchLogs } = advanceResearchForNewTurn(
-            s.nationResearchState,
-          );
+          const { nextResearch, logs: researchLogs } =
+            advanceResearchForNewTurn(s.nationResearchState);
           return {
             phase: "ORDERS" as const,
             turnNumber: s.turnNumber + 1,
@@ -1498,7 +1504,11 @@ export const useCampaignStore = create<CampaignState>()(
         return (s.resourcePointsByNation?.[nation] ?? 0) | 0;
       },
 
-      spendResourcePoints: (nation: NationKey, amount: number, reason?: string) => {
+      spendResourcePoints: (
+        nation: NationKey,
+        amount: number,
+        reason?: string,
+      ) => {
         const s = get();
         const cur = s.resourcePointsByNation?.[nation] ?? 0;
         const cost = Math.max(0, Math.floor(amount));
@@ -1506,7 +1516,10 @@ export const useCampaignStore = create<CampaignState>()(
 
         const next = cur - cost;
         set({
-          resourcePointsByNation: { ...s.resourcePointsByNation, [nation]: next },
+          resourcePointsByNation: {
+            ...s.resourcePointsByNation,
+            [nation]: next,
+          },
         });
 
         if (Array.isArray(s.turnLog) && cost > 0) {
@@ -1526,14 +1539,21 @@ export const useCampaignStore = create<CampaignState>()(
         return true;
       },
 
-      addResourcePoints: (nation: NationKey, amount: number, reason?: string) => {
+      addResourcePoints: (
+        nation: NationKey,
+        amount: number,
+        reason?: string,
+      ) => {
         const s = get();
         const add = Math.max(0, Math.floor(amount));
         const cur = s.resourcePointsByNation?.[nation] ?? 0;
         const next = cur + add;
 
         set({
-          resourcePointsByNation: { ...s.resourcePointsByNation, [nation]: next },
+          resourcePointsByNation: {
+            ...s.resourcePointsByNation,
+            [nation]: next,
+          },
         });
 
         if (Array.isArray(s.turnLog) && add > 0) {
@@ -1686,8 +1706,7 @@ export const useCampaignStore = create<CampaignState>()(
 
           if (
             trait.prerequisitesTraits?.some(
-              (required) =>
-                !doctrineState.equippedTraitIds.includes(required),
+              (required) => !doctrineState.equippedTraitIds.includes(required),
             )
           )
             return s;
@@ -1721,8 +1740,7 @@ export const useCampaignStore = create<CampaignState>()(
             s.nationDoctrineState[nation] ?? defaultDoctrineState();
           if (!doctrineState.equippedTraitIds.includes(traitId)) return s;
 
-          const traitName =
-            DOCTRINE_TRAITS_BY_ID[traitId]?.name ?? traitId;
+          const traitName = DOCTRINE_TRAITS_BY_ID[traitId]?.name ?? traitId;
 
           return {
             nationDoctrineState: {
@@ -1816,7 +1834,9 @@ export const useCampaignStore = create<CampaignState>()(
           if (!requireGM(s)) return s;
           const current =
             s.nationUpgradesState[nation] ?? defaultUpgradesState();
-          if (!current.applied.some((entry) => entry.id === upgradeInstanceId)) {
+          if (
+            !current.applied.some((entry) => entry.id === upgradeInstanceId)
+          ) {
             return s;
           }
 
@@ -1831,7 +1851,9 @@ export const useCampaignStore = create<CampaignState>()(
               },
             },
             turnLog: [
-              logNote(`Upgrade removed (admin): ${nation} → ${upgradeInstanceId}.`),
+              logNote(
+                `Upgrade removed (admin): ${nation} → ${upgradeInstanceId}.`,
+              ),
               ...s.turnLog,
             ],
           };

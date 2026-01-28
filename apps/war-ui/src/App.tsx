@@ -19,9 +19,7 @@ export default function App() {
   const setAdjacencyByTerritory = useCampaignStore(
     (s) => s.setAdjacencyByTerritory,
   );
-  const setTerritoryNameById = useCampaignStore(
-    (s) => s.setTerritoryNameById,
-  );
+  const setTerritoryNameById = useCampaignStore((s) => s.setTerritoryNameById);
 
   useEffect(() => {
     loadTheatresData()
@@ -276,7 +274,7 @@ function TopBar({ data }: { data: NormalizedData | null }) {
             >
               {nationOptions.map((nation) => (
                 <option key={nation.id} value={nation.id}>
-                  {nation.flag ? `${nation.flag} ` : ""}
+                  {/* {nation.flag ? `${nation.flag} ` : ""} */}
                   {nation.name}
                 </option>
               ))}
@@ -323,9 +321,7 @@ function TopBar({ data }: { data: NormalizedData | null }) {
           </button>
         )}
         <button type="button" onClick={toggleViewerMode}>
-          {viewerMode === "GM"
-            ? "Switch to Player View"
-            : "Switch to GM View"}
+          {viewerMode === "GM" ? "Switch to Player View" : "Switch to GM View"}
         </button>
 
         <button

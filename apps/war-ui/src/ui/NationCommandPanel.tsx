@@ -1,18 +1,18 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
 import {
   useCampaignStore,
   type FactionKey,
+  type TurnLogType,
 } from "../store/useCampaignStore";
+
 import { factionLabel } from "../store/factionLabel";
 import { nationLabel } from "../store/nationLabel";
 import { getFactionAccent } from "./factionColors";
 import { getDoctrineDerivedStats } from "../strategy/selectors/getStrategicModifiers";
-import {
-  formatTerritoryLabel,
-  formatTerritoryList,
-} from "./territoryLabel";
+import { formatTerritoryLabel, formatTerritoryList } from "./territoryLabel";
 import type { Platoon, PlatoonCondition, PlatoonTrait } from "../domain/types";
 import {
   getPlatoonArchetypeById,
@@ -37,10 +37,10 @@ function nextBetterCondition(c: PlatoonCondition, steps = 1): PlatoonCondition {
   return CONDITION_ORDER[clamp(idx + steps, 0, CONDITION_ORDER.length - 1)];
 }
 
-function logAction(type: string, text: string) {
+function logAction(type: TurnLogType, text: string) {
   useCampaignStore.setState((state) => ({
     turnLog: [
-      { id: crypto.randomUUID(), ts: Date.now(), type, text },
+      { id: String(crypto.randomUUID()), ts: Date.now(), type, text },
       ...state.turnLog,
     ],
   }));
@@ -506,9 +506,7 @@ export default function NationCommandPanel({ data }: Props) {
                   alignItems: "center",
                 }}
               >
-                <div style={{ fontWeight: 900 }}>
-                  Platoon Creation Wizard
-                </div>
+                <div style={{ fontWeight: 900 }}>Platoon Creation Wizard</div>
                 <button type="button" onClick={closeCreateWizard}>
                   Close
                 </button>
@@ -674,8 +672,8 @@ export default function NationCommandPanel({ data }: Props) {
                         ? classStyles[wizardTrait].label
                         : classStyles.INFANTRY.label}
                     </b>{" "}
-                    · MP <b>{wizardMpBase}</b> · Readiness <b>FRESH</b> · Strength{" "}
-                    <b>100%</b>
+                    · MP <b>{wizardMpBase}</b> · Readiness <b>FRESH</b> ·
+                    Strength <b>100%</b>
                   </div>
                 </div>
               ) : null}
@@ -774,8 +772,8 @@ export default function NationCommandPanel({ data }: Props) {
                 status === "submitted"
                   ? "Submitted order"
                   : status === "draft"
-                  ? "Draft order"
-                  : "No order";
+                    ? "Draft order"
+                    : "No order";
               const orderPanelOpen =
                 phase === "ORDERS" && openOrderPlatoonId === platoon.id;
               const detailOpen = expandedPlatoonId === platoon.id;
@@ -856,9 +854,7 @@ export default function NationCommandPanel({ data }: Props) {
                             width: 10,
                             height: 10,
                             borderRadius: "50%",
-                            background: strengthColor(
-                              platoon.strengthPct ?? 0,
-                            ),
+                            background: strengthColor(platoon.strengthPct ?? 0),
                             boxShadow: "0 0 6px rgba(0,0,0,.4)",
                           }}
                           title={`Strength ${platoon.strengthPct}% (${platoon.condition})`}
@@ -895,8 +891,8 @@ export default function NationCommandPanel({ data }: Props) {
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.85 }}>
                       {nationLabel(platoon.nation, customNations)} ·{" "}
-                      {platoon.condition} ·{" "}
-                      {platoon.strengthPct}% · MP {platoon.mpBase}
+                      {platoon.condition} · {platoon.strengthPct}% · MP{" "}
+                      {platoon.mpBase}
                       {platoon.entrenched ? " · ENTRENCHED" : ""}
                       {formatTraits(platoon.traits)
                         ? ` · ${formatTraits(platoon.traits)}`
@@ -1179,9 +1175,7 @@ export default function NationCommandPanel({ data }: Props) {
 
                         <button
                           type="button"
-                          onClick={() =>
-                            addTrait("RECON", COST_TRAIT_RECON)
-                          }
+                          onClick={() => addTrait("RECON", COST_TRAIT_RECON)}
                           disabled={
                             hasTrait("RECON") ||
                             !mustMatchNation ||
@@ -1259,8 +1253,7 @@ export default function NationCommandPanel({ data }: Props) {
 
                       <div style={{ fontSize: 12, opacity: 0.75 }}>
                         Note: supplies are spent from the platoon’s nation —
-                        switch Viewer nation to match to apply
-                        upgrades/orders.
+                        switch Viewer nation to match to apply upgrades/orders.
                       </div>
                     </div>
                   ) : null}

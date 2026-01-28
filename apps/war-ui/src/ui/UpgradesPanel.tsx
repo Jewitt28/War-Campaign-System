@@ -27,7 +27,10 @@ const upgradeStatusFor = (
   eligibility: ReturnType<typeof getUpgradeEligibility>,
   appliedForTarget: number,
 ): "AVAILABLE" | "LOCKED" | "COMPLETED" => {
-  if (appliedForTarget > 0 || (upgrade.scope === "NATION" && eligibility.appliedCount > 0)) {
+  if (
+    appliedForTarget > 0 ||
+    (upgrade.scope === "NATION" && eligibility.appliedCount > 0)
+  ) {
     return "COMPLETED";
   }
   return eligibility.eligible ? "AVAILABLE" : "LOCKED";
@@ -43,8 +46,17 @@ const formatCost = (upgrade: UpgradeDef) => {
 const formatEffects = (upgrade: UpgradeDef) =>
   upgrade.effects.map((effect) => `${effect.type} +${effect.value}`).join(", ");
 
-const groupApplied = (applied: AppliedUpgrade[], scope: UpgradeScope) =>
-  applied.filter((entry) => entry.scope === scope);
+/** ✅ AppliedUpgrade narrowing helpers */
+type AppliedNation = Extract<AppliedUpgrade, { scope: "NATION" }>;
+type AppliedTerritory = Extract<AppliedUpgrade, { scope: "TERRITORY" }>;
+type AppliedForce = Extract<AppliedUpgrade, { scope: "FORCE" }>;
+
+const isAppliedNation = (u: AppliedUpgrade): u is AppliedNation =>
+  u.scope === "NATION";
+const isAppliedTerritory = (u: AppliedUpgrade): u is AppliedTerritory =>
+  u.scope === "TERRITORY";
+const isAppliedForce = (u: AppliedUpgrade): u is AppliedForce =>
+  u.scope === "FORCE";
 
 export default function UpgradesPanel() {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
@@ -57,7 +69,9 @@ export default function UpgradesPanel() {
   const nationResearchState = useCampaignStore((s) => s.nationResearchState);
   const nationDoctrineState = useCampaignStore((s) => s.nationDoctrineState);
   const nationUpgradesState = useCampaignStore((s) => s.nationUpgradesState);
-  const resourcePointsByNation = useCampaignStore((s) => s.resourcePointsByNation);
+  const resourcePointsByNation = useCampaignStore(
+    (s) => s.resourcePointsByNation,
+  );
   const ensureResourcePoints = useCampaignStore((s) => s.ensureResourcePoints);
   const applyUpgrade = useCampaignStore((s) => s.applyUpgrade);
   const removeUpgrade = useCampaignStore((s) => s.removeUpgrade);
@@ -65,24 +79,19 @@ export default function UpgradesPanel() {
   const [scope, setScope] = useState<UpgradeScope>("FORCE");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [tagFilters, setTagFilters] = useState<TagFilter[]>([]);
-  const [targetTerritory, setTargetTerritory] = useState<string | null>(
-    selectedTerritoryId,
-  );
-  const [targetPlatoon, setTargetPlatoon] = useState<string | null>(
-    selectedPlatoonId,
-  );
+
+  // These are "user overrides" only (we do NOT sync them via effects to satisfy eslint rule).
+  const [targetTerritory, setTargetTerritory] = useState<string | null>(null);
+  const [targetPlatoon, setTargetPlatoon] = useState<string | null>(null);
 
   useEffect(() => {
     ensureResourcePoints();
   }, [ensureResourcePoints]);
 
-  useEffect(() => {
-    if (selectedTerritoryId) setTargetTerritory(selectedTerritoryId);
-  }, [selectedTerritoryId]);
-
-  useEffect(() => {
-    if (selectedPlatoonId) setTargetPlatoon(selectedPlatoonId);
-  }, [selectedPlatoonId]);
+  // ✅ Effective targets: use local override if set, otherwise follow the selected ids from store
+  const effectiveTargetTerritory =
+    targetTerritory ?? selectedTerritoryId ?? null;
+  const effectiveTargetPlatoon = targetPlatoon ?? selectedPlatoonId ?? null;
 
   const doctrineState = nationDoctrineState[viewerNation];
   const researchState = nationResearchState[viewerNation];
@@ -99,17 +108,21 @@ export default function UpgradesPanel() {
 
   const platoons = useMemo(
     () =>
-      Object.values(platoonsById).filter((platoon) => platoon.nation === viewerNation),
+      Object.values(platoonsById).filter(
+        // note: your platoon model uses platoon.nation
+        (platoon) => platoon.nation === viewerNation,
+      ),
     [platoonsById, viewerNation],
   );
 
   const applied = upgradesState?.applied ?? [];
-  const appliedNation = groupApplied(applied, "NATION");
-  const appliedTerritory = groupApplied(applied, "TERRITORY");
-  const appliedForce = groupApplied(applied, "FORCE");
+  const appliedNation = applied.filter(isAppliedNation);
+  const appliedTerritory = applied.filter(isAppliedTerritory);
+  const appliedForce = applied.filter(isAppliedForce);
 
   const upgrades = useMemo(() => {
     if (!doctrineState || !researchState || !upgradesState) return [];
+
     return UPGRADE_DEFS.filter((upgrade) => upgrade.scope === scope)
       .map((upgrade) => {
         const eligibility = getUpgradeEligibility({
@@ -118,8 +131,8 @@ export default function UpgradesPanel() {
           researchState,
           upgradesState,
           resourcePoints,
-          territoryId: targetTerritory,
-          platoonId: targetPlatoon,
+          territoryId: effectiveTargetTerritory,
+          platoonId: effectiveTargetPlatoon,
         });
         return { upgrade, eligibility };
       })
@@ -147,8 +160,8 @@ export default function UpgradesPanel() {
     upgradesState,
     scope,
     resourcePoints,
-    targetTerritory,
-    targetPlatoon,
+    effectiveTargetTerritory,
+    effectiveTargetPlatoon,
     statusFilter,
     tagFilters,
   ]);
@@ -174,7 +187,11 @@ export default function UpgradesPanel() {
             onClick={() => setScope(tab)}
             style={{ fontWeight: scope === tab ? 700 : 500 }}
           >
-            {tab === "FORCE" ? "Forces" : tab === "TERRITORY" ? "Territories" : "Nation"}
+            {tab === "FORCE"
+              ? "Forces"
+              : tab === "TERRITORY"
+                ? "Territories"
+                : "Nation"}
           </button>
         ))}
       </div>
@@ -183,7 +200,7 @@ export default function UpgradesPanel() {
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>Target territory</span>
           <select
-            value={targetTerritory ?? ""}
+            value={effectiveTargetTerritory ?? ""}
             onChange={(e) => setTargetTerritory(e.target.value || null)}
           >
             <option value="">Select territory</option>
@@ -200,7 +217,7 @@ export default function UpgradesPanel() {
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ fontSize: 12, opacity: 0.8 }}>Target platoon</span>
           <select
-            value={targetPlatoon ?? ""}
+            value={effectiveTargetPlatoon ?? ""}
             onChange={(e) => setTargetPlatoon(e.target.value || null)}
           >
             <option value="">Select platoon</option>
@@ -233,6 +250,7 @@ export default function UpgradesPanel() {
             ))}
           </select>
         </label>
+
         <div style={{ display: "grid", gap: 6 }}>
           <div style={{ fontSize: 12, opacity: 0.8 }}>Tags</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -270,6 +288,7 @@ export default function UpgradesPanel() {
                 : upgrade.scope === "FORCE"
                   ? eligibility.appliedForTarget
                   : eligibility.appliedCount;
+
             const status = upgradeStatusFor(
               upgrade,
               eligibility,
@@ -287,26 +306,32 @@ export default function UpgradesPanel() {
                 <div style={{ fontSize: 12, opacity: 0.75 }}>
                   {formatEffects(upgrade)}
                 </div>
+
                 {upgrade.requiredResearch?.length ? (
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
                     Requires research: {upgrade.requiredResearch.join(", ")}
                   </div>
                 ) : null}
+
                 {upgrade.requiredDoctrineStances?.length ? (
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    Requires stance: {upgrade.requiredDoctrineStances.join(", ")}
+                    Requires stance:{" "}
+                    {upgrade.requiredDoctrineStances.join(", ")}
                   </div>
                 ) : null}
+
                 {upgrade.requiredDoctrineTraits?.length ? (
                   <div style={{ fontSize: 12, opacity: 0.7 }}>
                     Requires traits: {upgrade.requiredDoctrineTraits.join(", ")}
                   </div>
                 ) : null}
+
                 {eligibility.reasons.length ? (
                   <div style={{ fontSize: 12, opacity: 0.6 }}>
                     {eligibility.reasons.join(" · ")}
                   </div>
                 ) : null}
+
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
                     type="button"
@@ -315,28 +340,38 @@ export default function UpgradesPanel() {
                       applyUpgrade({
                         nation: viewerNation,
                         upgradeId: upgrade.id,
-                        territoryId: targetTerritory,
-                        platoonId: targetPlatoon,
+                        territoryId: effectiveTargetTerritory,
+                        platoonId: effectiveTargetPlatoon,
                       })
                     }
                   >
                     Apply
                   </button>
+
                   {viewerMode === "GM" && appliedForTarget > 0 ? (
                     <button
                       type="button"
                       onClick={() => {
-                        const appliedMatch = applied.find(
-                          (entry) =>
-                            entry.defId === upgrade.id &&
-                            (upgrade.scope === "NATION" ||
-                              (upgrade.scope === "TERRITORY" &&
-                                entry.scope === "TERRITORY" &&
-                                entry.territoryId === targetTerritory) ||
-                              (upgrade.scope === "FORCE" &&
-                                entry.scope === "FORCE" &&
-                                entry.platoonId === targetPlatoon)),
-                        );
+                        const appliedMatch = applied.find((entry) => {
+                          if (entry.defId !== upgrade.id) return false;
+
+                          if (upgrade.scope === "NATION")
+                            return entry.scope === "NATION";
+
+                          if (upgrade.scope === "TERRITORY") {
+                            return (
+                              entry.scope === "TERRITORY" &&
+                              entry.territoryId === effectiveTargetTerritory
+                            );
+                          }
+
+                          // FORCE
+                          return (
+                            entry.scope === "FORCE" &&
+                            entry.platoonId === effectiveTargetPlatoon
+                          );
+                        });
+
                         if (appliedMatch) {
                           removeUpgrade(viewerNation, appliedMatch.id);
                         }
@@ -382,7 +417,7 @@ export default function UpgradesPanel() {
             <div style={{ fontSize: 12, opacity: 0.7 }}>None applied.</div>
           ) : (
             Object.entries(
-              appliedTerritory.reduce<Record<string, AppliedUpgrade[]>>(
+              appliedTerritory.reduce<Record<string, AppliedTerritory[]>>(
                 (acc, entry) => {
                   acc[entry.territoryId] = acc[entry.territoryId] ?? [];
                   acc[entry.territoryId].push(entry);
@@ -394,7 +429,9 @@ export default function UpgradesPanel() {
               <div key={territoryId} style={{ fontSize: 12 }}>
                 <b>{territoryNameById[territoryId] ?? territoryId}:</b>{" "}
                 {entries
-                  .map((entry) => UPGRADES_BY_ID[entry.defId]?.name ?? entry.defId)
+                  .map(
+                    (entry) => UPGRADES_BY_ID[entry.defId]?.name ?? entry.defId,
+                  )
                   .join(", ")}
               </div>
             ))
@@ -407,16 +444,21 @@ export default function UpgradesPanel() {
             <div style={{ fontSize: 12, opacity: 0.7 }}>None applied.</div>
           ) : (
             Object.entries(
-              appliedForce.reduce<Record<string, AppliedUpgrade[]>>((acc, entry) => {
-                acc[entry.platoonId] = acc[entry.platoonId] ?? [];
-                acc[entry.platoonId].push(entry);
-                return acc;
-              }, {}),
+              appliedForce.reduce<Record<string, AppliedForce[]>>(
+                (acc, entry) => {
+                  acc[entry.platoonId] = acc[entry.platoonId] ?? [];
+                  acc[entry.platoonId].push(entry);
+                  return acc;
+                },
+                {},
+              ),
             ).map(([platoonId, entries]) => (
               <div key={platoonId} style={{ fontSize: 12 }}>
                 <b>{platoonsById[platoonId]?.name ?? platoonId}:</b>{" "}
                 {entries
-                  .map((entry) => UPGRADES_BY_ID[entry.defId]?.name ?? entry.defId)
+                  .map(
+                    (entry) => UPGRADES_BY_ID[entry.defId]?.name ?? entry.defId,
+                  )
                   .join(", ")}
               </div>
             ))

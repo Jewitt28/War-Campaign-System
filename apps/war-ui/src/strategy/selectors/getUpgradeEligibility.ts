@@ -23,6 +23,24 @@ export type UpgradeEligibility = {
   appliedForTarget: number;
 };
 
+// const countApplied = (
+//   applied: AppliedUpgrade[],
+//   defId: string,
+//   scope: AppliedUpgrade["scope"],
+//   targetId?: string | null,
+// ) => {
+//   return applied.filter((entry) => {
+//     if (entry.defId !== defId) return false;
+//     if (entry.scope !== scope) return false;
+//     if (scope === "TERRITORY") {
+//       return entry.territoryId === targetId;
+//     }
+//     if (scope === "FORCE") {
+//       return entry.platoonId === targetId;
+//     }
+//     return true;
+//   }).length;
+// };
 const countApplied = (
   applied: AppliedUpgrade[],
   defId: string,
@@ -32,11 +50,12 @@ const countApplied = (
   return applied.filter((entry) => {
     if (entry.defId !== defId) return false;
     if (entry.scope !== scope) return false;
+
     if (scope === "TERRITORY") {
-      return entry.territoryId === targetId;
+      return "territoryId" in entry && entry.territoryId === targetId;
     }
     if (scope === "FORCE") {
-      return entry.platoonId === targetId;
+      return "platoonId" in entry && entry.platoonId === targetId;
     }
     return true;
   }).length;
@@ -53,10 +72,10 @@ export const getUpgradeEligibility = ({
 }: UpgradeEligibilityArgs): UpgradeEligibility => {
   const reasons: string[] = [];
   const applied = upgradesState.applied ?? [];
-  const appliedCount = applied.filter((entry) => entry.defId === upgrade.id)
-    .length;
-  const targetId =
-    upgrade.scope === "TERRITORY" ? territoryId : platoonId;
+  const appliedCount = applied.filter(
+    (entry) => entry.defId === upgrade.id,
+  ).length;
+  const targetId = upgrade.scope === "TERRITORY" ? territoryId : platoonId;
   const appliedForTarget = countApplied(
     applied,
     upgrade.id,
@@ -74,7 +93,9 @@ export const getUpgradeEligibility = ({
   }
 
   if (upgrade.requiredDoctrineStances?.length) {
-    if (!upgrade.requiredDoctrineStances.includes(doctrineState.activeStanceId)) {
+    if (
+      !upgrade.requiredDoctrineStances.includes(doctrineState.activeStanceId)
+    ) {
       reasons.push("Requires active doctrine stance.");
     }
   }
