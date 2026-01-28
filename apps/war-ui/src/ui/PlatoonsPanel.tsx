@@ -73,10 +73,7 @@ export default function PlatoonsPanel() {
     ensureSupplies();
   }, [ensureSupplies]);
 
-  const supplies = useMemo(
-    () => getSupplies(viewerNation),
-    [getSupplies, viewerNation],
-  );
+  const supplies = getSupplies(viewerNation);
   const accentColor = getFactionAccent({
     viewerNation,
     viewerFaction,
@@ -627,7 +624,6 @@ export default function PlatoonsPanel() {
                     onClick={() => {
                       setSelectedPlatoonId(p.id);
                       setSelectedTerritory(p.territoryId);
-                      setMoveTo("");
                     }}
                     style={{
                       textAlign: "left",
