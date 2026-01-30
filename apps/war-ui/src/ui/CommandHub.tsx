@@ -29,8 +29,9 @@ type RegionStatus = {
 const RESOURCE_ICONS: Record<string, string> = {
   manpower: "🪖",
   industry: "🏭",
-  fuel: "⛽",
-  intel: "🛰️",
+  political: "🏛️",
+  logistics: "🚚",
+  intelligence: "🛰️",
   requisition: "📦",
   resource: "📦",
 };
@@ -57,10 +58,12 @@ function summarizeBonus(bonus?: string) {
     matches.push({ icon: RESOURCE_ICONS.manpower, label: "Manpower" });
   if (lower.includes("industry"))
     matches.push({ icon: RESOURCE_ICONS.industry, label: "Industry" });
-  if (lower.includes("fuel"))
-    matches.push({ icon: RESOURCE_ICONS.fuel, label: "Fuel" });
+  if (lower.includes("political") || lower.includes("command"))
+    matches.push({ icon: RESOURCE_ICONS.political, label: "Political" });
+  if (lower.includes("logistics") || lower.includes("supply"))
+    matches.push({ icon: RESOURCE_ICONS.logistics, label: "Logistics" });
   if (lower.includes("intel"))
-    matches.push({ icon: RESOURCE_ICONS.intel, label: "Intel" });
+    matches.push({ icon: RESOURCE_ICONS.intelligence, label: "Intel" });
   if (lower.includes("requisition"))
     matches.push({ icon: RESOURCE_ICONS.requisition, label: "Requisition" });
   if (lower.includes("resource"))
@@ -88,6 +91,10 @@ export default function CommandHub({ data, variant = "full" }: Props) {
   //  const playerFactionId = useCampaignStore((s) => s.playerFactionId);
   // const setPlayerFactionId = useCampaignStore((s) => s.setPlayerFactionId);
   const suppliesByNation = useCampaignStore((s) => s.suppliesByNation);
+  const economyPoolsByNation = useCampaignStore((s) => s.economyPoolsByNation);
+  const manpowerPoolsByNation = useCampaignStore(
+    (s) => s.manpowerPoolsByNation,
+  );
   const regionsFromStore = useCampaignStore((s) => s.regions);
   const ownerByTerritory = useCampaignStore((s) => s.ownerByTerritory);
   const contestsByTerritory = useCampaignStore((s) => s.contestsByTerritory);
@@ -169,25 +176,36 @@ export default function CommandHub({ data, variant = "full" }: Props) {
 
   const resourceSnapshot = useMemo(() => {
     const base = suppliesByNation?.[viewerNation] ?? 0;
+    const economy = economyPoolsByNation?.[viewerNation];
+    const manpower = manpowerPoolsByNation?.[viewerNation] ?? 0;
     return [
       {
         key: "manpower",
         label: "Manpower",
-        value: Math.max(0, Math.round(base * 1.5)),
-      },
-      { key: "industry", label: "Industry", value: base },
-      {
-        key: "fuel",
-        label: "Fuel",
-        value: Math.max(0, Math.round(base * 0.6)),
+        value: manpower,
       },
       {
-        key: "intel",
+        key: "industry",
+        label: "Industry",
+        value: economy?.industry ?? Math.round(base * 0.4),
+      },
+      {
+        key: "political",
+        label: "Political",
+        value: economy?.political ?? Math.round(base * 0.2),
+      },
+      {
+        key: "logistics",
+        label: "Logistics",
+        value: economy?.logistics ?? Math.round(base * 0.3),
+      },
+      {
+        key: "intelligence",
         label: "Intel",
-        value: Math.max(0, Math.round(base * 0.3)),
+        value: economy?.intelligence ?? Math.round(base * 0.15),
       },
     ];
-  }, [suppliesByNation, viewerNation]);
+  }, [suppliesByNation, economyPoolsByNation, manpowerPoolsByNation, viewerNation]);
 
   const totalResourceValue = useMemo(() => {
     return resourceSnapshot.reduce(
@@ -241,8 +259,10 @@ export default function CommandHub({ data, variant = "full" }: Props) {
     "Alliance (shared vision)",
   );
   const [resourceDraft, setResourceDraft] = useState({
-    fuel: "",
     industry: "",
+    logistics: "",
+    political: "",
+    intelligence: "",
     manpower: "",
   });
   const sendWorldChat = () => {
@@ -820,18 +840,6 @@ export default function CommandHub({ data, variant = "full" }: Props) {
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <input
                   type="number"
-                  placeholder="Fuel"
-                  disabled={!canManageDiplomacy}
-                  value={resourceDraft.fuel}
-                  onChange={(e) =>
-                    setResourceDraft((prev) => ({
-                      ...prev,
-                      fuel: e.target.value,
-                    }))
-                  }
-                />
-                <input
-                  type="number"
                   placeholder="Industry"
                   disabled={!canManageDiplomacy}
                   value={resourceDraft.industry}
@@ -839,6 +847,42 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                     setResourceDraft((prev) => ({
                       ...prev,
                       industry: e.target.value,
+                    }))
+                  }
+                />
+                <input
+                  type="number"
+                  placeholder="Logistics"
+                  disabled={!canManageDiplomacy}
+                  value={resourceDraft.logistics}
+                  onChange={(e) =>
+                    setResourceDraft((prev) => ({
+                      ...prev,
+                      logistics: e.target.value,
+                    }))
+                  }
+                />
+                <input
+                  type="number"
+                  placeholder="Political"
+                  disabled={!canManageDiplomacy}
+                  value={resourceDraft.political}
+                  onChange={(e) =>
+                    setResourceDraft((prev) => ({
+                      ...prev,
+                      political: e.target.value,
+                    }))
+                  }
+                />
+                <input
+                  type="number"
+                  placeholder="Intel"
+                  disabled={!canManageDiplomacy}
+                  value={resourceDraft.intelligence}
+                  onChange={(e) =>
+                    setResourceDraft((prev) => ({
+                      ...prev,
+                      intelligence: e.target.value,
                     }))
                   }
                 />
@@ -859,9 +903,15 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                   disabled={!canManageDiplomacy}
                   onClick={() => {
                     addNote(
-                      `Resource transfer drafted: Fuel ${resourceDraft.fuel || 0}, Industry ${resourceDraft.industry || 0}, Manpower ${resourceDraft.manpower || 0}.`,
+                      `Resource transfer drafted: Industry ${resourceDraft.industry || 0}, Logistics ${resourceDraft.logistics || 0}, Political ${resourceDraft.political || 0}, Intel ${resourceDraft.intelligence || 0}, Manpower ${resourceDraft.manpower || 0}.`,
                     );
-                    setResourceDraft({ fuel: "", industry: "", manpower: "" });
+                    setResourceDraft({
+                      industry: "",
+                      logistics: "",
+                      political: "",
+                      intelligence: "",
+                      manpower: "",
+                    });
                   }}
                 >
                   Send Resources

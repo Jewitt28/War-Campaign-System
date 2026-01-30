@@ -37,11 +37,24 @@ import type {
 } from "../domain/types";
 import { resolveTurn } from "../domain/resolveTurn";
 import { resolveBattles as resolveBattlesFn } from "../domain/resolveBattles";
+import {
+  DEFAULT_ECONOMY_POOL,
+  MANPOWER_CONFIG,
+  computeAttritionLosses,
+  computeEconomyIncome,
+  computeManpowerRecovery,
+  createEconomyPool,
+  getPlatoonCreationCost,
+  type EconomyPool,
+  type ResourceKey,
+  type TerritoryMeta,
+} from "../domain/strategicEconomy";
 
 export type BaseFactionKey = "allies" | "axis" | "ussr";
 export type FactionKey = BaseFactionKey | "neutral" | `custom:${string}`;
 export type OwnerKey = NationKey | "neutral" | "contested";
 export type SuppliesByNation = Record<string, number>;
+export type ResourcePoolsByNation = Record<NationKey, EconomyPool>;
 
 export type Mode = "SETUP" | "PLAY";
 export type ViewerMode = "PLAYER" | "GM";
@@ -148,6 +161,7 @@ export type CampaignState = {
   ownerByTerritory: Record<string, OwnerKey>;
   intelByTerritory: IntelByTerritory;
   territoryNameById: Record<string, string>;
+  territoryMetaById: Record<string, TerritoryMeta>;
 
   selectedTerritoryId: string | null;
   turnLog: TurnLogEntry[];
@@ -251,6 +265,7 @@ export type CampaignState = {
   resolveBattles: (outcomes: BattleOutcome[]) => void;
   setAdjacencyByTerritory: (adjacency: Record<string, string[]>) => void;
   setTerritoryNameById: (names: Record<string, string>) => void;
+  setTerritoryMetaById: (meta: Record<string, TerritoryMeta>) => void;
   setPhase: (p: Phase) => void;
   nextPhase: (isAdjacent: (a: string, b: string) => boolean) => void;
 
@@ -258,6 +273,8 @@ export type CampaignState = {
 
   // Supplies
   suppliesByNation: SuppliesByNation;
+  economyPoolsByNation: ResourcePoolsByNation;
+  manpowerPoolsByNation: Record<NationKey, number>;
   ensureSupplies: () => void;
   getSupplies: (nation: NationKey) => number;
   spendSupplies: (
@@ -266,6 +283,31 @@ export type CampaignState = {
     reason?: string,
   ) => boolean;
   addSupplies: (nation: NationKey, amount: number, reason?: string) => void;
+
+  // Economy
+  ensureEconomyPools: () => void;
+  getEconomyPool: (nation: NationKey) => EconomyPool;
+  spendEconomyResource: (
+    nation: NationKey,
+    resource: ResourceKey,
+    amount: number,
+    reason?: string,
+  ) => boolean;
+  addEconomyResource: (
+    nation: NationKey,
+    resource: ResourceKey,
+    amount: number,
+    reason?: string,
+  ) => void;
+
+  // Manpower
+  ensureManpower: () => void;
+  getManpower: (nation: NationKey) => number;
+  spendManpower: (nation: NationKey, amount: number, reason?: string) => boolean;
+  addManpower: (nation: NationKey, amount: number, reason?: string) => void;
+
+  // Strategic turn economy/attrition
+  applyStrategicEconomyTurn: () => void;
 
   // Resources (upgrade points)
   resourcePointsByNation: Record<NationKey, number>;
@@ -341,6 +383,69 @@ function getNationFaction(
 
   const f = NATION_BY_ID[nation as BaseNationKey]?.defaultFaction ?? "allies";
   return isBaseFactionKey(f as FactionKey) ? (f as BaseFactionKey) : "allies";
+}
+
+function buildStrategicEconomyTurnUpdate(state: CampaignState) {
+  const enabledNations = Object.entries(state.nationsEnabled)
+    .filter(([, enabled]) => enabled)
+    .map(([nation]) => nation as NationKey);
+  const customIds = state.customNations.map((nation) => nation.id);
+  const nations = Array.from(new Set([...enabledNations, ...customIds]));
+
+  if (!nations.length || !state.regions.length) return null;
+
+  const { incomeByNation, logs: incomeLogs } = computeEconomyIncome({
+    nations,
+    regions: state.regions,
+    ownerByTerritory: state.ownerByTerritory,
+  });
+
+  const { recoveryByNation, logs: recoveryLogs } = computeManpowerRecovery({
+    nations,
+    regions: state.regions,
+    ownerByTerritory: state.ownerByTerritory,
+    homelandsByNation: state.homelandsByNation,
+  });
+
+  const { lossesByNation, logs: attritionLogs } = computeAttritionLosses({
+    platoonsById: state.platoonsById,
+    ownerByTerritory: state.ownerByTerritory,
+    territoryMetaById: state.territoryMetaById,
+    economyByNation: state.economyPoolsByNation,
+  });
+
+  const nextEconomy: ResourcePoolsByNation = {
+    ...state.economyPoolsByNation,
+  };
+  const nextManpower: Record<NationKey, number> = {
+    ...state.manpowerPoolsByNation,
+  };
+
+  for (const nation of nations) {
+    const currentPool = nextEconomy[nation] ?? createEconomyPool();
+    const income = incomeByNation[nation] ?? createEconomyPool();
+    nextEconomy[nation] = {
+      industry: currentPool.industry + income.industry,
+      political: currentPool.political + income.political,
+      logistics: currentPool.logistics + income.logistics,
+      intelligence: currentPool.intelligence + income.intelligence,
+    };
+
+    const recovered = recoveryByNation[nation] ?? 0;
+    const lost = lossesByNation[nation] ?? 0;
+    const currentManpower = nextManpower[nation] ?? 0;
+    nextManpower[nation] = Math.max(0, currentManpower + recovered - lost);
+  }
+
+  return {
+    economyPoolsByNation: nextEconomy,
+    manpowerPoolsByNation: nextManpower,
+    logEntries: [
+      ...attritionLogs.map((entry) => logNote(entry, "SUPPLY")),
+      ...recoveryLogs.map((entry) => logNote(entry, "SUPPLY")),
+      ...incomeLogs.map((entry) => logNote(entry, "SUPPLY")),
+    ],
+  };
 }
 
 function prerequisitesMet(
@@ -583,6 +688,7 @@ const initialState: Omit<
   | "cancelDraftOrder"
   | "setAdjacencyByTerritory"
   | "setTerritoryNameById"
+  | "setTerritoryMetaById"
   | "submitFactionOrders"
   | "resolveCurrentTurn"
   | "resolveBattles"
@@ -595,6 +701,15 @@ const initialState: Omit<
   | "getSupplies"
   | "addSupplies"
   | "spendSupplies"
+  | "ensureEconomyPools"
+  | "getEconomyPool"
+  | "spendEconomyResource"
+  | "addEconomyResource"
+  | "ensureManpower"
+  | "getManpower"
+  | "spendManpower"
+  | "addManpower"
+  | "applyStrategicEconomyTurn"
   | "ensureResourcePoints"
   | "getResourcePoints"
   | "addResourcePoints"
@@ -681,6 +796,7 @@ const initialState: Omit<
   ownerByTerritory: {},
   intelByTerritory: {},
   territoryNameById: {},
+  territoryMetaById: {},
 
   selectedTerritoryId: null,
   selectedPlatoonId: null,
@@ -699,6 +815,18 @@ const initialState: Omit<
   suppliesByNation: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [nation.id, 100]),
   ),
+  economyPoolsByNation: Object.fromEntries(
+    Object.values(NATION_BY_ID).map((nation) => [
+      nation.id,
+      createEconomyPool(DEFAULT_ECONOMY_POOL),
+    ]),
+  ) as Record<NationKey, EconomyPool>,
+  manpowerPoolsByNation: Object.fromEntries(
+    Object.values(NATION_BY_ID).map((nation) => [
+      nation.id,
+      MANPOWER_CONFIG.basePool,
+    ]),
+  ) as Record<NationKey, number>,
   resourcePointsByNation: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [nation.id, 15]),
   ) as Record<NationKey, number>,
@@ -818,6 +946,14 @@ export const useCampaignStore = create<CampaignState>()(
           resourcePointsByNation: {
             ...s.resourcePointsByNation,
             [id]: 15,
+          },
+          economyPoolsByNation: {
+            ...s.economyPoolsByNation,
+            [id]: createEconomyPool(DEFAULT_ECONOMY_POOL),
+          },
+          manpowerPoolsByNation: {
+            ...s.manpowerPoolsByNation,
+            [id]: MANPOWER_CONFIG.basePool,
           },
           factions: s.factions.map((faction) =>
             faction.id === defaultFaction
@@ -990,6 +1126,23 @@ export const useCampaignStore = create<CampaignState>()(
         set((s) => {
           if (!playerCanActAsNation(s, s.viewerNation)) return s;
 
+          const cost = getPlatoonCreationCost();
+          const manpower = s.manpowerPoolsByNation?.[s.viewerNation] ?? 0;
+          const economy = s.economyPoolsByNation?.[s.viewerNation];
+          const hasIndustry = (economy?.industry ?? 0) >= cost.industry;
+          const hasLogistics = (economy?.logistics ?? 0) >= cost.logistics;
+          if (manpower < cost.manpower || !hasIndustry || !hasLogistics) {
+            return {
+              turnLog: [
+                logNote(
+                  `Platoon creation failed: insufficient manpower or logistics/industry for ${s.viewerNation}.`,
+                  "ERROR",
+                ),
+                ...s.turnLog,
+              ],
+            };
+          }
+
           const id = uid();
           const next: Platoon = {
             id,
@@ -1008,11 +1161,41 @@ export const useCampaignStore = create<CampaignState>()(
               logNote(`Created platoon for ${faction} at ${territoryId}`),
               ...s.turnLog,
             ],
+            manpowerPoolsByNation: {
+              ...s.manpowerPoolsByNation,
+              [s.viewerNation]: manpower - cost.manpower,
+            },
+            economyPoolsByNation: {
+              ...s.economyPoolsByNation,
+              [s.viewerNation]: {
+                industry: (economy?.industry ?? 0) - cost.industry,
+                political: economy?.political ?? 0,
+                logistics: (economy?.logistics ?? 0) - cost.logistics,
+                intelligence: economy?.intelligence ?? 0,
+              },
+            },
           };
         }),
       createPlatoonWithLoadout: (faction, territoryId, payload) =>
         set((s) => {
           if (!playerCanActAsNation(s, s.viewerNation)) return s;
+
+          const cost = getPlatoonCreationCost();
+          const manpower = s.manpowerPoolsByNation?.[s.viewerNation] ?? 0;
+          const economy = s.economyPoolsByNation?.[s.viewerNation];
+          const hasIndustry = (economy?.industry ?? 0) >= cost.industry;
+          const hasLogistics = (economy?.logistics ?? 0) >= cost.logistics;
+          if (manpower < cost.manpower || !hasIndustry || !hasLogistics) {
+            return {
+              turnLog: [
+                logNote(
+                  `Platoon creation failed: insufficient manpower or logistics/industry for ${s.viewerNation}.`,
+                  "ERROR",
+                ),
+                ...s.turnLog,
+              ],
+            };
+          }
 
           const id = uid();
           const next: Platoon = {
@@ -1035,6 +1218,19 @@ export const useCampaignStore = create<CampaignState>()(
               ),
               ...s.turnLog,
             ],
+            manpowerPoolsByNation: {
+              ...s.manpowerPoolsByNation,
+              [s.viewerNation]: manpower - cost.manpower,
+            },
+            economyPoolsByNation: {
+              ...s.economyPoolsByNation,
+              [s.viewerNation]: {
+                industry: (economy?.industry ?? 0) - cost.industry,
+                political: economy?.political ?? 0,
+                logistics: (economy?.logistics ?? 0) - cost.logistics,
+                intelligence: economy?.intelligence ?? 0,
+              },
+            },
           };
         }),
 
@@ -1300,6 +1496,7 @@ export const useCampaignStore = create<CampaignState>()(
       setAdjacencyByTerritory: (adjacency) =>
         set({ adjacencyByTerritory: adjacency }),
       setTerritoryNameById: (names) => set({ territoryNameById: names }),
+      setTerritoryMetaById: (meta) => set({ territoryMetaById: meta }),
 
       setPhase: (p) =>
         set((s) => {
@@ -1355,6 +1552,11 @@ export const useCampaignStore = create<CampaignState>()(
               const nextViewerFaction = factions[(idx + 2) % factions.length];
               const { nextResearch, logs: researchLogs } =
                 advanceResearchForNewTurn(s.nationResearchState);
+              const economyUpdates = buildStrategicEconomyTurnUpdate({
+                ...s,
+                platoonsById: nextPlatoons,
+                ownerByTerritory: nextOwners,
+              });
               return {
                 phase: "ORDERS" as const,
                 turnNumber: s.turnNumber + 1,
@@ -1365,6 +1567,12 @@ export const useCampaignStore = create<CampaignState>()(
                 contestsByTerritory: nextContests,
                 intelByTerritory: nextIntel,
                 nationResearchState: nextResearch,
+                economyPoolsByNation:
+                  economyUpdates?.economyPoolsByNation ??
+                  s.economyPoolsByNation,
+                manpowerPoolsByNation:
+                  economyUpdates?.manpowerPoolsByNation ??
+                  s.manpowerPoolsByNation,
                 ordersByTurn: consumeSubmittedOrdersForTurn(
                   s.ordersByTurn,
                   s.turnNumber,
@@ -1375,6 +1583,7 @@ export const useCampaignStore = create<CampaignState>()(
                     "BATTLE",
                   ),
                   ...researchLogs,
+                  ...(economyUpdates?.logEntries ?? []),
                   ...reconLog.map((t) => logNote(t, "ORDERS")),
                   ...log.map((t) => logNote(t)),
                   ...s.turnLog,
@@ -1405,12 +1614,21 @@ export const useCampaignStore = create<CampaignState>()(
           // BATTLES -> next turn -> ORDERS
           const { nextResearch, logs: researchLogs } =
             advanceResearchForNewTurn(s.nationResearchState);
+          const economyUpdates = buildStrategicEconomyTurnUpdate(s);
           return {
             phase: "ORDERS" as const,
             turnNumber: s.turnNumber + 1,
             viewerFaction: rotatedFaction,
             nationResearchState: nextResearch,
-            turnLog: [...researchLogs, ...s.turnLog],
+            economyPoolsByNation:
+              economyUpdates?.economyPoolsByNation ?? s.economyPoolsByNation,
+            manpowerPoolsByNation:
+              economyUpdates?.manpowerPoolsByNation ?? s.manpowerPoolsByNation,
+            turnLog: [
+              ...researchLogs,
+              ...(economyUpdates?.logEntries ?? []),
+              ...s.turnLog,
+            ],
           };
         }),
 
@@ -1483,6 +1701,179 @@ export const useCampaignStore = create<CampaignState>()(
           });
         }
       },
+
+      // -------- Economy pools --------
+      ensureEconomyPools: () => {
+        const s = get();
+        const m = { ...(s.economyPoolsByNation ?? {}) };
+
+        for (const nation of Object.values(NATION_BY_ID)) {
+          if (m[nation.id] == null) {
+            m[nation.id] = createEconomyPool(DEFAULT_ECONOMY_POOL);
+          }
+        }
+
+        for (const c of s.customNations ?? []) {
+          if (m[c.id] == null) {
+            m[c.id] = createEconomyPool(DEFAULT_ECONOMY_POOL);
+          }
+        }
+
+        set({ economyPoolsByNation: m });
+      },
+
+      getEconomyPool: (nation: NationKey) => {
+        const s = get();
+        return s.economyPoolsByNation?.[nation] ?? createEconomyPool();
+      },
+
+      spendEconomyResource: (
+        nation: NationKey,
+        resource: ResourceKey,
+        amount: number,
+        reason?: string,
+      ) => {
+        const s = get();
+        const curPool = s.economyPoolsByNation?.[nation] ?? createEconomyPool();
+        const cost = Math.max(0, Math.floor(amount));
+        if (curPool[resource] < cost) return false;
+
+        const nextPool = { ...curPool, [resource]: curPool[resource] - cost };
+        set({
+          economyPoolsByNation: {
+            ...s.economyPoolsByNation,
+            [nation]: nextPool,
+          },
+        });
+
+        if (Array.isArray(s.turnLog) && cost > 0) {
+          set({
+            turnLog: [
+              logNote(
+                `${nation} spent ${cost} ${resource.toUpperCase()}${reason ? ` (${reason})` : ""} (now ${nextPool[resource]})`,
+                "SUPPLY",
+              ),
+              ...s.turnLog,
+            ],
+          });
+        }
+
+        return true;
+      },
+
+      addEconomyResource: (
+        nation: NationKey,
+        resource: ResourceKey,
+        amount: number,
+        reason?: string,
+      ) => {
+        const s = get();
+        const add = Math.max(0, Math.floor(amount));
+        const curPool = s.economyPoolsByNation?.[nation] ?? createEconomyPool();
+        const nextPool = { ...curPool, [resource]: curPool[resource] + add };
+
+        set({
+          economyPoolsByNation: {
+            ...s.economyPoolsByNation,
+            [nation]: nextPool,
+          },
+        });
+
+        if (Array.isArray(s.turnLog) && add > 0) {
+          set({
+            turnLog: [
+              logNote(
+                `${nation} gained ${add} ${resource.toUpperCase()}${reason ? ` (${reason})` : ""} (now ${nextPool[resource]})`,
+                "SUPPLY",
+              ),
+              ...s.turnLog,
+            ],
+          });
+        }
+      },
+
+      // -------- Manpower pools --------
+      ensureManpower: () => {
+        const s = get();
+        const m = { ...(s.manpowerPoolsByNation ?? {}) };
+
+        for (const nation of Object.values(NATION_BY_ID)) {
+          if (m[nation.id] == null) m[nation.id] = MANPOWER_CONFIG.basePool;
+        }
+
+        for (const c of s.customNations ?? []) {
+          if (m[c.id] == null) m[c.id] = MANPOWER_CONFIG.basePool;
+        }
+
+        set({ manpowerPoolsByNation: m });
+      },
+
+      getManpower: (nation: NationKey) => {
+        const s = get();
+        return (s.manpowerPoolsByNation?.[nation] ?? 0) | 0;
+      },
+
+      spendManpower: (nation: NationKey, amount: number, reason?: string) => {
+        const s = get();
+        const cur = s.manpowerPoolsByNation?.[nation] ?? 0;
+        const cost = Math.max(0, Math.floor(amount));
+        if (cur < cost) return false;
+
+        const next = cur - cost;
+        set({
+          manpowerPoolsByNation: { ...s.manpowerPoolsByNation, [nation]: next },
+        });
+
+        if (Array.isArray(s.turnLog) && cost > 0) {
+          set({
+            turnLog: [
+              logNote(
+                `${nation} spent ${cost} manpower${reason ? ` (${reason})` : ""} (now ${next})`,
+                "SUPPLY",
+              ),
+              ...s.turnLog,
+            ],
+          });
+        }
+
+        return true;
+      },
+
+      addManpower: (nation: NationKey, amount: number, reason?: string) => {
+        const s = get();
+        const add = Math.max(0, Math.floor(amount));
+        const cur = s.manpowerPoolsByNation?.[nation] ?? 0;
+        const next = cur + add;
+
+        set({
+          manpowerPoolsByNation: { ...s.manpowerPoolsByNation, [nation]: next },
+        });
+
+        if (Array.isArray(s.turnLog) && add > 0) {
+          set({
+            turnLog: [
+              logNote(
+                `${nation} gained ${add} manpower${reason ? ` (${reason})` : ""} (now ${next})`,
+                "SUPPLY",
+              ),
+              ...s.turnLog,
+            ],
+          });
+        }
+      },
+
+      applyStrategicEconomyTurn: () =>
+        set((s) => {
+          if (!requireGM(s)) return s;
+          const updates = buildStrategicEconomyTurnUpdate(s);
+          if (!updates) return s;
+
+          return {
+            economyPoolsByNation: updates.economyPoolsByNation,
+            manpowerPoolsByNation: updates.manpowerPoolsByNation,
+            turnLog: [...updates.logEntries, ...s.turnLog],
+          };
+        }),
 
       // -------- Resource points (upgrades) --------
       ensureResourcePoints: () => {

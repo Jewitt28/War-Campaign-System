@@ -34,6 +34,7 @@ export type Territory = {
   theatreTitle: string;
   shapeRefs: string[];
   adj: string[];
+  traits: string[];
 };
 
 export type NormalizedData = {
@@ -74,6 +75,7 @@ export async function loadTheatresData(url = withBase("theatres_all.json")): Pro
         theatreTitle: th.title,
         shapeRefs: t.shapeRefs ?? [],
         adj: Object.values(th.adjacency?.[t.id] ?? { land: [], sea: [] }).flat(),
+        traits: t.traits ?? [],
       };
 
       territories.push(terr);

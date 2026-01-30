@@ -21,6 +21,7 @@ export default function App() {
     (s) => s.setAdjacencyByTerritory,
   );
   const setTerritoryNameById = useCampaignStore((s) => s.setTerritoryNameById);
+  const setTerritoryMetaById = useCampaignStore((s) => s.setTerritoryMetaById);
 
   useEffect(() => {
     loadTheatresData()
@@ -39,9 +40,17 @@ export default function App() {
             ]),
           ),
         );
+        setTerritoryMetaById(
+          Object.fromEntries(
+            loaded.territories.map((territory) => [
+              territory.id,
+              { theatreId: territory.theatreId, traits: territory.traits },
+            ]),
+          ),
+        );
       })
       .catch(console.error);
-  }, [setAdjacencyByTerritory, setTerritoryNameById]);
+  }, [setAdjacencyByTerritory, setTerritoryNameById, setTerritoryMetaById]);
 
   const showSetup = mode === "SETUP" && viewerMode === "GM";
   const showLeftPanel =
@@ -137,6 +146,10 @@ function TopBar({ data }: { data: NormalizedData | null }) {
   const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
   const suppliesByNation = useCampaignStore((s) => s.suppliesByNation);
+  const economyPoolsByNation = useCampaignStore((s) => s.economyPoolsByNation);
+  const manpowerPoolsByNation = useCampaignStore(
+    (s) => s.manpowerPoolsByNation,
+  );
   const nationsEnabled = useCampaignStore((s) => s.nationsEnabled);
   const leftPanelView = useCampaignStore((s) => s.leftPanelView);
   const setLeftPanelView = useCampaignStore((s) => s.setLeftPanelView);
@@ -161,17 +174,36 @@ function TopBar({ data }: { data: NormalizedData | null }) {
 
   const resourceSnapshot = useMemo(() => {
     const base = suppliesByNation?.[viewerNation] ?? 0;
+    const economy = economyPoolsByNation?.[viewerNation];
+    const manpower = manpowerPoolsByNation?.[viewerNation] ?? 0;
     return [
       {
         key: "🪖",
-        value: Math.max(0, Math.round(base * 1.5)),
+        value: manpower,
         label: "Manpower",
       },
-      { key: "🏭", value: base, label: "Industry" },
-      { key: "⛽", value: Math.max(0, Math.round(base * 0.6)), label: "Fuel" },
-      { key: "🛰️", value: Math.max(0, Math.round(base * 0.3)), label: "Intel" },
+      {
+        key: "🏭",
+        value: economy?.industry ?? Math.round(base * 0.4),
+        label: "Industry",
+      },
+      {
+        key: "🏛️",
+        value: economy?.political ?? Math.round(base * 0.2),
+        label: "Political",
+      },
+      {
+        key: "🚚",
+        value: economy?.logistics ?? Math.round(base * 0.3),
+        label: "Logistics",
+      },
+      {
+        key: "🛰️",
+        value: economy?.intelligence ?? Math.round(base * 0.15),
+        label: "Intel",
+      },
     ];
-  }, [suppliesByNation, viewerNation]);
+  }, [suppliesByNation, economyPoolsByNation, manpowerPoolsByNation, viewerNation]);
   const nationOptions = useMemo(() => {
     const base = NATIONS.map((nation) => ({
       id: nation.id as NationKey,
