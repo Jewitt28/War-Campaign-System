@@ -9,6 +9,7 @@ import { useCampaignStore } from "./store/useCampaignStore";
 import { NATIONS, type NationKey } from "./setup/NationDefinitions";
 import GMTools from "./gm/GMTools";
 import NationCommandPanel from "./ui/NationCommandPanel";
+import FactionCommandPanel from "./ui/FactionCommandPanel";
 
 export default function App() {
   const [data, setData] = useState<NormalizedData | null>(null);
@@ -78,10 +79,12 @@ export default function App() {
             {showSetup && <SetupPanel />}
             {viewerMode === "GM" && mode !== "SETUP" ? (
               <GMTools data={data} tab="DASHBOARD" />
-            ) : leftPanelView === "FACTION_COMMAND" ? (
+            ) : leftPanelView === "NATION_HUB" ? (
               <CommandHub data={data} variant="full" />
-            ) : leftPanelView === "NATION_COMMAND" ? (
+            ) : leftPanelView === "MY_FORCES" ? (
               <NationCommandPanel data={data} />
+            ) : leftPanelView === "FACTION_COMMAND" ? (
+              <FactionCommandPanel />
             ) : null}
           </div>
         ) : null}
@@ -287,6 +290,26 @@ function TopBar({ data }: { data: NormalizedData | null }) {
               type="button"
               onClick={() =>
                 setLeftPanelView(
+                  leftPanelView === "NATION_HUB" ? "NONE" : "NATION_HUB",
+                )
+              }
+            >
+              Nation Hub
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setLeftPanelView(
+                  leftPanelView === "MY_FORCES" ? "NONE" : "MY_FORCES",
+                )
+              }
+            >
+              My Forces
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setLeftPanelView(
                   leftPanelView === "FACTION_COMMAND"
                     ? "NONE"
                     : "FACTION_COMMAND",
@@ -294,18 +317,6 @@ function TopBar({ data }: { data: NormalizedData | null }) {
               }
             >
               Faction Command
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setLeftPanelView(
-                  leftPanelView === "NATION_COMMAND"
-                    ? "NONE"
-                    : "NATION_COMMAND",
-                )
-              }
-            >
-              Nation Command
             </button>
           </>
         ) : (

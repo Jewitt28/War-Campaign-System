@@ -57,8 +57,9 @@ export type TurnLogType =
 
 export type LeftPanelView =
   | "NONE"
+  | "NATION_HUB"
+  | "MY_FORCES"
   | "FACTION_COMMAND"
-  | "NATION_COMMAND"
   | "GM_TOOLS";
 
 export type TurnLogEntry = {
