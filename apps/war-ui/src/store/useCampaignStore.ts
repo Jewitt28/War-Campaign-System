@@ -24,6 +24,10 @@ import {
   type BaseNationKey,
   type NationKey,
 } from "../setup/NationDefinitions";
+import {
+  getAlignedFactionKey,
+  getConflictSideKey,
+} from "../setup/factionUtils";
 
 import type {
   Phase,
@@ -122,6 +126,7 @@ export type CampaignState = {
   activeTheatres: Record<"WE" | "EE" | "NA" | "PA", boolean>;
   leftPanelView: LeftPanelView;
   baseEnabled: Record<BaseFactionKey, boolean>;
+  useDefaultFactions: boolean;
 
   // Nations
   nationsEnabled: Record<NationKey, boolean>;
@@ -172,6 +177,7 @@ export type CampaignState = {
   setPlayMode: (m: PlayMode) => void;
   setCommandHubExpanded: (expanded: boolean) => void;
   setLeftPanelView: (view: LeftPanelView) => void;
+  setUseDefaultFactions: (useDefault: boolean) => void;
   toggleTheatre: (id: "WE" | "EE" | "NA" | "PA") => void;
 
   selectSetupFaction: (f: BaseFactionKey | "custom" | null) => void;
@@ -730,6 +736,7 @@ const initialState: Omit<
   leftPanelView: "NONE",
   activeTheatres: { WE: true, EE: true, NA: true, PA: true },
   baseEnabled: { allies: true, axis: true, ussr: true },
+  useDefaultFactions: true,
 
   nationsEnabled: {
     belgium: false,
@@ -877,6 +884,18 @@ export const useCampaignStore = create<CampaignState>()(
       setCommandHubExpanded: (expanded) =>
         set({ commandHubExpanded: expanded }),
       setLeftPanelView: (view) => set({ leftPanelView: view }),
+      setUseDefaultFactions: (useDefault) =>
+        set((s) => ({
+          useDefaultFactions: useDefault,
+          viewerFaction: useDefault
+            ? getAlignedFactionKey(
+                s.viewerNation,
+                s.customNations,
+                useDefault,
+              )
+            : "neutral",
+          playerFactionId: useDefault ? s.playerFactionId : null,
+        })),
 
       toggleTheatre: (id) =>
         set((s) => ({
@@ -930,7 +949,11 @@ export const useCampaignStore = create<CampaignState>()(
           nationsEnabled: { ...s.nationsEnabled, [id]: true },
           selectedSetupNation: id,
           viewerNation: id,
-          viewerFaction: defaultFaction,
+          viewerFaction: getAlignedFactionKey(
+            id,
+            [...s.customNations, next],
+            s.useDefaultFactions,
+          ),
           nationResearchState: {
             ...s.nationResearchState,
             [id]: defaultResearchState(),
@@ -955,16 +978,18 @@ export const useCampaignStore = create<CampaignState>()(
             ...s.manpowerPoolsByNation,
             [id]: MANPOWER_CONFIG.basePool,
           },
-          factions: s.factions.map((faction) =>
-            faction.id === defaultFaction
-              ? {
-                  ...faction,
-                  nations: Array.from(
-                    new Set([...faction.nations, id]),
-                  ) as NationKey[],
-                }
-              : faction,
-          ),
+          factions: s.useDefaultFactions
+            ? s.factions.map((faction) =>
+                faction.id === defaultFaction
+                  ? {
+                      ...faction,
+                      nations: Array.from(
+                        new Set([...faction.nations, id]),
+                      ) as NationKey[],
+                    }
+                  : faction,
+              )
+            : s.factions,
         }));
       },
 
@@ -972,17 +997,16 @@ export const useCampaignStore = create<CampaignState>()(
         set({ selectedSetupFaction: "custom", selectedCustomId: id }),
       setViewerNation: (nation) =>
         set((s) => {
-          const priorDefault =
-            (s.viewerNation.startsWith("custom:")
-              ? s.customNations.find((n) => n.id === s.viewerNation)
-                  ?.defaultFaction
-              : NATION_BY_ID[s.viewerNation as BaseNationKey]
-                  ?.defaultFaction) ?? "allies";
-          const nextDefault =
-            (nation.startsWith("custom:")
-              ? s.customNations.find((n) => n.id === nation)?.defaultFaction
-              : NATION_BY_ID[nation as BaseNationKey]?.defaultFaction) ??
-            "allies";
+          const priorDefault = getAlignedFactionKey(
+            s.viewerNation,
+            s.customNations,
+            s.useDefaultFactions,
+          );
+          const nextDefault = getAlignedFactionKey(
+            nation,
+            s.customNations,
+            s.useDefaultFactions,
+          );
           const shouldSyncFaction = s.viewerFaction === priorDefault;
 
           return {
@@ -1441,6 +1465,12 @@ export const useCampaignStore = create<CampaignState>()(
               locksByTerritory: s.locksByTerritory,
               contestsByTerritory: s.contestsByTerritory,
               isAdjacent,
+              getConflictSideKey: (nation) =>
+                getConflictSideKey(
+                  nation,
+                  s.customNations,
+                  s.useDefaultFactions,
+                ),
               getPlatoonModifiers: (platoonId) =>
                 getPlatoonModifiers(
                   {
@@ -1540,6 +1570,12 @@ export const useCampaignStore = create<CampaignState>()(
 
                 contestsByTerritory: s.contestsByTerritory,
                 isAdjacent,
+                getConflictSideKey: (nation) =>
+                  getConflictSideKey(
+                    nation,
+                    s.customNations,
+                    s.useDefaultFactions,
+                  ),
               });
             const pendingContests = Object.values(nextContests).filter(
               (contest) => contest?.status === "BATTLE_PENDING",

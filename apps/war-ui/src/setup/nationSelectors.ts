@@ -8,17 +8,22 @@ import type { CustomNation } from "../store/useCampaignStore";
 export function deriveFactionsFromNations(
   nationsEnabled: Record<NationKey, boolean>,
   customNations: CustomNation[] = [],
+  useDefaultFactions = true,
 ): FactionKey[] {
   const result = new Set<FactionKey>();
 
-  for (const n of NATIONS) {
-    if (!nationsEnabled[n.id]) continue;
-    result.add(n.defaultFaction);
+  if (useDefaultFactions) {
+    for (const n of NATIONS) {
+      if (!nationsEnabled[n.id]) continue;
+      result.add(n.defaultFaction);
+    }
   }
 
-  for (const n of customNations) {
-    if (!nationsEnabled[n.id]) continue;
-    result.add(n.defaultFaction);
+  if (useDefaultFactions) {
+    for (const n of customNations) {
+      if (!nationsEnabled[n.id]) continue;
+      result.add(n.defaultFaction);
+    }
   }
 
   return Array.from(result.values());

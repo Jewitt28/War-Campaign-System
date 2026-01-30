@@ -86,6 +86,8 @@ export default function SetupPanel() {
     resetAll,
     viewerMode,
     autoSetupWorld,
+    useDefaultFactions,
+    setUseDefaultFactions,
 
     selectedSetupNation,
     selectSetupNation,
@@ -162,10 +164,14 @@ export default function SetupPanel() {
   );
 
   const derivedFactionsLabel = useMemo(() => {
-    const derived = deriveFactionsFromNations(nationsEnabledMap, customNations);
+    const derived = deriveFactionsFromNations(
+      nationsEnabledMap,
+      customNations,
+      useDefaultFactions,
+    );
     const list = derived.map((key) => factionLabel(key, customs));
     return list.join(", ") || "None";
-  }, [nationsEnabledMap, customNations, customs]);
+  }, [nationsEnabledMap, customNations, customs, useDefaultFactions]);
 
   const summaryStatus: { s1: Status; s2: Status; s3: Status } = useMemo(() => {
     if (locked) return { s1: "LOCKED", s2: "LOCKED", s3: "LOCKED" };
@@ -373,6 +379,9 @@ export default function SetupPanel() {
           <div>
             <b>Stage 2 (Nations):</b> {summaryStatus.s2} · Enabled: {enabledCount} · Derived factions: {derivedFactionsLabel}
           </div>
+          <div>
+            <b>Faction alignments:</b> {useDefaultFactions ? "Default factions enabled" : "No default factions"}
+          </div>
 
           <div>
             <b>Stage 3 (Homelands):</b> {summaryStatus.s3} · Progress: {homelandProgressLabel}
@@ -471,6 +480,30 @@ export default function SetupPanel() {
                   </span>
                 </label>
               ))}
+            </div>
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: 8,
+                border: "1px dashed rgba(255,255,255,.18)",
+                borderRadius: 8,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={useDefaultFactions}
+                onChange={(e) => setUseDefaultFactions(e.target.checked)}
+              />
+              <span style={{ fontSize: 13 }}>
+                Use default faction alignments
+              </span>
+            </label>
+            <div style={{ fontSize: 12, opacity: 0.75 }}>
+              When disabled, nations start unaligned and won’t auto-share faction
+              intel.
             </div>
 
             <div>

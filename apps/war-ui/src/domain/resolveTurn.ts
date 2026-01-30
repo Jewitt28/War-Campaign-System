@@ -32,11 +32,14 @@ export function resolveTurn(args: {
   orders: PlatoonOrder[];
   ownerByTerritory: Record<string, OwnerKey>;
   isAdjacent: (a: string, b: string) => boolean;
+  getConflictSideKey?: (nation: NationKey) => string;
 
   locksByTerritory: Record<string, TerritoryLock | undefined>;
   contestsByTerritory: Record<string, Contest | undefined>;
   getPlatoonModifiers?: (platoonId: string) => PlatoonModifiers | null;
 }) {
+  const resolveSideKey =
+    args.getConflictSideKey ?? ((nation: NationKey) => nation);
   const nextPlatoons: Record<string, Platoon> = { ...args.platoonsById };
   const nextOwners: Record<string, OwnerKey> = { ...args.ownerByTerritory };
   const nextLocks: Record<string, TerritoryLock | undefined> = {
@@ -123,57 +126,77 @@ export function resolveTurn(args: {
   }
 
   // --- 2) BUILD TERRITORY OCCUPANCY AFTER MOVES ---
-  type Occ = { factions: Set<NationKey>; byFaction: Record<string, string[]> };
+  type SideState = { nations: Set<NationKey>; platoonIds: string[] };
+  type Occ = { sides: Record<string, SideState> };
   const occByTerritory: Record<string, Occ> = {};
 
   for (const p of Object.values(nextPlatoons)) {
     const tid = p.territoryId;
-    const faction = p.nation as NationKey;
+    const sideKey = resolveSideKey(p.nation);
 
     if (!occByTerritory[tid]) {
-      occByTerritory[tid] = { factions: new Set<NationKey>(), byFaction: {} };
+      occByTerritory[tid] = { sides: {} };
     }
-    occByTerritory[tid].factions.add(faction);
-    occByTerritory[tid].byFaction[faction] =
-      occByTerritory[tid].byFaction[faction] ?? [];
-    occByTerritory[tid].byFaction[faction].push(p.id);
+    const entry =
+      occByTerritory[tid].sides[sideKey] ??
+      ({ nations: new Set(), platoonIds: [] } as SideState);
+    entry.nations.add(p.nation);
+    entry.platoonIds.push(p.id);
+    occByTerritory[tid].sides[sideKey] = entry;
   }
 
   // --- 3) CREATE / MERGE CONTESTS CLEANLY (multiple arrivals collapse into one contest per territory) ---
   for (const [territoryId, occ] of Object.entries(occByTerritory)) {
-    const factions = Array.from(occ.factions);
+    const sideKeys = Object.keys(occ.sides);
+    const getRepresentativeNation = (
+      sideKey: string,
+      preferred?: NationKey,
+    ): NationKey => {
+      const side = occ.sides[sideKey];
+      if (!side) return preferred ?? (sideKey as NationKey);
+      if (preferred && side.nations.has(preferred)) return preferred;
+      return Array.from(side.nations).sort((a, b) => a.localeCompare(b))[0];
+    };
 
     // If territory is already locked (from earlier combat), do not start a new contest here.
     // (Platoons shouldn't be able to enter anyway, but this keeps state stable.)
     if (nextLocks[territoryId]) continue;
 
-    if (factions.length >= 2) {
+    if (sideKeys.length >= 2) {
       // MVP supports 2-sided contests. If 3+ factions are present, we take first two (and log).
-      if (factions.length > 2) {
+      if (sideKeys.length > 2) {
         log.push(
-          `WARNING: Multi-faction conflict in ${territoryId} (${factions.join(", ")}). Using first two for MVP.`,
+          `WARNING: Multi-faction conflict in ${territoryId} (${sideKeys.join(", ")}). Using first two for MVP.`,
         );
       }
 
-      const f1 = factions[0];
-      const f2 = factions[1];
+      const orderedSides = sideKeys.sort((a, b) => a.localeCompare(b));
+      const side1 = orderedSides[0];
+      const side2 = orderedSides[1];
 
       // Decide defender/attacker:
       // Prefer current owner as defender if it is a faction and present.
       const owner = nextOwners[territoryId];
-      let defenderFaction: NationKey = f2;
-      let attackerFaction: NationKey = f1;
+      let defenderSide = side2;
+      let attackerSide = side1;
+      let defenderFaction = getRepresentativeNation(defenderSide);
+      let attackerFaction = getRepresentativeNation(attackerSide);
 
       if (owner && owner !== "neutral" && owner !== "contested") {
         const ownerFaction = owner as NationKey;
-        if (ownerFaction === f1 || ownerFaction === f2) {
+        const ownerSide = resolveSideKey(ownerFaction);
+        if (ownerSide === side1 || ownerSide === side2) {
+          defenderSide = ownerSide;
+          attackerSide = ownerSide === side1 ? side2 : side1;
           defenderFaction = ownerFaction;
-          attackerFaction = ownerFaction === f1 ? f2 : f1;
+          attackerFaction = getRepresentativeNation(attackerSide);
         }
       }
 
-      const attackerPlatoonIds = occ.byFaction[attackerFaction] ?? [];
-      const defenderPlatoonIds = occ.byFaction[defenderFaction] ?? [];
+      const attackerPlatoonIds =
+        occ.sides[attackerSide]?.platoonIds ?? [];
+      const defenderPlatoonIds =
+        occ.sides[defenderSide]?.platoonIds ?? [];
 
       const existing = nextContests[territoryId];
 
@@ -226,8 +249,9 @@ export function resolveTurn(args: {
     }
 
     // --- 4) NO CONFLICT: OPTIONAL MVP CAPTURE LOGIC ---
-    if (factions.length === 1) {
-      const sole = factions[0];
+    if (sideKeys.length === 1) {
+      const soleSide = sideKeys[0];
+      const sole = getRepresentativeNation(soleSide);
       const owner = nextOwners[territoryId] ?? "neutral";
 
       // Only auto-capture neutral territory in MVP (safe rule).
