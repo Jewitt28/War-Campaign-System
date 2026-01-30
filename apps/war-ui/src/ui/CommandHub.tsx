@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
 import { useCampaignStore, type OwnerKey } from "../store/useCampaignStore";
 import { factionLabel } from "../store/factionLabel";
@@ -6,6 +6,9 @@ import { nationLabel } from "../store/nationLabel";
 import type { NationKey } from "../setup/NationDefinitions";
 import { getFactionAccent } from "./factionColors";
 import ResearchTreePanel from "./ResearchTreePanel";
+import DoctrinePanel from "./DoctrinePanel";
+import UpgradesPanel from "./UpgradesPanel";
+import ProfilePage from "../auth/ProfilePage";
 
 type Props = {
   data: NormalizedData | null;
@@ -23,14 +26,6 @@ type RegionStatus = {
   contestedTerritories: string[];
 };
 
-type Member = {
-  id: string;
-  name: string;
-  role: "Leader" | "Co-Leader" | "General";
-  theatre?: string;
-  forces?: string;
-};
-
 const RESOURCE_ICONS: Record<string, string> = {
   manpower: "🪖",
   industry: "🏭",
@@ -46,8 +41,6 @@ const THEATRE_ICONS: Record<string, string> = {
   NA: "🌎",
   PA: "🌊",
 };
-
-const ROLE_OPTIONS: Member["role"][] = ["Leader", "Co-Leader", "General"];
 
 const DEFAULT_EMBLEMS: Record<string, string> = {
   allies: "🕊️",
@@ -165,8 +158,8 @@ export default function CommandHub({ data, variant = "full" }: Props) {
     customs,
   });
 
-  const currentCommanderId = viewerMode === "GM" ? "leader" : "officer-2";
   const isCompact = variant === "compact";
+  const canManageDiplomacy = viewerMode === "GM";
 
   const emblemText =
     customFaction?.name?.slice(0, 1).toUpperCase() ||
@@ -203,42 +196,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
     );
   }, [resourceSnapshot]);
 
-  const initialMembers = useMemo<Member[]>(
-    () => [
-      {
-        id: "leader",
-        name: `${nationDisplayName} Command`,
-        role: "Leader",
-        theatre: "HQ",
-        forces: "Strategic",
-      },
-      {
-        id: "officer-1",
-        name: "Field Marshal",
-        role: "Co-Leader",
-        theatre: "WE",
-        forces: "Army Group Alpha",
-      },
-      {
-        id: "officer-2",
-        name: "Operations Lead",
-        role: "General",
-        theatre: "EE",
-        forces: "2nd Expeditionary",
-      },
-      {
-        id: "officer-3",
-        name: "Logistics Chief",
-        role: "General",
-        theatre: "NA",
-        forces: "Support Command",
-      },
-    ],
-    [nationDisplayName],
-  );
-
-  const [members, setMembers] = useState<Member[]>(initialMembers);
-  const [chatMessages, setChatMessages] = useState<
+  const [worldChatMessages, setWorldChatMessages] = useState<
     Array<{
       id: string;
       sender: string;
@@ -250,23 +208,18 @@ export default function CommandHub({ data, variant = "full" }: Props) {
     {
       id: "sys-1",
       sender: "System",
-      text: `Joined ${factionDisplayName} channel`,
+      text: "World channel open for strategic coordination.",
       ts: "Just now",
       system: true,
     },
     {
       id: "msg-1",
-      sender: "HQ",
-      text: "Secure your regional bonuses before the next strategic turn.",
+      sender: "Allied High Command",
+      text: "Share intel on contested regions and supply routes.",
       ts: "2m ago",
     },
   ]);
-  const [chatInput, setChatInput] = useState("");
-
-  const viewerMember = members.find(
-    (member) => member.id === currentCommanderId,
-  );
-  const canManageRoles = viewerMode === "GM" || viewerMember?.role === "Leader";
+  const [worldChatInput, setWorldChatInput] = useState("");
   // const hasFactionAccess = viewerMode === "GM" ? true : playerFactionId !== null;
   const availableFactions = useMemo(() => {
     return [
@@ -279,7 +232,10 @@ export default function CommandHub({ data, variant = "full" }: Props) {
       })),
     ];
   }, [customs]);
-  const [strategyAction, setStrategyAction] = useState<string | null>(null);
+  const [hubTab, setHubTab] = useState<
+    "World Chat" | "Doctrine" | "Research" | "Upgrades" | "Profile"
+  >("World Chat");
+  const [focusOpen, setFocusOpen] = useState(false);
   const [proposalTarget, setProposalTarget] = useState<string>("allies");
   const [proposalType, setProposalType] = useState<string>(
     "Alliance (shared vision)",
@@ -289,29 +245,14 @@ export default function CommandHub({ data, variant = "full" }: Props) {
     industry: "",
     manpower: "",
   });
-  useEffect(() => {
-    // If you later want to reset this on faction change, uncomment:
-    // setMembers(initialMembers);
-    // setChatMessages([
-    //   { id: "sys-1", sender: "System", text: `Joined ${factionDisplayName} channel`, ts: "Just now", system: true },
-    //   { id: "msg-1", sender: "HQ", text: "Secure your regional bonuses before the next strategic turn.", ts: "2m ago" },
-    // ]);
-  }, [initialMembers, factionDisplayName]);
-
-  const handleRoleChange = (id: string, role: Member["role"]) => {
-    setMembers((prev) =>
-      prev.map((member) => (member.id === id ? { ...member, role } : member)),
-    );
-  };
-
-  const sendChat = () => {
-    const trimmed = chatInput.trim();
+  const sendWorldChat = () => {
+    const trimmed = worldChatInput.trim();
     if (!trimmed) return;
-    setChatMessages((prev) => [
+    setWorldChatMessages((prev) => [
       { id: String(Date.now()), sender: "You", text: trimmed, ts: "now" },
       ...prev,
     ]);
-    setChatInput("");
+    setWorldChatInput("");
   };
 
   return (
@@ -346,7 +287,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
           </div>
 
           <div style={{ minWidth: 0 }}>
-            <h2 style={{ margin: 0 }}>{nationDisplayName} Command Hub</h2>
+            <h2 style={{ margin: 0 }}>{nationDisplayName} Nation Hub</h2>
             <div style={{ fontSize: 12, opacity: 0.75 }}>
               Nation overview · Faction alignment: {factionDisplayName}.
               Resources include active region bonuses and supply status.
@@ -677,7 +618,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
         </section>
       )}
 
-      {/* STRATEGY LINKS */}
+      {/* NATION HUB */}
       <section
         style={{
           border: "1px solid rgba(255,255,255,.12)",
@@ -685,34 +626,108 @@ export default function CommandHub({ data, variant = "full" }: Props) {
           padding: 16,
         }}
       >
-        <h3 style={{ marginTop: 0 }}>Strategy Links</h3>
+        <h3 style={{ marginTop: 0 }}>Nation Hub</h3>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {["Research", "Doctrine", "Upgrades", "Diplomacy", "Profile"].map(
+          {["World Chat", "Doctrine", "Research", "Upgrades", "Profile"].map(
             (label) => (
               <button
                 key={label}
                 type="button"
                 onClick={() => {
-                  setStrategyAction(label);
-                  addNote(
-                    `Opened ${label} from ${nationDisplayName} Command Hub.`,
+                  setHubTab(
+                    label as
+                      | "World Chat"
+                      | "Doctrine"
+                      | "Research"
+                      | "Upgrades"
+                      | "Profile",
                   );
+                  addNote(`Opened ${label} from ${nationDisplayName} Hub.`);
+                }}
+                style={{
+                  fontWeight: hubTab === label ? 700 : 500,
                 }}
               >
                 {label}
               </button>
             ),
           )}
+          {hubTab !== "World Chat" ? (
+            <button type="button" onClick={() => setFocusOpen(true)}>
+              Open Focus View
+            </button>
+          ) : null}
         </div>
-        {strategyAction === "Research" ? (
-          <div style={{ marginTop: 12 }}>
+        <div
+          style={{
+            marginTop: 12,
+            border: "1px solid rgba(255,255,255,.12)",
+            borderRadius: 12,
+            padding: 12,
+            background: "rgba(0,0,0,.2)",
+          }}
+        >
+          {hubTab === "World Chat" ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                Global channel · {factionDisplayName} & allies
+              </div>
+              <div
+                style={{
+                  border: "1px solid rgba(255,255,255,.12)",
+                  borderRadius: 10,
+                  padding: 8,
+                  height: 220,
+                  overflowY: "auto",
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                {worldChatMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      padding: 6,
+                      borderRadius: 8,
+                      background: msg.system
+                        ? "rgba(255,255,255,.08)"
+                        : "rgba(0,0,0,.2)",
+                      fontSize: 12,
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: 11, opacity: 0.8 }}>
+                      {msg.sender} · {msg.ts}
+                    </div>
+                    <div>{msg.text}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input
+                  value={worldChatInput}
+                  onChange={(e) => setWorldChatInput(e.target.value)}
+                  placeholder="Broadcast intel to the world…"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={sendWorldChat}
+                  disabled={!worldChatInput.trim()}
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          ) : hubTab === "Doctrine" ? (
+            <DoctrinePanel />
+          ) : hubTab === "Research" ? (
             <ResearchTreePanel />
-          </div>
-        ) : strategyAction ? (
-          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
-            {strategyAction} panel opening is queued for a future workflow.
-          </div>
-        ) : null}
+          ) : hubTab === "Upgrades" ? (
+            <UpgradesPanel />
+          ) : (
+            <ProfilePage />
+          )}
+        </div>
       </section>
 
       {/* DIPLOMACY (FULL ONLY) */}
@@ -737,7 +752,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                   Target faction
                 </span>
                 <select
-                  disabled={!canManageRoles}
+                  disabled={!canManageDiplomacy}
                   value={proposalTarget}
                   onChange={(e) => setProposalTarget(e.target.value)}
                 >
@@ -754,7 +769,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                   Agreement type
                 </span>
                 <select
-                  disabled={!canManageRoles}
+                  disabled={!canManageDiplomacy}
                   value={proposalType}
                   onChange={(e) => setProposalType(e.target.value)}
                 >
@@ -766,7 +781,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
 
               <button
                 type="button"
-                disabled={!canManageRoles}
+                disabled={!canManageDiplomacy}
                 onClick={() =>
                   addNote(`Proposal sent: ${proposalType} → ${proposalTarget}`)
                 }
@@ -806,7 +821,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                 <input
                   type="number"
                   placeholder="Fuel"
-                  disabled={!canManageRoles}
+                  disabled={!canManageDiplomacy}
                   value={resourceDraft.fuel}
                   onChange={(e) =>
                     setResourceDraft((prev) => ({
@@ -818,7 +833,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                 <input
                   type="number"
                   placeholder="Industry"
-                  disabled={!canManageRoles}
+                  disabled={!canManageDiplomacy}
                   value={resourceDraft.industry}
                   onChange={(e) =>
                     setResourceDraft((prev) => ({
@@ -830,7 +845,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                 <input
                   type="number"
                   placeholder="Manpower"
-                  disabled={!canManageRoles}
+                  disabled={!canManageDiplomacy}
                   value={resourceDraft.manpower}
                   onChange={(e) =>
                     setResourceDraft((prev) => ({
@@ -841,7 +856,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                 />
                 <button
                   type="button"
-                  disabled={!canManageRoles}
+                  disabled={!canManageDiplomacy}
                   onClick={() => {
                     addNote(
                       `Resource transfer drafted: Fuel ${resourceDraft.fuel || 0}, Industry ${resourceDraft.industry || 0}, Manpower ${resourceDraft.manpower || 0}.`,
@@ -857,171 +872,61 @@ export default function CommandHub({ data, variant = "full" }: Props) {
         </section>
       ) : null}
 
-      {/* MEMBERS + CHAT (FULL ONLY) */}
-      {!isCompact ? (
-        <section
+      {focusOpen && hubTab !== "World Chat" ? (
+        <div
           style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,.65)",
             display: "grid",
-            gap: 14,
-            gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
+            placeItems: "center",
+            zIndex: 50,
+            padding: 24,
           }}
         >
           <div
             style={{
-              border: "1px solid rgba(255,255,255,.12)",
-              borderRadius: 14,
-              padding: 16,
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Faction Members</h3>
-
-            <div style={{ display: "grid", gap: 10 }}>
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr auto",
-                    gap: 10,
-                    alignItems: "center",
-                    padding: 10,
-                    borderRadius: 10,
-                    border: "1px solid rgba(255,255,255,.12)",
-                    background: "rgba(0,0,0,.12)",
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      {member.name}
-                      {member.role === "Leader" && (
-                        <span
-                          title="Leader"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            fontSize: 12,
-                            padding: "2px 6px",
-                            borderRadius: 999,
-                            background: "rgba(250,204,21,.2)",
-                            border: "1px solid rgba(250,204,21,.4)",
-                          }}
-                        >
-                          👑 Leader
-                        </span>
-                      )}
-                    </div>
-
-                    <div style={{ fontSize: 12, opacity: 0.75 }}>
-                      {member.role} · {member.theatre ?? "Global"} ·{" "}
-                      {member.forces ?? "Unassigned forces"}
-                    </div>
-                  </div>
-
-                  {canManageRoles ? (
-                    <select
-                      value={member.role}
-                      onChange={(e) =>
-                        handleRoleChange(
-                          member.id,
-                          e.target.value as Member["role"],
-                        )
-                      }
-                    >
-                      {ROLE_OPTIONS.map((role) => (
-                        <option key={role} value={role}>
-                          {role}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-
-            {!canManageRoles ? (
-              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.65 }}>
-                Only the faction leader or GM can manage roles.
-              </div>
-            ) : null}
-
-            {canManageRoles ? (
-              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.65 }}>
-                Role updates use POST /factions/{`{id}`}/members/{`{playerId}`}
-                /role (server-side).
-              </div>
-            ) : null}
-          </div>
-
-          <div
-            style={{
-              border: "1px solid rgba(255,255,255,.12)",
-              borderRadius: 14,
-              padding: 16,
+              width: "min(1100px, 96vw)",
+              maxHeight: "90vh",
+              overflow: "auto",
+              borderRadius: 16,
+              border: `1px solid ${accentColor}66`,
+              background: "rgba(10,10,10,.98)",
+              padding: 18,
               display: "grid",
-              gap: 10,
+              gap: 12,
             }}
           >
-            <h3 style={{ marginTop: 0 }}>Faction Chat</h3>
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
-              Private channel · {factionDisplayName}
-            </div>
-
             <div
               style={{
-                border: "1px solid rgba(255,255,255,.12)",
-                borderRadius: 10,
-                padding: 8,
-                height: 200,
-                overflowY: "auto",
-                display: "grid",
-                gap: 8,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              {chatMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  style={{
-                    padding: 6,
-                    borderRadius: 8,
-                    background: msg.system
-                      ? "rgba(255,255,255,.08)"
-                      : "rgba(0,0,0,.2)",
-                    fontSize: 12,
-                  }}
-                >
-                  <div style={{ fontWeight: 700, fontSize: 11, opacity: 0.8 }}>
-                    {msg.sender} · {msg.ts}
-                  </div>
-                  <div>{msg.text}</div>
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>
+                  Focus View · {nationDisplayName}
                 </div>
-              ))}
-            </div>
-
-            <div style={{ display: "flex", gap: 6 }}>
-              <input
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Message your faction…"
-                style={{ flex: 1 }}
-              />
-              <button
-                type="button"
-                onClick={sendChat}
-                disabled={!chatInput.trim()}
-              >
-                Send
+                <h2 style={{ margin: 0 }}>{hubTab}</h2>
+              </div>
+              <button type="button" onClick={() => setFocusOpen(false)}>
+                Close
               </button>
             </div>
+            <div style={{ minHeight: 320 }}>
+              {hubTab === "Doctrine" ? (
+                <DoctrinePanel />
+              ) : hubTab === "Research" ? (
+                <ResearchTreePanel />
+              ) : hubTab === "Upgrades" ? (
+                <UpgradesPanel />
+              ) : (
+                <ProfilePage />
+              )}
+            </div>
           </div>
-        </section>
+        </div>
       ) : null}
     </div>
   );

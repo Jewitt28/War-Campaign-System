@@ -440,9 +440,9 @@ export default function NationCommandPanel({ data }: Props) {
       }}
     >
       <div>
-        <h2 style={{ margin: 0 }}>{viewerNationLabel} Command</h2>
+        <h2 style={{ margin: 0 }}>My Forces</h2>
         <div style={{ opacity: 0.8 }}>
-          Nation overview · Faction alignment:{" "}
+          Acting nation: <b>{viewerNationLabel}</b> · Faction alignment:{" "}
           <b>{factionLabel(viewerFaction, customs)}</b> · Turn{" "}
           <b>{turnNumber}</b>
         </div>
