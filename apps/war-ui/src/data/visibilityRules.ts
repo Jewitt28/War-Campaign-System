@@ -3,19 +3,22 @@ import type { NormalizedData } from "./theatres";
 import type { OwnerKey } from "../store/useCampaignStore";
 import type { NationKey } from "../setup/NationDefinitions";
 import type { VisibilityLevel } from "./visibility";
+import { visibilityOrder } from "./visibility";
 
 export function isAdjacentToOwned(args: {
   data: NormalizedData | null;
   ownerByTerritory: Record<string, OwnerKey>;
-  viewerNation: NationKey;
+  viewerNations: NationKey[];
   territoryId: string;
 }) {
-  const { data, ownerByTerritory, viewerNation, territoryId } = args;
+  const { data, ownerByTerritory, viewerNations, territoryId } = args;
   if (!data) return false;
+  const viewerSet = new Set(viewerNations);
 
   // v1: brute force scan is fine
   for (const [tid, owner] of Object.entries(ownerByTerritory)) {
-    if (owner !== viewerNation) continue;
+    if (owner === "neutral" || owner === "contested") continue;
+    if (!viewerSet.has(owner)) continue;
     const t = data.territoryById.get(tid);
     if (!t) continue;
     if ((t.adj ?? []).includes(territoryId)) return true;
@@ -34,6 +37,7 @@ export function isAdjacentToOwned(args: {
 export function getEffectiveVisibility(args: {
   viewerMode: "GM" | "PLAYER";
   viewerNation: NationKey;
+  alliedNations?: NationKey[];
   territoryId: string;
   ownerByTerritory: Record<string, OwnerKey>;
   intelByTerritory: Record<
@@ -42,17 +46,45 @@ export function getEffectiveVisibility(args: {
   >;
   data: NormalizedData | null;
 }): VisibilityLevel {
-  const { viewerMode, viewerNation, territoryId, ownerByTerritory, intelByTerritory, data } = args;
+  const {
+    viewerMode,
+    viewerNation,
+    alliedNations,
+    territoryId,
+    ownerByTerritory,
+    intelByTerritory,
+    data,
+  } = args;
+  const nations = alliedNations?.length ? alliedNations : [viewerNation];
 
   if (viewerMode === "GM") return "FULL";
 
   const owner = ownerByTerritory[territoryId] ?? "neutral";
-  if (owner === viewerNation) return "FULL";
+  if (owner !== "neutral" && owner !== "contested") {
+    if (nations.includes(owner)) return "FULL";
+  }
 
-  const intel = intelByTerritory[territoryId]?.[viewerNation] ?? "NONE";
-  if (intel !== "NONE") return intel;
+  let bestIntel: VisibilityLevel = "NONE";
+  for (const nation of nations) {
+    const intel = intelByTerritory[territoryId]?.[nation] ?? "NONE";
+    if (
+      visibilityOrder.indexOf(intel) >
+      visibilityOrder.indexOf(bestIntel)
+    ) {
+      bestIntel = intel;
+    }
+  }
+  if (bestIntel !== "NONE") return bestIntel;
 
-  if (isAdjacentToOwned({ data, ownerByTerritory, viewerNation, territoryId })) return "KNOWN";
+  if (
+    isAdjacentToOwned({
+      data,
+      ownerByTerritory,
+      viewerNations: nations,
+      territoryId,
+    })
+  )
+    return "KNOWN";
 
   return "NONE";
 }

@@ -5,17 +5,12 @@ import {
   type FactionKey,
 } from "../store/useCampaignStore";
 import type { TheatreId } from "../data/theatres";
-import { NATIONS, type NationKey } from "./NationDefinitions";
+import { type NationKey } from "./NationDefinitions";
+import { getAlignedFactionKey } from "./factionUtils";
 
 export function getFactionKeyForNation(nation: NationKey): FactionKey {
   const s = useCampaignStore.getState();
-  if (nation.startsWith("custom:")) {
-    return (
-      s.customNations.find((x) => x.id === nation)?.defaultFaction ?? "neutral"
-    );
-  }
-  const n = NATIONS.find((x) => x.id === nation);
-  return n?.defaultFaction ?? "neutral";
+  return getAlignedFactionKey(nation, s.customNations, s.useDefaultFactions);
 }
 
 /**

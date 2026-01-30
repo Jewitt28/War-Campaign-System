@@ -7,7 +7,7 @@ import {
   type NormalizedData,
 } from "../data/theatres";
 import { getEffectiveVisibility as getRulesVisibility } from "../data/visibilityRules";
-import type { VisibilityLevel } from "../data/visibility";
+import { visibilityOrder, type VisibilityLevel } from "../data/visibility";
 import {
   useCampaignStore,
   type CustomNation,
@@ -18,6 +18,7 @@ import { factionLabel } from "../store/factionLabel";
 import { nationLabel } from "../store/nationLabel";
 import type { Contest } from "../domain/types";
 import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
+import { getFactionMembersForNation } from "../setup/factionUtils";
 
 type TerritoryInfo = {
   id: string;
@@ -314,8 +315,24 @@ export default function MapBoard() {
   const customNations = useCampaignStore((s) => s.customNations);
   const customs = useCampaignStore((s) => s.customs);
   const homelandsByNation = useCampaignStore((s) => s.homelandsByNation);
+  const useDefaultFactions = useCampaignStore((s) => s.useDefaultFactions);
+  const nationsEnabled = useCampaignStore((s) => s.nationsEnabled);
 
   const gmEffective = isGMEffective(mode, viewerMode);
+  const alliedNations = useMemo(
+    () =>
+      getFactionMembersForNation({
+        nation: viewerNation,
+        customNations,
+        nationsEnabled,
+        useDefaultFactions,
+      }),
+    [viewerNation, customNations, nationsEnabled, useDefaultFactions],
+  );
+  const alliedNationSet = useMemo(
+    () => new Set(alliedNations),
+    [alliedNations],
+  );
 
   const theatresKey = useMemo(
     () =>
@@ -398,13 +415,14 @@ export default function MapBoard() {
     (tid: string) => {
       // if any owned territory has tid in its adjacency set => KNOWN
       for (const [ownedTid, owner] of Object.entries(ownerByTerritory)) {
-        if (owner !== viewerNation) continue;
+        if (owner === "neutral" || owner === "contested") continue;
+        if (!alliedNationSet.has(owner)) continue;
         const adj = adjacencyByTerritory.get(ownedTid);
         if (adj?.has(tid)) return true;
       }
       return false;
     },
-    [adjacencyByTerritory, ownerByTerritory, viewerNation],
+    [adjacencyByTerritory, ownerByTerritory, alliedNationSet],
   );
 
   // ✅ single “effective” visibility:
@@ -418,10 +436,21 @@ export default function MapBoard() {
       if (gmEffective) return "FULL";
 
       const owner = ownerByTerritory[tid] ?? "neutral";
-      if (owner === viewerNation) return "FULL";
+      if (owner !== "neutral" && owner !== "contested") {
+        if (alliedNationSet.has(owner)) return "FULL";
+      }
 
-      const intel = intelByTerritory[tid]?.[viewerNation] ?? "NONE";
-      if (intel !== "NONE") return intel;
+      let bestIntel: VisibilityLevel = "NONE";
+      for (const nation of alliedNations) {
+        const intel = intelByTerritory[tid]?.[nation] ?? "NONE";
+        if (
+          visibilityOrder.indexOf(intel) >
+          visibilityOrder.indexOf(bestIntel)
+        ) {
+          bestIntel = intel;
+        }
+      }
+      if (bestIntel !== "NONE") return bestIntel;
 
       if (isAdjacentToOwned(tid)) return "KNOWN";
 
@@ -430,9 +459,10 @@ export default function MapBoard() {
     [
       gmEffective,
       ownerByTerritory,
-      viewerNation,
       intelByTerritory,
       isAdjacentToOwned,
+      alliedNationSet,
+      alliedNations,
     ],
   );
 
@@ -469,6 +499,7 @@ export default function MapBoard() {
 
         const level = getEffectiveVisibility(territory.id);
         const canInteract = gmEffective || level !== "NONE";
+        const owner = ownerByTerritory[territory.id] ?? "neutral";
 
         // ✅ borders always visible
         p.style.stroke = BORDER_STROKE;
@@ -484,12 +515,15 @@ export default function MapBoard() {
           p.style.fill = "#000";
         } else if (level === "KNOWN") {
           p.style.fillOpacity = "0.45";
-          p.style.fill = "#111";
+          p.style.fill =
+            owner === "contested" ? getOwnerFill(owner, customNations) : "#111";
         } else if (level === "SCOUTED") {
           p.style.fillOpacity = "0.65";
-          p.style.fill = p.dataset.baseFill!;
+          p.style.fill =
+            owner === "contested"
+              ? getOwnerFill(owner, customNations)
+              : p.dataset.baseFill!;
         } else {
-          const owner = ownerByTerritory[territory.id] ?? "neutral";
           p.style.fillOpacity = "0.9";
           p.style.fill = getOwnerFill(owner, customNations);
         }
@@ -734,6 +768,7 @@ export default function MapBoard() {
         const visibility = getRulesVisibility({
           viewerMode,
           viewerNation,
+          alliedNations,
           territoryId: platoon.territoryId,
           ownerByTerritory,
           intelByTerritory,
@@ -866,6 +901,7 @@ export default function MapBoard() {
       buildSupplyPath,
       customNations,
       data,
+      alliedNations,
       ensureOverlayLayer,
       getTerritoryCentroid,
       gmEffective,
