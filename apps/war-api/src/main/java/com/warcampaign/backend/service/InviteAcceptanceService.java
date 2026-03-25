@@ -96,11 +96,6 @@ public class InviteAcceptanceService {
         if (!invite.getInviteeEmail().toLowerCase(Locale.ROOT).equals(principalEmail.toLowerCase(Locale.ROOT))) {
             throw new ApiException("INVITE_EMAIL_MISMATCH", HttpStatus.FORBIDDEN, "Invite token is not assigned to this account");
         }
-        if (isExpired(invite)) {
-            invite.setStatus(InviteStatus.EXPIRED);
-            campaignInviteRepository.save(invite);
-            throw new ApiException("INVITE_EXPIRED", HttpStatus.CONFLICT, "Invite token has expired");
-        }
         if (invite.getStatus() == InviteStatus.REVOKED) {
             throw new ApiException("INVITE_REVOKED", HttpStatus.CONFLICT, "Invite token has been revoked");
         }
@@ -108,6 +103,13 @@ public class InviteAcceptanceService {
             throw new ApiException("INVITE_ALREADY_ACCEPTED", HttpStatus.CONFLICT, "Invite token has already been used");
         }
         if (invite.getStatus() == InviteStatus.EXPIRED) {
+            throw new ApiException("INVITE_EXPIRED", HttpStatus.CONFLICT, "Invite token has expired");
+        }
+        if (isExpired(invite)) {
+            if (invite.getStatus() == InviteStatus.PENDING) {
+                invite.setStatus(InviteStatus.EXPIRED);
+                campaignInviteRepository.save(invite);
+            }
             throw new ApiException("INVITE_EXPIRED", HttpStatus.CONFLICT, "Invite token has expired");
         }
     }

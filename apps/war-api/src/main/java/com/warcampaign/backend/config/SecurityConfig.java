@@ -2,6 +2,7 @@ package com.warcampaign.backend.config;
 
 import com.warcampaign.backend.api.ApiAuthenticationEntryPoint;
 import com.warcampaign.backend.security.DevAuthenticationFilter;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,7 +17,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   DevAuthenticationFilter devAuthenticationFilter,
+                                                   ObjectProvider<DevAuthenticationFilter> devAuthenticationFilterProvider,
                                                    ApiAuthenticationEntryPoint apiAuthenticationEntryPoint) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -27,8 +28,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/invites/*").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll())
-                .addFilterBefore(devAuthenticationFilter, AnonymousAuthenticationFilter.class);
+                        .anyRequest().permitAll());
+
+        DevAuthenticationFilter devAuthenticationFilter = devAuthenticationFilterProvider.getIfAvailable();
+        if (devAuthenticationFilter != null) {
+            http.addFilterBefore(devAuthenticationFilter, AnonymousAuthenticationFilter.class);
+        }
 
         return http.build();
     }

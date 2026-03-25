@@ -10,3 +10,8 @@ spring:
     open-in-view: false
   flyway:
     enabled: false
+
+app:
+  security:
+    dev-auth:
+      enabled: true

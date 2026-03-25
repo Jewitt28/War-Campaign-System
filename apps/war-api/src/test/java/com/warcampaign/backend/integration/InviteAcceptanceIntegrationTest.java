@@ -120,6 +120,32 @@ class InviteAcceptanceIntegrationTest {
                 .andExpect(jsonPath("$.code").value("INVITE_ALREADY_ACCEPTED"));
     }
 
+    @Test
+    void keepsAcceptedStatusWhenAcceptedInviteIsExpired() throws Exception {
+        createInvite("accepted-expired-token", "player5@war.local", InviteStatus.ACCEPTED, Instant.now().minusSeconds(5));
+
+        mockMvc.perform(post("/api/invites/accepted-expired-token/accept")
+                        .header("X-Dev-User", "player5@war.local"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVITE_ALREADY_ACCEPTED"));
+
+        CampaignInvite invite = inviteRepository.findByInviteToken("accepted-expired-token").orElseThrow();
+        assertThat(invite.getStatus()).isEqualTo(InviteStatus.ACCEPTED);
+    }
+
+    @Test
+    void keepsRevokedStatusWhenRevokedInviteIsExpired() throws Exception {
+        createInvite("revoked-expired-token", "player6@war.local", InviteStatus.REVOKED, Instant.now().minusSeconds(5));
+
+        mockMvc.perform(post("/api/invites/revoked-expired-token/accept")
+                        .header("X-Dev-User", "player6@war.local"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVITE_REVOKED"));
+
+        CampaignInvite invite = inviteRepository.findByInviteToken("revoked-expired-token").orElseThrow();
+        assertThat(invite.getStatus()).isEqualTo(InviteStatus.REVOKED);
+    }
+
     private void createInvite(String token, String email, InviteStatus status, Instant expiresAt) {
         User gm = campaign.getCreatedBy();
         CampaignInvite invite = new CampaignInvite();
