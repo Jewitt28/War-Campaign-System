@@ -1,0 +1,4 @@
+com/warcampaign/backend/repository/UserRepository.class
+com/warcampaign/backend/domain/model/User.class
+com/warcampaign/backend/domain/model/BaseEntity.class
+com/warcampaign/backend/WarApiApplication.class

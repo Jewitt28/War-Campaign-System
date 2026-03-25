@@ -59,8 +59,9 @@ public class InviteAcceptanceService {
             user.setActive(true);
             user = userRepository.save(user);
         }
+        User activeUser = user;
 
-        CampaignMember member = campaignMemberRepository.findByCampaignAndUser(invite.getCampaign(), user)
+        CampaignMember member = campaignMemberRepository.findByCampaignAndUser(invite.getCampaign(), activeUser)
                 .map(existing -> {
                     existing.setRole(invite.getIntendedRole());
                     return existing;
@@ -68,7 +69,7 @@ public class InviteAcceptanceService {
                 .orElseGet(() -> {
                     CampaignMember created = new CampaignMember();
                     created.setCampaign(invite.getCampaign());
-                    created.setUser(user);
+                    created.setUser(activeUser);
                     created.setRole(invite.getIntendedRole());
                     return created;
                 });

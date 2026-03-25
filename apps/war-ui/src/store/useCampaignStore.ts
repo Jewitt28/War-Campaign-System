@@ -820,43 +820,46 @@ const initialState: Omit<
   adjacencyByTerritory: {},
 
   suppliesByNation: Object.fromEntries(
-    Object.values(NATION_BY_ID).map((nation) => [nation.id, 100]),
+    Object.values(NATION_BY_ID).map((nation) => [nation.id, 100])
   ),
   economyPoolsByNation: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [
       nation.id,
       createEconomyPool(DEFAULT_ECONOMY_POOL),
-    ]),
+    ])
   ) as Record<NationKey, EconomyPool>,
   manpowerPoolsByNation: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [
       nation.id,
       MANPOWER_CONFIG.basePool,
-    ]),
+    ])
   ) as Record<NationKey, number>,
   resourcePointsByNation: Object.fromEntries(
-    Object.values(NATION_BY_ID).map((nation) => [nation.id, 15]),
+    Object.values(NATION_BY_ID).map((nation) => [nation.id, 15])
   ) as Record<NationKey, number>,
 
   nationResearchState: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [
       nation.id,
       defaultResearchState(),
-    ]),
+    ])
   ) as Record<NationKey, NationResearchState>,
   nationDoctrineState: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [
       nation.id,
       defaultDoctrineState(),
-    ]),
+    ])
   ) as Record<NationKey, NationDoctrineState>,
   doctrinePenaltyByNation: {},
   nationUpgradesState: Object.fromEntries(
     Object.values(NATION_BY_ID).map((nation) => [
       nation.id,
       defaultUpgradesState(),
-    ]),
+    ])
   ) as Record<NationKey, NationUpgradesState>,
+  setUseDefaultFactions: function (): void {
+    throw new Error("Function not implemented.");
+  }
 };
 function consumeSubmittedOrdersForTurn(
   ordersByTurn: Record<number, Record<string, PlatoonOrder[]>>,
