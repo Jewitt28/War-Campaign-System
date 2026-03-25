@@ -6,6 +6,7 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/controller/AuthController.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/controller/CampaignController.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/controller/InviteController.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/controller/RootController.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/CampaignPhase.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/CampaignRole.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/InviteStatus.java
@@ -23,6 +24,7 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/Turn.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/User.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/AcceptInviteResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/ApiRootResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/AuthMeResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignDetailResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignFactionResponse.java

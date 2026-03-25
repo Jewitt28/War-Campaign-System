@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="12.937" tests="6" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="13.369" tests="6" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -13,10 +13,10 @@
     <property name="java.vm.specification.version" value="21"/>
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="sun.boot.library.path" value="/usr/lib/jvm/java-21-openjdk-amd64/lib"/>
-    <property name="sun.java.command" value="/home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire/surefirebooter-20260325204539770_3.jar /home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire 2026-03-25T20-45-39_583-jvmRun1 surefire-20260325204539770_1tmp surefire_0-20260325204539770_2tmp"/>
+    <property name="sun.java.command" value="/home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire/surefirebooter-20260325221041926_3.jar /home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire 2026-03-25T22-10-41_762-jvmRun1 surefire-20260325221041926_1tmp surefire_0-20260325221041926_2tmp"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="/home/davej/Projects/War-Campaign-System/apps/war-api/target/test-classes:/home/davej/Projects/War-Campaign-System/apps/war-api/target/classes:/tmp/m2/org/springframework/boot/spring-boot-starter-data-jpa/3.3.5/spring-boot-starter-data-jpa-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-aop/3.3.5/spring-boot-starter-aop-3.3.5.jar:/tmp/m2/org/aspectj/aspectjweaver/1.9.22.1/aspectjweaver-1.9.22.1.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-jdbc/3.3.5/spring-boot-starter-jdbc-3.3.5.jar:/tmp/m2/com/zaxxer/HikariCP/5.1.0/HikariCP-5.1.0.jar:/tmp/m2/org/springframework/spring-jdbc/6.1.14/spring-jdbc-6.1.14.jar:/tmp/m2/org/hibernate/orm/hibernate-core/6.5.3.Final/hibernate-core-6.5.3.Final.jar:/tmp/m2/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/tmp/m2/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/tmp/m2/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/tmp/m2/org/hibernate/common/hibernate-commons-annotations/6.0.6.Final/hibernate-commons-annotations-6.0.6.Final.jar:/tmp/m2/io/smallrye/jandex/3.1.2/jandex-3.1.2.jar:/tmp/m2/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/tmp/m2/net/bytebuddy/byte-buddy/1.14.19/byte-buddy-1.14.19.jar:/tmp/m2/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/tmp/m2/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/tmp/m2/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/tmp/m2/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/tmp/m2/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/tmp/m2/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/tmp/m2/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/tmp/m2/org/springframework/data/spring-data-jpa/3.3.5/spring-data-jpa-3.3.5.jar:/tmp/m2/org/springframework/data/spring-data-commons/3.3.5/spring-data-commons-3.3.5.jar:/tmp/m2/org/springframework/spring-orm/6.1.14/spring-orm-6.1.14.jar:/tmp/m2/org/springframework/spring-context/6.1.14/spring-context-6.1.14.jar:/tmp/m2/org/springframework/spring-tx/6.1.14/spring-tx-6.1.14.jar:/tmp/m2/org/springframework/spring-beans/6.1.14/spring-beans-6.1.14.jar:/tmp/m2/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/tmp/m2/org/slf4j/slf4j-api/2.0.16/slf4j-api-2.0.16.jar:/tmp/m2/org/springframework/spring-aspects/6.1.14/spring-aspects-6.1.14.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-validation/3.3.5/spring-boot-starter-validation-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-starter/3.3.5/spring-boot-starter-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot/3.3.5/spring-boot-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-autoconfigure/3.3.5/spring-boot-autoconfigure-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-logging/3.3.5/spring-boot-starter-logging-3.3.5.jar:/tmp/m2/ch/qos/logback/logback-classic/1.5.11/logback-classic-1.5.11.jar:/tmp/m2/ch/qos/logback/logback-core/1.5.11/logback-core-1.5.11.jar:/tmp/m2/org/apache/logging/log4j/log4j-to-slf4j/2.23.1/log4j-to-slf4j-2.23.1.jar:/tmp/m2/org/apache/logging/log4j/log4j-api/2.23.1/log4j-api-2.23.1.jar:/tmp/m2/org/slf4j/jul-to-slf4j/2.0.16/jul-to-slf4j-2.0.16.jar:/tmp/m2/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/tmp/m2/org/apache/tomcat/embed/tomcat-embed-el/10.1.31/tomcat-embed-el-10.1.31.jar:/tmp/m2/org/hibernate/validator/hibernate-validator/8.0.1.Final/hibernate-validator-8.0.1.Final.jar:/tmp/m2/jakarta/validation/jakarta.validation-api/3.0.2/jakarta.validation-api-3.0.2.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-web/3.3.5/spring-boot-starter-web-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-json/3.3.5/spring-boot-starter-json-3.3.5.jar:/tmp/m2/com/fasterxml/jackson/core/jackson-databind/2.17.2/jackson-databind-2.17.2.jar:/tmp/m2/com/fasterxml/jackson/core/jackson-annotations/2.17.2/jackson-annotations-2.17.2.jar:/tmp/m2/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.17.2/jackson-datatype-jdk8-2.17.2.jar:/tmp/m2/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.17.2/jackson-datatype-jsr310-2.17.2.jar:/tmp/m2/com/fasterxml/jackson/module/jackson-module-parameter-names/2.17.2/jackson-module-parameter-names-2.17.2.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-tomcat/3.3.5/spring-boot-starter-tomcat-3.3.5.jar:/tmp/m2/org/apache/tomcat/embed/tomcat-embed-core/10.1.31/tomcat-embed-core-10.1.31.jar:/tmp/m2/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.31/tomcat-embed-websocket-10.1.31.jar:/tmp/m2/org/springframework/spring-web/6.1.14/spring-web-6.1.14.jar:/tmp/m2/io/micrometer/micrometer-observation/1.13.6/micrometer-observation-1.13.6.jar:/tmp/m2/io/micrometer/micrometer-commons/1.13.6/micrometer-commons-1.13.6.jar:/tmp/m2/org/springframework/spring-webmvc/6.1.14/spring-webmvc-6.1.14.jar:/tmp/m2/org/springframework/spring-expression/6.1.14/spring-expression-6.1.14.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-security/3.3.5/spring-boot-starter-security-3.3.5.jar:/tmp/m2/org/springframework/spring-aop/6.1.14/spring-aop-6.1.14.jar:/tmp/m2/org/springframework/security/spring-security-config/6.3.4/spring-security-config-6.3.4.jar:/tmp/m2/org/springframework/security/spring-security-web/6.3.4/spring-security-web-6.3.4.jar:/tmp/m2/org/flywaydb/flyway-core/10.10.0/flyway-core-10.10.0.jar:/tmp/m2/com/fasterxml/jackson/dataformat/jackson-dataformat-toml/2.17.2/jackson-dataformat-toml-2.17.2.jar:/tmp/m2/com/fasterxml/jackson/core/jackson-core/2.17.2/jackson-core-2.17.2.jar:/tmp/m2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar:/tmp/m2/org/flywaydb/flyway-database-postgresql/10.10.0/flyway-database-postgresql-10.10.0.jar:/tmp/m2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar:/tmp/m2/org/checkerframework/checker-qual/3.42.0/checker-qual-3.42.0.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-test/3.3.5/spring-boot-starter-test-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-test/3.3.5/spring-boot-test-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-test-autoconfigure/3.3.5/spring-boot-test-autoconfigure-3.3.5.jar:/tmp/m2/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar:/tmp/m2/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/tmp/m2/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/tmp/m2/net/minidev/json-smart/2.5.1/json-smart-2.5.1.jar:/tmp/m2/net/minidev/accessors-smart/2.5.1/accessors-smart-2.5.1.jar:/tmp/m2/org/ow2/asm/asm/9.6/asm-9.6.jar:/tmp/m2/org/assertj/assertj-core/3.25.3/assertj-core-3.25.3.jar:/tmp/m2/org/awaitility/awaitility/4.2.2/awaitility-4.2.2.jar:/tmp/m2/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/tmp/m2/org/junit/jupiter/junit-jupiter/5.10.5/junit-jupiter-5.10.5.jar:/tmp/m2/org/junit/jupiter/junit-jupiter-api/5.10.5/junit-jupiter-api-5.10.5.jar:/tmp/m2/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/tmp/m2/org/junit/platform/junit-platform-commons/1.10.5/junit-platform-commons-1.10.5.jar:/tmp/m2/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/tmp/m2/org/junit/jupiter/junit-jupiter-params/5.10.5/junit-jupiter-params-5.10.5.jar:/tmp/m2/org/junit/jupiter/junit-jupiter-engine/5.10.5/junit-jupiter-engine-5.10.5.jar:/tmp/m2/org/junit/platform/junit-platform-engine/1.10.5/junit-platform-engine-1.10.5.jar:/tmp/m2/org/mockito/mockito-core/5.11.0/mockito-core-5.11.0.jar:/tmp/m2/net/bytebuddy/byte-buddy-agent/1.14.19/byte-buddy-agent-1.14.19.jar:/tmp/m2/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/tmp/m2/org/mockito/mockito-junit-jupiter/5.11.0/mockito-junit-jupiter-5.11.0.jar:/tmp/m2/org/skyscreamer/jsonassert/1.5.3/jsonassert-1.5.3.jar:/tmp/m2/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/tmp/m2/org/springframework/spring-core/6.1.14/spring-core-6.1.14.jar:/tmp/m2/org/springframework/spring-jcl/6.1.14/spring-jcl-6.1.14.jar:/tmp/m2/org/springframework/spring-test/6.1.14/spring-test-6.1.14.jar:/tmp/m2/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:/tmp/m2/org/springframework/security/spring-security-test/6.3.4/spring-security-test-6.3.4.jar:/tmp/m2/org/springframework/security/spring-security-core/6.3.4/spring-security-core-6.3.4.jar:/tmp/m2/org/springframework/security/spring-security-crypto/6.3.4/spring-security-crypto-6.3.4.jar:/tmp/m2/com/h2database/h2/2.2.224/h2-2.2.224.jar:"/>
-    <property name="test" value="InviteAcceptanceIntegrationTest,CampaignLobbyIntegrationTest"/>
+    <property name="test" value="RootEndpointIntegrationTest,CampaignLobbyIntegrationTest,InviteAcceptanceIntegrationTest"/>
     <property name="sun.cpu.endian" value="little"/>
     <property name="user.home" value="/home/davej"/>
     <property name="user.language" value="en"/>
@@ -31,7 +31,7 @@
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="FILE_LOG_CHARSET" value="UTF-8"/>
     <property name="java.awt.headless" value="true"/>
-    <property name="surefire.real.class.path" value="/home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire/surefirebooter-20260325204539770_3.jar"/>
+    <property name="surefire.real.class.path" value="/home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire/surefirebooter-20260325221041926_3.jar"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="21.0.10+7-Ubuntu-124.04"/>
     <property name="user.name" value="davej"/>
@@ -49,7 +49,7 @@
     <property name="user.dir" value="/home/davej/Projects/War-Campaign-System/apps/war-api"/>
     <property name="os.arch" value="amd64"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
-    <property name="PID" value="115707"/>
+    <property name="PID" value="137755"/>
     <property name="CONSOLE_LOG_CHARSET" value="UTF-8"/>
     <property name="native.encoding" value="UTF-8"/>
     <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib"/>
@@ -61,9 +61,9 @@
     <property name="maven.repo.local" value="/tmp/m2"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="keepsAcceptedStatusWhenAcceptedInviteIsExpired" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="1.782">
-    <system-out><![CDATA[20:45:41.319 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest]: InviteAcceptanceIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-20:45:41.545 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.warcampaign.backend.WarApiApplication for test class com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest
+  <testcase name="keepsAcceptedStatusWhenAcceptedInviteIsExpired" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="1.813">
+    <system-out><![CDATA[22:10:43.584 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest]: InviteAcceptanceIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+22:10:43.830 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.warcampaign.backend.WarApiApplication for test class com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -74,81 +74,81 @@
 
  :: Spring Boot ::                (v3.3.5)
 
-2026-03-25T20:45:42.353Z  INFO 115707 --- [           main] c.w.b.i.InviteAcceptanceIntegrationTest  : Starting InviteAcceptanceIntegrationTest using Java 21.0.10 with PID 115707 (started by davej in /home/davej/Projects/War-Campaign-System/apps/war-api)
-2026-03-25T20:45:42.356Z  INFO 115707 --- [           main] c.w.b.i.InviteAcceptanceIntegrationTest  : No active profile set, falling back to 1 default profile: "default"
-2026-03-25T20:45:42.357Z DEBUG 115707 --- [           main] o.s.boot.SpringApplication               : Loading source class com.warcampaign.backend.WarApiApplication
-2026-03-25T20:45:42.384Z DEBUG 115707 --- [           main] o.s.w.c.s.GenericWebApplicationContext   : Refreshing org.springframework.web.context.support.GenericWebApplicationContext@535b8c24
-2026-03-25T20:45:43.842Z  INFO 115707 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-03-25T20:45:43.870Z DEBUG 115707 --- [           main] o.s.b.a.AutoConfigurationPackages        : @EnableAutoConfiguration was declared on a class in the package 'com.warcampaign.backend'. Automatic @Repository and @Entity scanning is enabled.
-2026-03-25T20:45:43.975Z  INFO 115707 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 121 ms. Found 10 JPA repository interfaces.
-2026-03-25T20:45:45.104Z  INFO 115707 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-03-25T20:45:45.184Z  INFO 115707 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.3.Final
-2026-03-25T20:45:45.234Z  INFO 115707 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-03-25T20:45:45.745Z  INFO 115707 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-03-25T20:45:45.791Z  INFO 115707 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-03-25T20:45:46.139Z  INFO 115707 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:warapi user=SA
-2026-03-25T20:45:46.142Z  INFO 115707 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-03-25T20:45:48.186Z  INFO 115707 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-03-25T20:45:48.230Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : drop table if exists app_user cascade 
-2026-03-25T20:45:48.237Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : drop table if exists campaign cascade 
-2026-03-25T20:45:48.238Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : drop table if exists campaign_invite cascade 
-2026-03-25T20:45:48.239Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : drop table if exists campaign_member cascade 
-2026-03-25T20:45:48.239Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : drop table if exists faction cascade 
-2026-03-25T20:45:48.240Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : drop table if exists platoon cascade 
-2026-03-25T20:45:48.241Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : drop table if exists platoon_state cascade 
-2026-03-25T20:45:48.241Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : drop table if exists territory cascade 
-2026-03-25T20:45:48.242Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : drop table if exists territory_state cascade 
-2026-03-25T20:45:48.243Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : drop table if exists turn cascade 
-2026-03-25T20:45:48.261Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : create table app_user (active boolean not null, id uuid not null, display_name varchar(100) not null unique, email varchar(320) not null unique, primary key (id))
-2026-03-25T20:45:48.278Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : create table campaign (created_by_user_id uuid not null, id uuid not null, name varchar(180) not null, current_phase enum ('INTERTURN','LOBBY','OPERATIONS','RESOLUTION','STRATEGIC') not null, primary key (id))
-2026-03-25T20:45:48.281Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : create table campaign_invite (expires_at timestamp(6) with time zone not null, campaign_id uuid not null, id uuid not null, invited_by_user_id uuid not null, invite_token varchar(100) not null unique, invitee_email varchar(320) not null, intended_role enum ('GM','OBSERVER','PLAYER') not null, status enum ('ACCEPTED','EXPIRED','PENDING','REVOKED') not null, primary key (id))
-2026-03-25T20:45:48.284Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : create table campaign_member (campaign_id uuid not null, id uuid not null, user_id uuid not null, role enum ('GM','OBSERVER','PLAYER') not null, primary key (id), constraint uq_campaign_member_campaign_user unique (campaign_id, user_id))
-2026-03-25T20:45:48.289Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : create table faction (campaign_id uuid not null, id uuid not null, faction_key varchar(50) not null, name varchar(120) not null, primary key (id), constraint uq_faction_campaign_key unique (campaign_id, faction_key))
-2026-03-25T20:45:48.291Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : create table platoon (campaign_id uuid not null, faction_id uuid not null, home_territory_id uuid, id uuid not null, platoon_key varchar(60) not null, name varchar(120) not null, primary key (id), constraint uq_platoon_campaign_key unique (campaign_id, platoon_key))
-2026-03-25T20:45:48.295Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : create table platoon_state (strength integer not null, id uuid not null, platoon_id uuid not null, territory_id uuid, turn_id uuid not null, readiness_status enum ('ACTIVE','DAMAGED','DESTROYED','RESERVES') not null, primary key (id), constraint uq_platoon_state_turn_platoon unique (turn_id, platoon_id))
-2026-03-25T20:45:48.299Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : create table territory (campaign_id uuid not null, id uuid not null, territory_key varchar(50) not null, theatre_key varchar(50) not null, name varchar(120) not null, primary key (id), constraint uq_territory_campaign_key unique (campaign_id, territory_key))
-2026-03-25T20:45:48.302Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : create table territory_state (controlling_faction_id uuid, id uuid not null, territory_id uuid not null, turn_id uuid not null, control_status enum ('CONTESTED','CONTROLLED','NEUTRAL') not null, primary key (id), constraint uq_territory_state_turn_territory unique (turn_id, territory_id))
-2026-03-25T20:45:48.306Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : create table turn (turn_number integer not null, ends_at timestamp(6) with time zone, starts_at timestamp(6) with time zone not null, campaign_id uuid not null, id uuid not null, phase enum ('INTERTURN','LOBBY','OPERATIONS','RESOLUTION','STRATEGIC') not null, primary key (id), constraint uq_turn_campaign_number unique (campaign_id, turn_number))
-2026-03-25T20:45:48.310Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists campaign add constraint FKohywe8q9m5wlamqo2r88bsi8p foreign key (created_by_user_id) references app_user
-2026-03-25T20:45:48.331Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists campaign_invite add constraint FKc18ehsrh6mbd7u97p8lswnkl8 foreign key (campaign_id) references campaign
-2026-03-25T20:45:48.334Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists campaign_invite add constraint FKc6snv9yxxjoleisi6t4w7nmlh foreign key (invited_by_user_id) references app_user
-2026-03-25T20:45:48.338Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists campaign_member add constraint FKchylg7emrxfbi6i5lv3iiustd foreign key (campaign_id) references campaign
-2026-03-25T20:45:48.342Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists campaign_member add constraint FKlth27lc6sihqk44btiakgi5yt foreign key (user_id) references app_user
-2026-03-25T20:45:48.346Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists faction add constraint FKq35dgjn81p1f78k0sbfrhk7ol foreign key (campaign_id) references campaign
-2026-03-25T20:45:48.350Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists platoon add constraint FKpsvm6a1osxem3w948xiqn66hp foreign key (campaign_id) references campaign
-2026-03-25T20:45:48.354Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists platoon add constraint FK4l1p597fq6hq5urighkq3jloq foreign key (faction_id) references faction
-2026-03-25T20:45:48.358Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists platoon add constraint FK9wextsmap8pqoeo0tdww2pcpv foreign key (home_territory_id) references territory
-2026-03-25T20:45:48.362Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists platoon_state add constraint FK3d34p79n3v0svws8iocw85wx1 foreign key (platoon_id) references platoon
-2026-03-25T20:45:48.366Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists platoon_state add constraint FKeiulaa96xiw68uf7p858hgtm4 foreign key (territory_id) references territory
-2026-03-25T20:45:48.369Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists platoon_state add constraint FK3cqs7q6rfydqvd24e72pe6sea foreign key (turn_id) references turn
-2026-03-25T20:45:48.373Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists territory add constraint FKmo78iin5mev3esiyjx68hya13 foreign key (campaign_id) references campaign
-2026-03-25T20:45:48.377Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists territory_state add constraint FK8bsgj8dc8ocjdbd8sanits23d foreign key (controlling_faction_id) references faction
-2026-03-25T20:45:48.380Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists territory_state add constraint FK8xcsoyvbqv1jcj2m83rsuyt21 foreign key (territory_id) references territory
-2026-03-25T20:45:48.384Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists territory_state add constraint FK4vf2724piulbp2s58j8s8xrii foreign key (turn_id) references turn
-2026-03-25T20:45:48.388Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : alter table if exists turn add constraint FKbqldjw53at4m576bfupnmf2ik foreign key (campaign_id) references campaign
-2026-03-25T20:45:48.398Z  INFO 115707 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-03-25T20:45:49.035Z  INFO 115707 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-03-25T20:45:50.385Z  WARN 115707 --- [           main] .s.s.UserDetailsServiceAutoConfiguration : 
+2026-03-25T22:10:44.752Z  INFO 137755 --- [           main] c.w.b.i.InviteAcceptanceIntegrationTest  : Starting InviteAcceptanceIntegrationTest using Java 21.0.10 with PID 137755 (started by davej in /home/davej/Projects/War-Campaign-System/apps/war-api)
+2026-03-25T22:10:44.755Z  INFO 137755 --- [           main] c.w.b.i.InviteAcceptanceIntegrationTest  : No active profile set, falling back to 1 default profile: "default"
+2026-03-25T22:10:44.756Z DEBUG 137755 --- [           main] o.s.boot.SpringApplication               : Loading source class com.warcampaign.backend.WarApiApplication
+2026-03-25T22:10:44.794Z DEBUG 137755 --- [           main] o.s.w.c.s.GenericWebApplicationContext   : Refreshing org.springframework.web.context.support.GenericWebApplicationContext@867ba60
+2026-03-25T22:10:46.136Z  INFO 137755 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-25T22:10:46.176Z DEBUG 137755 --- [           main] o.s.b.a.AutoConfigurationPackages        : @EnableAutoConfiguration was declared on a class in the package 'com.warcampaign.backend'. Automatic @Repository and @Entity scanning is enabled.
+2026-03-25T22:10:46.289Z  INFO 137755 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 135 ms. Found 10 JPA repository interfaces.
+2026-03-25T22:10:47.385Z  INFO 137755 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-03-25T22:10:47.482Z  INFO 137755 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.3.Final
+2026-03-25T22:10:47.570Z  INFO 137755 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-03-25T22:10:48.293Z  INFO 137755 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-25T22:10:48.339Z  INFO 137755 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-25T22:10:48.760Z  INFO 137755 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:warapi user=SA
+2026-03-25T22:10:48.762Z  INFO 137755 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-25T22:10:50.759Z  INFO 137755 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-25T22:10:50.799Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : drop table if exists app_user cascade 
+2026-03-25T22:10:50.807Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : drop table if exists campaign cascade 
+2026-03-25T22:10:50.808Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : drop table if exists campaign_invite cascade 
+2026-03-25T22:10:50.809Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : drop table if exists campaign_member cascade 
+2026-03-25T22:10:50.810Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : drop table if exists faction cascade 
+2026-03-25T22:10:50.811Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : drop table if exists platoon cascade 
+2026-03-25T22:10:50.811Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : drop table if exists platoon_state cascade 
+2026-03-25T22:10:50.812Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : drop table if exists territory cascade 
+2026-03-25T22:10:50.813Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : drop table if exists territory_state cascade 
+2026-03-25T22:10:50.813Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : drop table if exists turn cascade 
+2026-03-25T22:10:50.823Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : create table app_user (active boolean not null, id uuid not null, display_name varchar(100) not null unique, email varchar(320) not null unique, primary key (id))
+2026-03-25T22:10:50.836Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : create table campaign (created_by_user_id uuid not null, id uuid not null, name varchar(180) not null, current_phase enum ('INTERTURN','LOBBY','OPERATIONS','RESOLUTION','STRATEGIC') not null, primary key (id))
+2026-03-25T22:10:50.839Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : create table campaign_invite (expires_at timestamp(6) with time zone not null, campaign_id uuid not null, id uuid not null, invited_by_user_id uuid not null, invite_token varchar(100) not null unique, invitee_email varchar(320) not null, intended_role enum ('GM','OBSERVER','PLAYER') not null, status enum ('ACCEPTED','EXPIRED','PENDING','REVOKED') not null, primary key (id))
+2026-03-25T22:10:50.842Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : create table campaign_member (campaign_id uuid not null, id uuid not null, user_id uuid not null, role enum ('GM','OBSERVER','PLAYER') not null, primary key (id), constraint uq_campaign_member_campaign_user unique (campaign_id, user_id))
+2026-03-25T22:10:50.845Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : create table faction (campaign_id uuid not null, id uuid not null, faction_key varchar(50) not null, name varchar(120) not null, primary key (id), constraint uq_faction_campaign_key unique (campaign_id, faction_key))
+2026-03-25T22:10:50.849Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : create table platoon (campaign_id uuid not null, faction_id uuid not null, home_territory_id uuid, id uuid not null, platoon_key varchar(60) not null, name varchar(120) not null, primary key (id), constraint uq_platoon_campaign_key unique (campaign_id, platoon_key))
+2026-03-25T22:10:50.855Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : create table platoon_state (strength integer not null, id uuid not null, platoon_id uuid not null, territory_id uuid, turn_id uuid not null, readiness_status enum ('ACTIVE','DAMAGED','DESTROYED','RESERVES') not null, primary key (id), constraint uq_platoon_state_turn_platoon unique (turn_id, platoon_id))
+2026-03-25T22:10:50.860Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : create table territory (campaign_id uuid not null, id uuid not null, territory_key varchar(50) not null, theatre_key varchar(50) not null, name varchar(120) not null, primary key (id), constraint uq_territory_campaign_key unique (campaign_id, territory_key))
+2026-03-25T22:10:50.863Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : create table territory_state (controlling_faction_id uuid, id uuid not null, territory_id uuid not null, turn_id uuid not null, control_status enum ('CONTESTED','CONTROLLED','NEUTRAL') not null, primary key (id), constraint uq_territory_state_turn_territory unique (turn_id, territory_id))
+2026-03-25T22:10:50.867Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : create table turn (turn_number integer not null, ends_at timestamp(6) with time zone, starts_at timestamp(6) with time zone not null, campaign_id uuid not null, id uuid not null, phase enum ('INTERTURN','LOBBY','OPERATIONS','RESOLUTION','STRATEGIC') not null, primary key (id), constraint uq_turn_campaign_number unique (campaign_id, turn_number))
+2026-03-25T22:10:50.870Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists campaign add constraint FKohywe8q9m5wlamqo2r88bsi8p foreign key (created_by_user_id) references app_user
+2026-03-25T22:10:50.893Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists campaign_invite add constraint FKc18ehsrh6mbd7u97p8lswnkl8 foreign key (campaign_id) references campaign
+2026-03-25T22:10:50.896Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists campaign_invite add constraint FKc6snv9yxxjoleisi6t4w7nmlh foreign key (invited_by_user_id) references app_user
+2026-03-25T22:10:50.899Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists campaign_member add constraint FKchylg7emrxfbi6i5lv3iiustd foreign key (campaign_id) references campaign
+2026-03-25T22:10:50.902Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists campaign_member add constraint FKlth27lc6sihqk44btiakgi5yt foreign key (user_id) references app_user
+2026-03-25T22:10:50.905Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists faction add constraint FKq35dgjn81p1f78k0sbfrhk7ol foreign key (campaign_id) references campaign
+2026-03-25T22:10:50.907Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists platoon add constraint FKpsvm6a1osxem3w948xiqn66hp foreign key (campaign_id) references campaign
+2026-03-25T22:10:50.910Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists platoon add constraint FK4l1p597fq6hq5urighkq3jloq foreign key (faction_id) references faction
+2026-03-25T22:10:50.913Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists platoon add constraint FK9wextsmap8pqoeo0tdww2pcpv foreign key (home_territory_id) references territory
+2026-03-25T22:10:50.916Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists platoon_state add constraint FK3d34p79n3v0svws8iocw85wx1 foreign key (platoon_id) references platoon
+2026-03-25T22:10:50.919Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists platoon_state add constraint FKeiulaa96xiw68uf7p858hgtm4 foreign key (territory_id) references territory
+2026-03-25T22:10:50.922Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists platoon_state add constraint FK3cqs7q6rfydqvd24e72pe6sea foreign key (turn_id) references turn
+2026-03-25T22:10:50.925Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists territory add constraint FKmo78iin5mev3esiyjx68hya13 foreign key (campaign_id) references campaign
+2026-03-25T22:10:50.927Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists territory_state add constraint FK8bsgj8dc8ocjdbd8sanits23d foreign key (controlling_faction_id) references faction
+2026-03-25T22:10:50.930Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists territory_state add constraint FK8xcsoyvbqv1jcj2m83rsuyt21 foreign key (territory_id) references territory
+2026-03-25T22:10:50.933Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists territory_state add constraint FK4vf2724piulbp2s58j8s8xrii foreign key (turn_id) references turn
+2026-03-25T22:10:50.936Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : alter table if exists turn add constraint FKbqldjw53at4m576bfupnmf2ik foreign key (campaign_id) references campaign
+2026-03-25T22:10:50.944Z  INFO 137755 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-25T22:10:51.653Z  INFO 137755 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-25T22:10:52.952Z  WARN 137755 --- [           main] .s.s.UserDetailsServiceAutoConfiguration : 
 
-Using generated security password: 1038c49f-72fb-4d58-9ead-e57a2915363c
+Using generated security password: 8b2d038b-f725-4605-8c30-2de4654f5747
 
 This generated password is for development use only. Your security configuration must be updated before running your application in production.
 
-2026-03-25T20:45:50.420Z  INFO 115707 --- [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2026-03-25T20:45:50.641Z DEBUG 115707 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 9 mappings in 'requestMappingHandlerMapping'
-2026-03-25T20:45:50.753Z DEBUG 115707 --- [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Patterns [/webjars/**, /**] in 'resourceHandlerMapping'
-2026-03-25T20:45:51.083Z DEBUG 115707 --- [           main] s.w.s.m.m.a.RequestMappingHandlerAdapter : ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
-2026-03-25T20:45:51.151Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : ControllerAdvice beans: 1 @ExceptionHandler, 1 ResponseBodyAdvice
-2026-03-25T20:45:51.470Z DEBUG 115707 --- [           main] o.s.b.w.s.ServletContextInitializerBeans : Mapping filters: springSecurityFilterChain urls=[/*] order=-100, characterEncodingFilter urls=[/*] order=-2147483648, formContentFilter urls=[/*] order=-9900, requestContextFilter urls=[/*] order=-105, devAuthenticationFilter urls=[/*] order=2147483647
-2026-03-25T20:45:51.471Z DEBUG 115707 --- [           main] o.s.b.w.s.ServletContextInitializerBeans : Mapping servlets: 
-2026-03-25T20:45:51.503Z DEBUG 115707 --- [           main] s.b.w.s.f.OrderedCharacterEncodingFilter : Filter 'characterEncodingFilter' configured for use
-2026-03-25T20:45:51.503Z DEBUG 115707 --- [           main] o.s.b.w.s.f.OrderedFormContentFilter     : Filter 'formContentFilter' configured for use
-2026-03-25T20:45:51.503Z DEBUG 115707 --- [           main] o.s.b.w.s.f.OrderedRequestContextFilter  : Filter 'requestContextFilter' configured for use
-2026-03-25T20:45:51.503Z DEBUG 115707 --- [           main] .DelegatingFilterProxyRegistrationBean$1 : Filter 'springSecurityFilterChain' configured for use
-2026-03-25T20:45:51.505Z  INFO 115707 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-03-25T20:45:51.506Z  INFO 115707 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
-2026-03-25T20:45:51.510Z  INFO 115707 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 4 ms
-2026-03-25T20:45:51.564Z DEBUG 115707 --- [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-03-25T22:10:52.992Z  INFO 137755 --- [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-03-25T22:10:53.227Z DEBUG 137755 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 10 mappings in 'requestMappingHandlerMapping'
+2026-03-25T22:10:53.344Z DEBUG 137755 --- [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Patterns [/webjars/**, /**] in 'resourceHandlerMapping'
+2026-03-25T22:10:53.710Z DEBUG 137755 --- [           main] s.w.s.m.m.a.RequestMappingHandlerAdapter : ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2026-03-25T22:10:53.779Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : ControllerAdvice beans: 1 @ExceptionHandler, 1 ResponseBodyAdvice
+2026-03-25T22:10:54.102Z DEBUG 137755 --- [           main] o.s.b.w.s.ServletContextInitializerBeans : Mapping filters: springSecurityFilterChain urls=[/*] order=-100, characterEncodingFilter urls=[/*] order=-2147483648, formContentFilter urls=[/*] order=-9900, requestContextFilter urls=[/*] order=-105, devAuthenticationFilter urls=[/*] order=2147483647
+2026-03-25T22:10:54.102Z DEBUG 137755 --- [           main] o.s.b.w.s.ServletContextInitializerBeans : Mapping servlets: 
+2026-03-25T22:10:54.134Z DEBUG 137755 --- [           main] s.b.w.s.f.OrderedCharacterEncodingFilter : Filter 'characterEncodingFilter' configured for use
+2026-03-25T22:10:54.134Z DEBUG 137755 --- [           main] o.s.b.w.s.f.OrderedFormContentFilter     : Filter 'formContentFilter' configured for use
+2026-03-25T22:10:54.134Z DEBUG 137755 --- [           main] o.s.b.w.s.f.OrderedRequestContextFilter  : Filter 'requestContextFilter' configured for use
+2026-03-25T22:10:54.134Z DEBUG 137755 --- [           main] .DelegatingFilterProxyRegistrationBean$1 : Filter 'springSecurityFilterChain' configured for use
+2026-03-25T22:10:54.136Z  INFO 137755 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-03-25T22:10:54.137Z  INFO 137755 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-03-25T22:10:54.140Z  INFO 137755 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 3 ms
+2026-03-25T22:10:54.188Z DEBUG 137755 --- [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
 
 
 ============================
@@ -1314,25 +1314,25 @@ Unconditional classes:
 
 
 
-2026-03-25T20:45:51.583Z  INFO 115707 --- [           main] c.w.b.i.InviteAcceptanceIntegrationTest  : Started InviteAcceptanceIntegrationTest in 9.791 seconds (process running for 11.709)
-2026-03-25T20:45:51.586Z DEBUG 115707 --- [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state LivenessState changed to CORRECT
-2026-03-25T20:45:51.590Z DEBUG 115707 --- [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state ReadinessState changed to ACCEPTING_TRAFFIC
-2026-03-25T20:45:52.674Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
-2026-03-25T20:45:52.725Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
-2026-03-25T20:45:52.730Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
-2026-03-25T20:45:52.735Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
-2026-03-25T20:45:52.802Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:52.828Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
-2026-03-25T20:45:52.859Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
-2026-03-25T20:45:53.014Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
-2026-03-25T20:45:53.023Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.038Z DEBUG 115707 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
-2026-03-25T20:45:53.083Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
-2026-03-25T20:45:53.105Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.warcampaign.backend.api.ApiExceptionHandler#handleApiException(ApiException, HttpServletRequest)
-2026-03-25T20:45:53.173Z DEBUG 115707 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
-2026-03-25T20:45:53.200Z DEBUG 115707 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [ApiErrorResponse[timestamp=2026-03-25T20:45:53.112406306Z, code=INVITE_ALREADY_ACCEPTED, message=Inv (truncated)...]
-2026-03-25T20:45:53.228Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.warcampaign.backend.exception.ApiException: Invite token has already been used]
-2026-03-25T20:45:53.299Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
+2026-03-25T22:10:54.207Z  INFO 137755 --- [           main] c.w.b.i.InviteAcceptanceIntegrationTest  : Started InviteAcceptanceIntegrationTest in 10.075 seconds (process running for 12.125)
+2026-03-25T22:10:54.210Z DEBUG 137755 --- [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state LivenessState changed to CORRECT
+2026-03-25T22:10:54.216Z DEBUG 137755 --- [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state ReadinessState changed to ACCEPTING_TRAFFIC
+2026-03-25T22:10:55.381Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
+2026-03-25T22:10:55.420Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
+2026-03-25T22:10:55.424Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
+2026-03-25T22:10:55.427Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
+2026-03-25T22:10:55.482Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:55.504Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
+2026-03-25T22:10:55.513Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
+2026-03-25T22:10:55.634Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
+2026-03-25T22:10:55.643Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:55.658Z DEBUG 137755 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
+2026-03-25T22:10:55.697Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
+2026-03-25T22:10:55.719Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.warcampaign.backend.api.ApiExceptionHandler#handleApiException(ApiException, HttpServletRequest)
+2026-03-25T22:10:55.780Z DEBUG 137755 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-03-25T22:10:55.797Z DEBUG 137755 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [ApiErrorResponse[timestamp=2026-03-25T22:10:55.728177850Z, code=INVITE_ALREADY_ACCEPTED, message=Inv (truncated)...]
+2026-03-25T22:10:55.820Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.warcampaign.backend.exception.ApiException: Invite token has already been used]
+2026-03-25T22:10:55.923Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
 ]]></system-out>
     <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/tmp/m2/net/bytebuddy/byte-buddy-agent/1.14.19/byte-buddy-agent-1.14.19.jar)
 WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
@@ -1340,130 +1340,130 @@ WARNING: If a serviceability tool is not in use, please run with -Djdk.instrumen
 WARNING: Dynamic loading of agents will be disallowed by default in a future release
 ]]></system-err>
   </testcase>
-  <testcase name="keepsRevokedStatusWhenRevokedInviteIsExpired" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="0.078">
-    <system-out><![CDATA[2026-03-25T20:45:53.416Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
-2026-03-25T20:45:53.419Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
-2026-03-25T20:45:53.428Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign_invite where id=?
-2026-03-25T20:45:53.433Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
-2026-03-25T20:45:53.435Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign where id=?
-2026-03-25T20:45:53.438Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
-2026-03-25T20:45:53.442Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
-2026-03-25T20:45:53.444Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
-2026-03-25T20:45:53.448Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.451Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
-2026-03-25T20:45:53.455Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
-2026-03-25T20:45:53.460Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
-2026-03-25T20:45:53.463Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.465Z DEBUG 115707 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
-2026-03-25T20:45:53.469Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
-2026-03-25T20:45:53.473Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.warcampaign.backend.api.ApiExceptionHandler#handleApiException(ApiException, HttpServletRequest)
-2026-03-25T20:45:53.474Z DEBUG 115707 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
-2026-03-25T20:45:53.475Z DEBUG 115707 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [ApiErrorResponse[timestamp=2026-03-25T20:45:53.473801158Z, code=INVITE_REVOKED, message=Invite token (truncated)...]
-2026-03-25T20:45:53.476Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.warcampaign.backend.exception.ApiException: Invite token has been revoked]
-2026-03-25T20:45:53.481Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
+  <testcase name="keepsRevokedStatusWhenRevokedInviteIsExpired" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="0.09">
+    <system-out><![CDATA[2026-03-25T22:10:56.067Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
+2026-03-25T22:10:56.070Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
+2026-03-25T22:10:56.081Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign_invite where id=?
+2026-03-25T22:10:56.088Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
+2026-03-25T22:10:56.090Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign where id=?
+2026-03-25T22:10:56.095Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
+2026-03-25T22:10:56.099Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
+2026-03-25T22:10:56.101Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
+2026-03-25T22:10:56.104Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:56.108Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
+2026-03-25T22:10:56.113Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
+2026-03-25T22:10:56.120Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
+2026-03-25T22:10:56.125Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:56.128Z DEBUG 137755 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
+2026-03-25T22:10:56.132Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
+2026-03-25T22:10:56.135Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.warcampaign.backend.api.ApiExceptionHandler#handleApiException(ApiException, HttpServletRequest)
+2026-03-25T22:10:56.136Z DEBUG 137755 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-03-25T22:10:56.136Z DEBUG 137755 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [ApiErrorResponse[timestamp=2026-03-25T22:10:56.136005117Z, code=INVITE_REVOKED, message=Invite token (truncated)...]
+2026-03-25T22:10:56.137Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.warcampaign.backend.exception.ApiException: Invite token has been revoked]
+2026-03-25T22:10:56.142Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
 ]]></system-out>
   </testcase>
-  <testcase name="preventsDuplicateAcceptance" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="0.133">
-    <system-out><![CDATA[2026-03-25T20:45:53.496Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
-2026-03-25T20:45:53.499Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
-2026-03-25T20:45:53.502Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign_invite where id=?
-2026-03-25T20:45:53.505Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
-2026-03-25T20:45:53.507Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign where id=?
-2026-03-25T20:45:53.510Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
-2026-03-25T20:45:53.513Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
-2026-03-25T20:45:53.514Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
-2026-03-25T20:45:53.517Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.520Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
-2026-03-25T20:45:53.523Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
-2026-03-25T20:45:53.528Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
-2026-03-25T20:45:53.531Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.533Z DEBUG 115707 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
-2026-03-25T20:45:53.536Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
-2026-03-25T20:45:53.546Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where u1_0.id=?
-2026-03-25T20:45:53.555Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0 where cm1_0.campaign_id=? and cm1_0.user_id=?
-2026-03-25T20:45:53.564Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign_member (campaign_id,role,user_id,id) values (?,?,?,?)
-2026-03-25T20:45:53.571Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : update campaign_invite set campaign_id=?,expires_at=?,intended_role=?,invite_token=?,invited_by_user_id=?,invitee_email=?,status=? where id=?
-2026-03-25T20:45:53.593Z DEBUG 115707 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
-2026-03-25T20:45:53.602Z DEBUG 115707 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Writing [AcceptInviteResponse[campaignId=a787db39-b087-46f6-a0fd-2206c0edacf9, membershipId=85ce1847-aefd-405 (truncated)...]
-2026-03-25T20:45:53.609Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
-2026-03-25T20:45:53.611Z DEBUG 115707 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
-2026-03-25T20:45:53.615Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
-2026-03-25T20:45:53.617Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.warcampaign.backend.api.ApiExceptionHandler#handleApiException(ApiException, HttpServletRequest)
-2026-03-25T20:45:53.617Z DEBUG 115707 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
-2026-03-25T20:45:53.618Z DEBUG 115707 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [ApiErrorResponse[timestamp=2026-03-25T20:45:53.617574595Z, code=INVITE_ALREADY_ACCEPTED, message=Inv (truncated)...]
-2026-03-25T20:45:53.619Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.warcampaign.backend.exception.ApiException: Invite token has already been used]
+  <testcase name="preventsDuplicateAcceptance" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="0.145">
+    <system-out><![CDATA[2026-03-25T22:10:56.158Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
+2026-03-25T22:10:56.161Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
+2026-03-25T22:10:56.163Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign_invite where id=?
+2026-03-25T22:10:56.166Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
+2026-03-25T22:10:56.168Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign where id=?
+2026-03-25T22:10:56.171Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
+2026-03-25T22:10:56.173Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
+2026-03-25T22:10:56.174Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
+2026-03-25T22:10:56.177Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:56.179Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
+2026-03-25T22:10:56.183Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
+2026-03-25T22:10:56.190Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
+2026-03-25T22:10:56.193Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:56.196Z DEBUG 137755 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
+2026-03-25T22:10:56.200Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
+2026-03-25T22:10:56.213Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where u1_0.id=?
+2026-03-25T22:10:56.224Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0 where cm1_0.campaign_id=? and cm1_0.user_id=?
+2026-03-25T22:10:56.235Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign_member (campaign_id,role,user_id,id) values (?,?,?,?)
+2026-03-25T22:10:56.243Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : update campaign_invite set campaign_id=?,expires_at=?,intended_role=?,invite_token=?,invited_by_user_id=?,invitee_email=?,status=? where id=?
+2026-03-25T22:10:56.266Z DEBUG 137755 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-03-25T22:10:56.274Z DEBUG 137755 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Writing [AcceptInviteResponse[campaignId=8332a02a-6baf-4659-9541-ffa142d17887, membershipId=193695e5-23c7-4bd (truncated)...]
+2026-03-25T22:10:56.282Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
+2026-03-25T22:10:56.285Z DEBUG 137755 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
+2026-03-25T22:10:56.289Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
+2026-03-25T22:10:56.291Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.warcampaign.backend.api.ApiExceptionHandler#handleApiException(ApiException, HttpServletRequest)
+2026-03-25T22:10:56.292Z DEBUG 137755 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-03-25T22:10:56.292Z DEBUG 137755 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [ApiErrorResponse[timestamp=2026-03-25T22:10:56.292336212Z, code=INVITE_ALREADY_ACCEPTED, message=Inv (truncated)...]
+2026-03-25T22:10:56.293Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.warcampaign.backend.exception.ApiException: Invite token has already been used]
 ]]></system-out>
   </testcase>
-  <testcase name="rejectsRevokedInvite" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="0.056">
-    <system-out><![CDATA[2026-03-25T20:45:53.633Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
-2026-03-25T20:45:53.635Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign_member where id=?
-2026-03-25T20:45:53.639Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
-2026-03-25T20:45:53.641Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign_invite where id=?
-2026-03-25T20:45:53.644Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
-2026-03-25T20:45:53.647Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign where id=?
-2026-03-25T20:45:53.649Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
-2026-03-25T20:45:53.652Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
-2026-03-25T20:45:53.653Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
-2026-03-25T20:45:53.656Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.659Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
-2026-03-25T20:45:53.662Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
-2026-03-25T20:45:53.666Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
-2026-03-25T20:45:53.669Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.671Z DEBUG 115707 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
-2026-03-25T20:45:53.675Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
-2026-03-25T20:45:53.677Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.warcampaign.backend.api.ApiExceptionHandler#handleApiException(ApiException, HttpServletRequest)
-2026-03-25T20:45:53.678Z DEBUG 115707 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
-2026-03-25T20:45:53.678Z DEBUG 115707 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [ApiErrorResponse[timestamp=2026-03-25T20:45:53.678006525Z, code=INVITE_REVOKED, message=Invite token (truncated)...]
-2026-03-25T20:45:53.679Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.warcampaign.backend.exception.ApiException: Invite token has been revoked]
+  <testcase name="rejectsRevokedInvite" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="0.076">
+    <system-out><![CDATA[2026-03-25T22:10:56.308Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
+2026-03-25T22:10:56.311Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign_member where id=?
+2026-03-25T22:10:56.314Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
+2026-03-25T22:10:56.320Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign_invite where id=?
+2026-03-25T22:10:56.327Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
+2026-03-25T22:10:56.331Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign where id=?
+2026-03-25T22:10:56.335Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
+2026-03-25T22:10:56.339Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
+2026-03-25T22:10:56.340Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
+2026-03-25T22:10:56.344Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:56.347Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
+2026-03-25T22:10:56.351Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
+2026-03-25T22:10:56.357Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
+2026-03-25T22:10:56.360Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:56.362Z DEBUG 137755 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
+2026-03-25T22:10:56.366Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
+2026-03-25T22:10:56.369Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.warcampaign.backend.api.ApiExceptionHandler#handleApiException(ApiException, HttpServletRequest)
+2026-03-25T22:10:56.369Z DEBUG 137755 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-03-25T22:10:56.370Z DEBUG 137755 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [ApiErrorResponse[timestamp=2026-03-25T22:10:56.369575575Z, code=INVITE_REVOKED, message=Invite token (truncated)...]
+2026-03-25T22:10:56.370Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.warcampaign.backend.exception.ApiException: Invite token has been revoked]
 ]]></system-out>
   </testcase>
-  <testcase name="rejectsExpiredInvite" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="0.056">
-    <system-out><![CDATA[2026-03-25T20:45:53.692Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
-2026-03-25T20:45:53.695Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
-2026-03-25T20:45:53.698Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign_invite where id=?
-2026-03-25T20:45:53.701Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
-2026-03-25T20:45:53.703Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign where id=?
-2026-03-25T20:45:53.706Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
-2026-03-25T20:45:53.708Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
-2026-03-25T20:45:53.710Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
-2026-03-25T20:45:53.713Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.716Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
-2026-03-25T20:45:53.721Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
-2026-03-25T20:45:53.726Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
-2026-03-25T20:45:53.728Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.730Z DEBUG 115707 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
-2026-03-25T20:45:53.733Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
-2026-03-25T20:45:53.736Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.warcampaign.backend.api.ApiExceptionHandler#handleApiException(ApiException, HttpServletRequest)
-2026-03-25T20:45:53.737Z DEBUG 115707 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
-2026-03-25T20:45:53.737Z DEBUG 115707 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [ApiErrorResponse[timestamp=2026-03-25T20:45:53.737029633Z, code=INVITE_EXPIRED, message=Invite token (truncated)...]
-2026-03-25T20:45:53.738Z DEBUG 115707 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.warcampaign.backend.exception.ApiException: Invite token has expired]
+  <testcase name="rejectsExpiredInvite" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="0.074">
+    <system-out><![CDATA[2026-03-25T22:10:56.386Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
+2026-03-25T22:10:56.390Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
+2026-03-25T22:10:56.393Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign_invite where id=?
+2026-03-25T22:10:56.398Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
+2026-03-25T22:10:56.401Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign where id=?
+2026-03-25T22:10:56.405Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
+2026-03-25T22:10:56.408Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
+2026-03-25T22:10:56.409Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
+2026-03-25T22:10:56.413Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:56.417Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
+2026-03-25T22:10:56.422Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
+2026-03-25T22:10:56.428Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
+2026-03-25T22:10:56.432Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:56.435Z DEBUG 137755 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
+2026-03-25T22:10:56.439Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
+2026-03-25T22:10:56.443Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.warcampaign.backend.api.ApiExceptionHandler#handleApiException(ApiException, HttpServletRequest)
+2026-03-25T22:10:56.443Z DEBUG 137755 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-03-25T22:10:56.445Z DEBUG 137755 --- [           main] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [ApiErrorResponse[timestamp=2026-03-25T22:10:56.443512916Z, code=INVITE_EXPIRED, message=Invite token (truncated)...]
+2026-03-25T22:10:56.446Z DEBUG 137755 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : Resolved [com.warcampaign.backend.exception.ApiException: Invite token has expired]
 ]]></system-out>
   </testcase>
-  <testcase name="acceptsValidInviteAndCreatesMembership" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="0.072">
-    <system-out><![CDATA[2026-03-25T20:45:53.749Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
-2026-03-25T20:45:53.753Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
-2026-03-25T20:45:53.755Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign_invite where id=?
-2026-03-25T20:45:53.759Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
-2026-03-25T20:45:53.761Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from campaign where id=?
-2026-03-25T20:45:53.764Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
-2026-03-25T20:45:53.766Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
-2026-03-25T20:45:53.768Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
-2026-03-25T20:45:53.770Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.773Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
-2026-03-25T20:45:53.776Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
-2026-03-25T20:45:53.781Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
-2026-03-25T20:45:53.784Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
-2026-03-25T20:45:53.786Z DEBUG 115707 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
-2026-03-25T20:45:53.789Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
-2026-03-25T20:45:53.791Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where u1_0.id=?
-2026-03-25T20:45:53.794Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0 where cm1_0.campaign_id=? and cm1_0.user_id=?
-2026-03-25T20:45:53.797Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : insert into campaign_member (campaign_id,role,user_id,id) values (?,?,?,?)
-2026-03-25T20:45:53.798Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : update campaign_invite set campaign_id=?,expires_at=?,intended_role=?,invite_token=?,invited_by_user_id=?,invitee_email=?,status=? where id=?
-2026-03-25T20:45:53.800Z DEBUG 115707 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
-2026-03-25T20:45:53.801Z DEBUG 115707 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Writing [AcceptInviteResponse[campaignId=a9351233-68f3-4e0b-ba94-49c6d212c020, membershipId=22aa925d-d0d5-451 (truncated)...]
-2026-03-25T20:45:53.805Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
-2026-03-25T20:45:53.808Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
-2026-03-25T20:45:53.812Z DEBUG 115707 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0 where cm1_0.campaign_id=? and cm1_0.user_id=?
+  <testcase name="acceptsValidInviteAndCreatesMembership" classname="com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest" time="0.103">
+    <system-out><![CDATA[2026-03-25T22:10:56.466Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0
+2026-03-25T22:10:56.470Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0
+2026-03-25T22:10:56.474Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign_invite where id=?
+2026-03-25T22:10:56.478Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select c1_0.id,c1_0.created_by_user_id,c1_0.current_phase,c1_0.name from campaign c1_0
+2026-03-25T22:10:56.480Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from campaign where id=?
+2026-03-25T22:10:56.484Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0
+2026-03-25T22:10:56.488Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
+2026-03-25T22:10:56.489Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : delete from app_user where id=?
+2026-03-25T22:10:56.492Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:56.495Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign (created_by_user_id,current_phase,name,id) values (?,?,?,?)
+2026-03-25T22:10:56.501Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign_invite (campaign_id,expires_at,intended_role,invite_token,invited_by_user_id,invitee_email,status,id) values (?,?,?,?,?,?,?,?)
+2026-03-25T22:10:56.506Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
+2026-03-25T22:10:56.510Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into app_user (active,display_name,email,id) values (?,?,?,?)
+2026-03-25T22:10:56.513Z DEBUG 137755 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.InviteController#acceptInvite(String)
+2026-03-25T22:10:56.517Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
+2026-03-25T22:10:56.520Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where u1_0.id=?
+2026-03-25T22:10:56.525Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0 where cm1_0.campaign_id=? and cm1_0.user_id=?
+2026-03-25T22:10:56.529Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : insert into campaign_member (campaign_id,role,user_id,id) values (?,?,?,?)
+2026-03-25T22:10:56.531Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : update campaign_invite set campaign_id=?,expires_at=?,intended_role=?,invite_token=?,invited_by_user_id=?,invitee_email=?,status=? where id=?
+2026-03-25T22:10:56.534Z DEBUG 137755 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-03-25T22:10:56.534Z DEBUG 137755 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Writing [AcceptInviteResponse[campaignId=50331bf0-2880-47b2-89ba-13678cb4ed1d, membershipId=423c170b-4446-4ec (truncated)...]
+2026-03-25T22:10:56.540Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select ci1_0.id,ci1_0.campaign_id,ci1_0.expires_at,ci1_0.intended_role,ci1_0.invite_token,ci1_0.invited_by_user_id,ci1_0.invitee_email,ci1_0.status from campaign_invite ci1_0 where ci1_0.invite_token=?
+2026-03-25T22:10:56.544Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
+2026-03-25T22:10:56.549Z DEBUG 137755 --- [           main] org.hibernate.SQL                        : select cm1_0.id,cm1_0.campaign_id,cm1_0.role,cm1_0.user_id from campaign_member cm1_0 where cm1_0.campaign_id=? and cm1_0.user_id=?
 ]]></system-out>
   </testcase>
 </testsuite>
