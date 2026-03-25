@@ -1,0 +1,18 @@
+# Backend
+apps/war-api/target/
+apps/war-api/.classpath
+apps/war-api/.project
+apps/war-api/.settings/
+*.class
+
+# Frontend
+apps/war-ui/node_modules
+apps/war-ui/dist
+apps/war-ui/.env.local
+
+# Docs
+docs/assets/
+
+# General
+.DS_Store
+.env
