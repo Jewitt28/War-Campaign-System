@@ -8,15 +8,18 @@ import com.warcampaign.backend.dto.CampaignPhaseResponse;
 import com.warcampaign.backend.dto.CampaignResolutionResponse;
 import com.warcampaign.backend.dto.CampaignSnapshotExportResponse;
 import com.warcampaign.backend.dto.CampaignSummaryResponse;
+import com.warcampaign.backend.dto.BattleDetailResponse;
 import com.warcampaign.backend.dto.GmTerritoryResponse;
 import com.warcampaign.backend.dto.MyOrderSubmissionResponse;
 import com.warcampaign.backend.dto.PlayerTerritoryResponse;
 import com.warcampaign.backend.dto.PlayerPlatoonSummaryResponse;
+import com.warcampaign.backend.dto.RecordBattleResultRequest;
 import com.warcampaign.backend.dto.SaveOrderSubmissionRequest;
 import com.warcampaign.backend.dto.UpdateCampaignMemberRequest;
 import com.warcampaign.backend.dto.VisibilityRebuildResponse;
 import com.warcampaign.backend.service.AuthenticationService;
 import com.warcampaign.backend.service.CampaignAdminService;
+import com.warcampaign.backend.service.CampaignBattleService;
 import com.warcampaign.backend.service.CampaignLobbyService;
 import com.warcampaign.backend.service.CampaignMapService;
 import com.warcampaign.backend.service.CampaignOrderService;
@@ -46,6 +49,7 @@ public class CampaignController {
     private final CampaignOrderService campaignOrderService;
     private final CampaignPhaseService campaignPhaseService;
     private final CampaignResolutionService campaignResolutionService;
+    private final CampaignBattleService campaignBattleService;
     private final CampaignVisibilityService campaignVisibilityService;
     private final CampaignAdminService campaignAdminService;
     private final AuthenticationService authenticationService;
@@ -56,6 +60,7 @@ public class CampaignController {
                               CampaignOrderService campaignOrderService,
                               CampaignPhaseService campaignPhaseService,
                               CampaignResolutionService campaignResolutionService,
+                              CampaignBattleService campaignBattleService,
                               CampaignVisibilityService campaignVisibilityService,
                               CampaignAdminService campaignAdminService,
                               AuthenticationService authenticationService) {
@@ -65,6 +70,7 @@ public class CampaignController {
         this.campaignOrderService = campaignOrderService;
         this.campaignPhaseService = campaignPhaseService;
         this.campaignResolutionService = campaignResolutionService;
+        this.campaignBattleService = campaignBattleService;
         this.campaignVisibilityService = campaignVisibilityService;
         this.campaignAdminService = campaignAdminService;
         this.authenticationService = authenticationService;
@@ -135,6 +141,18 @@ public class CampaignController {
     @PostMapping("/{campaignId}/turns/{turnNumber}/resolve")
     public CampaignResolutionResponse resolveTurn(@PathVariable UUID campaignId, @PathVariable int turnNumber) {
         return campaignResolutionService.resolveTurn(campaignId, turnNumber, authenticationService.currentUser());
+    }
+
+    @GetMapping("/{campaignId}/battles/{battleId}")
+    public BattleDetailResponse getBattle(@PathVariable UUID campaignId, @PathVariable UUID battleId) {
+        return campaignBattleService.getBattle(campaignId, battleId, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/battles/{battleId}/result")
+    public BattleDetailResponse recordBattleResult(@PathVariable UUID campaignId,
+                                                   @PathVariable UUID battleId,
+                                                   @RequestBody RecordBattleResultRequest request) {
+        return campaignBattleService.recordBattleResult(campaignId, battleId, request, authenticationService.currentUser());
     }
 
     @GetMapping("/{campaignId}/audit")
