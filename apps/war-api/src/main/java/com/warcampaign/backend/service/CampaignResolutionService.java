@@ -65,6 +65,7 @@ public class CampaignResolutionService {
     private final BattleRepository battleRepository;
     private final BattleParticipantRepository battleParticipantRepository;
     private final ResolutionEventRepository resolutionEventRepository;
+    private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
 
     public CampaignResolutionService(CampaignMemberRepository campaignMemberRepository,
@@ -76,6 +77,7 @@ public class CampaignResolutionService {
                                      BattleRepository battleRepository,
                                      BattleParticipantRepository battleParticipantRepository,
                                      ResolutionEventRepository resolutionEventRepository,
+                                     NotificationService notificationService,
                                      ObjectMapper objectMapper) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.turnRepository = turnRepository;
@@ -86,6 +88,7 @@ public class CampaignResolutionService {
         this.battleRepository = battleRepository;
         this.battleParticipantRepository = battleParticipantRepository;
         this.resolutionEventRepository = resolutionEventRepository;
+        this.notificationService = notificationService;
         this.objectMapper = objectMapper;
     }
 
@@ -133,6 +136,7 @@ public class CampaignResolutionService {
                         "battleCount", battles.size(),
                         "eventGeneratedAt", resolvedAt.toString()
                 )));
+        notifyResolutionCompleted(campaign, turnNumber, battles.size());
 
         return buildSummary(campaign, turnNumber);
     }
@@ -236,9 +240,34 @@ public class CampaignResolutionService {
                             "attackerPlatoonCount", participants.stream().filter(p -> p.getSide() == BattleParticipantSide.ATTACKER).count(),
                             "defenderPlatoonCount", participants.stream().filter(p -> p.getSide() == BattleParticipantSide.DEFENDER).count()
                     )));
+            notificationService.notifyCampaignMembers(
+                    campaign,
+                    "NEW_BATTLE_CREATED",
+                    "New battle created",
+                    "A new battle was generated in " + territory.getName() + " for " + campaign.getName() + ".",
+                    json(Map.of(
+                            "battleId", savedBattle.getId().toString(),
+                            "territoryId", territory.getId().toString(),
+                            "turnNumber", turnNumber
+                    ))
+            );
             battles.add(savedBattle);
         }
         return battles;
+    }
+
+    private void notifyResolutionCompleted(Campaign campaign, int turnNumber, int battleCount) {
+        notificationService.notifyCampaignMembers(
+                campaign,
+                "RESOLUTION_COMPLETED",
+                "Resolution completed",
+                campaign.getName() + " resolution completed for turn " + turnNumber + ".",
+                json(Map.of(
+                        "campaignId", campaign.getId().toString(),
+                        "turnNumber", turnNumber,
+                        "battleCount", battleCount
+                ))
+        );
     }
 
     private BattleDraft determineBattleDraft(Map<UUID, List<PlatoonOrder>> attacksByFaction, TerritoryState territoryState) {

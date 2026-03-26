@@ -16,6 +16,7 @@ import com.warcampaign.backend.repository.CampaignMemberRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
 import com.warcampaign.backend.repository.NationRepository;
+import com.warcampaign.backend.repository.NotificationRepository;
 import com.warcampaign.backend.repository.OrderSubmissionRepository;
 import com.warcampaign.backend.repository.PlatoonRepository;
 import com.warcampaign.backend.repository.PlatoonOrderRepository;
@@ -105,6 +106,9 @@ class CampaignLobbyIntegrationTest {
     @Autowired
     private VisibilityStateRepository visibilityStateRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private User gmUser;
     private User playerUser;
     private User outsiderUser;
@@ -118,6 +122,7 @@ class CampaignLobbyIntegrationTest {
 
     @BeforeEach
     void setup() {
+        notificationRepository.deleteAll();
         visibilityStateRepository.deleteAll();
         resolutionEventRepository.deleteAll();
         battleParticipantRepository.deleteAll();

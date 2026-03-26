@@ -23,6 +23,7 @@ import com.warcampaign.backend.repository.CampaignMemberRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
 import com.warcampaign.backend.repository.NationRepository;
+import com.warcampaign.backend.repository.NotificationRepository;
 import com.warcampaign.backend.repository.OrderSubmissionRepository;
 import com.warcampaign.backend.repository.PlatoonRepository;
 import com.warcampaign.backend.repository.PlatoonOrderRepository;
@@ -111,6 +112,9 @@ class CampaignPlatoonIntegrationTest {
     @Autowired
     private VisibilityStateRepository visibilityStateRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private Campaign alphaCampaign;
     private Campaign bravoCampaign;
     private CampaignMember allyPlayerMembership;
@@ -121,6 +125,7 @@ class CampaignPlatoonIntegrationTest {
 
     @BeforeEach
     void setup() {
+        notificationRepository.deleteAll();
         visibilityStateRepository.deleteAll();
         resolutionEventRepository.deleteAll();
         battleParticipantRepository.deleteAll();

@@ -47,6 +47,7 @@ public class CampaignPhaseService {
     private final TurnRepository turnRepository;
     private final OrderSubmissionRepository orderSubmissionRepository;
     private final CampaignAuditLogRepository campaignAuditLogRepository;
+    private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
 
     public CampaignPhaseService(CampaignMemberRepository campaignMemberRepository,
@@ -54,12 +55,14 @@ public class CampaignPhaseService {
                                 TurnRepository turnRepository,
                                 OrderSubmissionRepository orderSubmissionRepository,
                                 CampaignAuditLogRepository campaignAuditLogRepository,
+                                NotificationService notificationService,
                                 ObjectMapper objectMapper) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.campaignRepository = campaignRepository;
         this.turnRepository = turnRepository;
         this.orderSubmissionRepository = orderSubmissionRepository;
         this.campaignAuditLogRepository = campaignAuditLogRepository;
+        this.notificationService = notificationService;
         this.objectMapper = objectMapper;
     }
 
@@ -77,6 +80,7 @@ public class CampaignPhaseService {
         applyPhaseTransition(campaign, previousPhase, nextPhase);
         Campaign savedCampaign = campaignRepository.save(campaign);
         writeAuditLog(savedCampaign, membership, beforeSnapshot, snapshot(savedCampaign));
+        notifyPhaseTransition(savedCampaign, previousPhase, nextPhase);
 
         return toResponse(savedCampaign);
     }
@@ -91,9 +95,11 @@ public class CampaignPhaseService {
                 continue;
             }
             TransitionSnapshot beforeSnapshot = snapshot(campaign);
-            applyPhaseTransition(campaign, campaign.getCurrentPhase(), nextPhase);
+            CampaignPhase previousPhase = campaign.getCurrentPhase();
+            applyPhaseTransition(campaign, previousPhase, nextPhase);
             Campaign savedCampaign = campaignRepository.save(campaign);
             writeSystemAuditLog(savedCampaign, beforeSnapshot, snapshot(savedCampaign));
+            notifyPhaseTransition(savedCampaign, previousPhase, nextPhase);
             advancedCount++;
         }
         return advancedCount;
@@ -165,8 +171,26 @@ public class CampaignPhaseService {
                             submission.setChecksum("auto-locked");
                         }
                         orderSubmissionRepository.save(submission);
+                        notificationService.notifyUser(
+                                campaign,
+                                member.getUser(),
+                                "ORDERS_AUTO_LOCKED",
+                                "Orders auto-locked",
+                                "Your turn " + campaign.getCurrentTurnNumber() + " orders in " + campaign.getName() + " were auto-locked.",
+                                "{\"campaignId\":\"" + campaign.getId() + "\",\"turnNumber\":" + campaign.getCurrentTurnNumber() + "}"
+                        );
                     });
         }
+    }
+
+    private void notifyPhaseTransition(Campaign campaign, CampaignPhase previousPhase, CampaignPhase nextPhase) {
+        notificationService.notifyCampaignMembers(
+                campaign,
+                "PHASE_STARTED",
+                "Campaign phase started",
+                campaign.getName() + " advanced from " + previousPhase + " to " + nextPhase + ".",
+                "{\"campaignId\":\"" + campaign.getId() + "\",\"currentTurnNumber\":" + campaign.getCurrentTurnNumber() + ",\"currentPhase\":\"" + nextPhase + "\"}"
+        );
     }
 
     private void writeAuditLog(Campaign campaign,

@@ -24,13 +24,16 @@ public class InviteAcceptanceService {
     private final CampaignInviteRepository campaignInviteRepository;
     private final CampaignMemberRepository campaignMemberRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public InviteAcceptanceService(CampaignInviteRepository campaignInviteRepository,
                                    CampaignMemberRepository campaignMemberRepository,
-                                   UserRepository userRepository) {
+                                   UserRepository userRepository,
+                                   NotificationService notificationService) {
         this.campaignInviteRepository = campaignInviteRepository;
         this.campaignMemberRepository = campaignMemberRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -77,6 +80,14 @@ public class InviteAcceptanceService {
         CampaignMember persisted = campaignMemberRepository.save(member);
         invite.setStatus(InviteStatus.ACCEPTED);
         campaignInviteRepository.save(invite);
+        notificationService.notifyUser(
+                invite.getCampaign(),
+                activeUser,
+                "INVITE_ACCEPTED",
+                "Campaign invite accepted",
+                "You joined " + invite.getCampaign().getName() + ".",
+                "{\"campaignId\":\"" + invite.getCampaign().getId() + "\",\"memberId\":\"" + persisted.getId() + "\"}"
+        );
 
         return new AcceptInviteResponse(
                 invite.getCampaign().getId(),

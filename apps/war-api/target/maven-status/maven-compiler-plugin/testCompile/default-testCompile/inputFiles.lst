@@ -6,4 +6,5 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/CampaignResolutionIntegrationTest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/CampaignVisibilityAdminIntegrationTest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/InviteAcceptanceIntegrationTest.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/NotificationIntegrationTest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/RootEndpointIntegrationTest.java

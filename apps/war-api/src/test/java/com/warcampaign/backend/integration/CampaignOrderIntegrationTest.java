@@ -23,6 +23,7 @@ import com.warcampaign.backend.repository.CampaignMemberRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
 import com.warcampaign.backend.repository.NationRepository;
+import com.warcampaign.backend.repository.NotificationRepository;
 import com.warcampaign.backend.repository.OrderSubmissionRepository;
 import com.warcampaign.backend.repository.PlatoonOrderRepository;
 import com.warcampaign.backend.repository.PlatoonRepository;
@@ -114,6 +115,9 @@ class CampaignOrderIntegrationTest {
     @Autowired
     private VisibilityStateRepository visibilityStateRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private Campaign alphaCampaign;
     private Territory normandy;
     private Territory calais;
@@ -122,6 +126,7 @@ class CampaignOrderIntegrationTest {
 
     @BeforeEach
     void setup() {
+        notificationRepository.deleteAll();
         visibilityStateRepository.deleteAll();
         resolutionEventRepository.deleteAll();
         battleParticipantRepository.deleteAll();
