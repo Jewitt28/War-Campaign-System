@@ -6,10 +6,12 @@ import com.warcampaign.backend.dto.CampaignMemberResponse;
 import com.warcampaign.backend.dto.CampaignSummaryResponse;
 import com.warcampaign.backend.dto.GmTerritoryResponse;
 import com.warcampaign.backend.dto.PlayerTerritoryResponse;
+import com.warcampaign.backend.dto.PlayerPlatoonSummaryResponse;
 import com.warcampaign.backend.dto.UpdateCampaignMemberRequest;
 import com.warcampaign.backend.service.AuthenticationService;
 import com.warcampaign.backend.service.CampaignLobbyService;
 import com.warcampaign.backend.service.CampaignMapService;
+import com.warcampaign.backend.service.CampaignPlatoonService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,13 +28,16 @@ public class CampaignController {
 
     private final CampaignLobbyService campaignLobbyService;
     private final CampaignMapService campaignMapService;
+    private final CampaignPlatoonService campaignPlatoonService;
     private final AuthenticationService authenticationService;
 
     public CampaignController(CampaignLobbyService campaignLobbyService,
                               CampaignMapService campaignMapService,
+                              CampaignPlatoonService campaignPlatoonService,
                               AuthenticationService authenticationService) {
         this.campaignLobbyService = campaignLobbyService;
         this.campaignMapService = campaignMapService;
+        this.campaignPlatoonService = campaignPlatoonService;
         this.authenticationService = authenticationService;
     }
 
@@ -59,6 +64,16 @@ public class CampaignController {
     @GetMapping("/{campaignId}/territories/{territoryId}/gm")
     public GmTerritoryResponse getGmTerritory(@PathVariable UUID campaignId, @PathVariable UUID territoryId) {
         return campaignMapService.getGmTerritory(campaignId, territoryId, authenticationService.currentUser());
+    }
+
+    @GetMapping("/{campaignId}/platoons")
+    public List<PlayerPlatoonSummaryResponse> listPlatoons(@PathVariable UUID campaignId) {
+        return campaignPlatoonService.listPlatoons(campaignId, authenticationService.currentUser());
+    }
+
+    @GetMapping("/{campaignId}/platoons/{platoonId}")
+    public Object getPlatoon(@PathVariable UUID campaignId, @PathVariable UUID platoonId) {
+        return campaignPlatoonService.getPlatoon(campaignId, platoonId, authenticationService.currentUser());
     }
 
     @GetMapping("/{campaignId}/members")

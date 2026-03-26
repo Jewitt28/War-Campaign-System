@@ -27,6 +27,9 @@ public class PlatoonState extends BaseEntity {
     @Column(nullable = false)
     private int strength;
 
+    @Column(columnDefinition = "TEXT")
+    private String notes;
+
     public Turn getTurn() {
         return turn;
     }
@@ -65,5 +68,13 @@ public class PlatoonState extends BaseEntity {
 
     public void setStrength(int strength) {
         this.strength = strength;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

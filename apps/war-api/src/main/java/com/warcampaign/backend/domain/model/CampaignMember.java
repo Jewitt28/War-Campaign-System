@@ -20,6 +20,14 @@ public class CampaignMember extends BaseEntity {
     @Column(nullable = false, length = 20)
     private CampaignRole role;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "faction_id")
+    private Faction faction;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "nation_id")
+    private Nation nation;
+
     public Campaign getCampaign() {
         return campaign;
     }
@@ -42,5 +50,21 @@ public class CampaignMember extends BaseEntity {
 
     public void setRole(CampaignRole role) {
         this.role = role;
+    }
+
+    public Faction getFaction() {
+        return faction;
+    }
+
+    public void setFaction(Faction faction) {
+        this.faction = faction;
+    }
+
+    public Nation getNation() {
+        return nation;
+    }
+
+    public void setNation(Nation nation) {
+        this.nation = nation;
     }
 }

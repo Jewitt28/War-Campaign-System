@@ -16,6 +16,14 @@ public class Platoon extends BaseEntity {
     private Faction faction;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "nation_id")
+    private Nation nation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_member_id")
+    private CampaignMember assignedMember;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "home_territory_id")
     private Territory homeTerritory;
 
@@ -24,6 +32,12 @@ public class Platoon extends BaseEntity {
 
     @Column(nullable = false, length = 120)
     private String name;
+
+    @Column(name = "unit_type", nullable = false, length = 60)
+    private String unitType = "LINE";
+
+    @Column(name = "hidden_from_players", nullable = false)
+    private boolean hiddenFromPlayers;
 
     public Campaign getCampaign() {
         return campaign;
@@ -39,6 +53,22 @@ public class Platoon extends BaseEntity {
 
     public void setFaction(Faction faction) {
         this.faction = faction;
+    }
+
+    public Nation getNation() {
+        return nation;
+    }
+
+    public void setNation(Nation nation) {
+        this.nation = nation;
+    }
+
+    public CampaignMember getAssignedMember() {
+        return assignedMember;
+    }
+
+    public void setAssignedMember(CampaignMember assignedMember) {
+        this.assignedMember = assignedMember;
     }
 
     public Territory getHomeTerritory() {
@@ -63,5 +93,21 @@ public class Platoon extends BaseEntity {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getUnitType() {
+        return unitType;
+    }
+
+    public void setUnitType(String unitType) {
+        this.unitType = unitType;
+    }
+
+    public boolean isHiddenFromPlayers() {
+        return hiddenFromPlayers;
+    }
+
+    public void setHiddenFromPlayers(boolean hiddenFromPlayers) {
+        this.hiddenFromPlayers = hiddenFromPlayers;
     }
 }

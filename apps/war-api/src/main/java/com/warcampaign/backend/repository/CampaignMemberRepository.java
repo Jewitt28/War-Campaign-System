@@ -20,11 +20,11 @@ public interface CampaignMemberRepository extends JpaRepository<CampaignMember, 
     @Query("select cm from CampaignMember cm where cm.user.id = :userId order by cm.campaign.name asc")
     List<CampaignMember> findAllByUserIdWithCampaign(UUID userId);
 
-    @EntityGraph(attributePaths = {"campaign", "campaign.createdBy", "user"})
+    @EntityGraph(attributePaths = {"campaign", "campaign.createdBy", "user", "faction", "nation"})
     @Query("select cm from CampaignMember cm where cm.campaign.id = :campaignId and cm.user.id = :userId")
     Optional<CampaignMember> findByCampaignIdAndUserIdWithCampaign(UUID campaignId, UUID userId);
 
-    @EntityGraph(attributePaths = {"user"})
+    @EntityGraph(attributePaths = {"user", "faction", "nation"})
     @Query("select cm from CampaignMember cm where cm.campaign.id = :campaignId order by cm.user.displayName asc")
     List<CampaignMember> findAllByCampaignIdWithUser(UUID campaignId);
 

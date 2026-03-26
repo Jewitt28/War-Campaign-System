@@ -3,6 +3,7 @@ package com.warcampaign.backend.service;
 import com.warcampaign.backend.domain.model.Campaign;
 import com.warcampaign.backend.domain.model.CampaignMember;
 import com.warcampaign.backend.domain.model.Faction;
+import com.warcampaign.backend.domain.model.Nation;
 import com.warcampaign.backend.dto.CampaignDetailResponse;
 import com.warcampaign.backend.dto.CampaignFactionResponse;
 import com.warcampaign.backend.dto.CampaignMemberResponse;
@@ -11,6 +12,7 @@ import com.warcampaign.backend.dto.UpdateCampaignMemberRequest;
 import com.warcampaign.backend.exception.ApiException;
 import com.warcampaign.backend.repository.CampaignMemberRepository;
 import com.warcampaign.backend.repository.FactionRepository;
+import com.warcampaign.backend.repository.NationRepository;
 import com.warcampaign.backend.security.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -26,11 +28,14 @@ public class CampaignLobbyService {
 
     private final CampaignMemberRepository campaignMemberRepository;
     private final FactionRepository factionRepository;
+    private final NationRepository nationRepository;
 
     public CampaignLobbyService(CampaignMemberRepository campaignMemberRepository,
-                                FactionRepository factionRepository) {
+                                FactionRepository factionRepository,
+                                NationRepository nationRepository) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.factionRepository = factionRepository;
+        this.nationRepository = nationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -100,16 +105,27 @@ public class CampaignLobbyService {
         CampaignMember member = campaignMemberRepository.findByIdAndCampaignId(memberId, campaignId)
                 .orElseThrow(() -> new ApiException("CAMPAIGN_MEMBER_NOT_FOUND", HttpStatus.NOT_FOUND, "Campaign member not found"));
 
-        if (request.factionId() != null || request.nationId() != null) {
-            throw new ApiException(
-                    "MEMBER_ASSIGNMENT_UNSUPPORTED",
-                    HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Faction and nation assignments are not yet supported by the current schema"
-            );
-        }
-
         if (request.role() != null) {
             member.setRole(request.role());
+        }
+
+        Faction faction = member.getFaction();
+        if (request.factionId() != null) {
+            faction = factionRepository.findByIdAndCampaignId(request.factionId(), campaignId)
+                    .orElseThrow(() -> new ApiException("FACTION_NOT_FOUND", HttpStatus.NOT_FOUND, "Faction not found"));
+            member.setFaction(faction);
+        }
+
+        if (request.nationId() != null) {
+            Nation nation = nationRepository.findByIdAndCampaignId(request.nationId(), campaignId)
+                    .orElseThrow(() -> new ApiException("NATION_NOT_FOUND", HttpStatus.NOT_FOUND, "Nation not found"));
+            if (faction != null && nation.getFaction() != null && !nation.getFaction().getId().equals(faction.getId())) {
+                throw new ApiException("MEMBER_ASSIGNMENT_INVALID", HttpStatus.UNPROCESSABLE_ENTITY, "Nation does not belong to the assigned faction");
+            }
+            member.setNation(nation);
+            if (member.getFaction() == null && nation.getFaction() != null) {
+                member.setFaction(nation.getFaction());
+            }
         }
 
         CampaignMember saved = campaignMemberRepository.save(member);
@@ -139,8 +155,8 @@ public class CampaignLobbyService {
                 membership.getUser().getEmail(),
                 membership.getUser().getDisplayName(),
                 membership.getRole(),
-                null,
-                null
+                membership.getFaction() != null ? membership.getFaction().getId() : null,
+                membership.getNation() != null ? membership.getNation().getId() : null
         );
     }
 

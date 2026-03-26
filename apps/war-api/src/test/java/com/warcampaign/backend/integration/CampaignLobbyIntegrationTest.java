@@ -2,9 +2,11 @@ package com.warcampaign.backend.integration;
 
 import com.warcampaign.backend.domain.enums.CampaignPhase;
 import com.warcampaign.backend.domain.enums.CampaignRole;
+import com.warcampaign.backend.domain.enums.FactionType;
 import com.warcampaign.backend.domain.model.Campaign;
 import com.warcampaign.backend.domain.model.CampaignMember;
 import com.warcampaign.backend.domain.model.Faction;
+import com.warcampaign.backend.domain.model.Nation;
 import com.warcampaign.backend.domain.model.User;
 import com.warcampaign.backend.repository.CampaignInviteRepository;
 import com.warcampaign.backend.repository.CampaignMemberRepository;
@@ -83,6 +85,8 @@ class CampaignLobbyIntegrationTest {
     private CampaignMember alphaGmMembership;
     private CampaignMember alphaPlayerMembership;
     private CampaignMember bravoPlayerMembership;
+    private Faction alphaAllies;
+    private Nation alphaBritish;
 
     @BeforeEach
     void setup() {
@@ -106,12 +110,13 @@ class CampaignLobbyIntegrationTest {
         alphaCampaign = saveCampaign("Alpha Front", gmUser);
         bravoCampaign = saveCampaign("Bravo Front", outsiderUser);
 
+        alphaAllies = saveFaction(alphaCampaign, "allies", "Allies");
+        saveFaction(alphaCampaign, "axis", "Axis");
+        alphaBritish = saveNation(alphaCampaign, alphaAllies, "uk", "United Kingdom");
+
         alphaGmMembership = saveMembership(alphaCampaign, gmUser, CampaignRole.GM);
         alphaPlayerMembership = saveMembership(alphaCampaign, playerUser, CampaignRole.PLAYER);
         bravoPlayerMembership = saveMembership(bravoCampaign, outsiderUser, CampaignRole.PLAYER);
-
-        saveFaction(alphaCampaign, "allies", "Allies");
-        saveFaction(alphaCampaign, "axis", "Axis");
     }
 
     @Test
@@ -153,18 +158,20 @@ class CampaignLobbyIntegrationTest {
                         .content("""
                                 {
                                   "role": "OBSERVER",
-                                  "factionId": null,
-                                  "nationId": null
+                                  "factionId": "%s",
+                                  "nationId": "%s"
                                 }
-                                """))
+                                """.formatted(alphaAllies.getId(), alphaBritish.getId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(alphaPlayerMembership.getId().toString()))
                 .andExpect(jsonPath("$.role").value("OBSERVER"))
-                .andExpect(jsonPath("$.factionId").isEmpty())
-                .andExpect(jsonPath("$.nationId").isEmpty());
+                .andExpect(jsonPath("$.factionId").value(alphaAllies.getId().toString()))
+                .andExpect(jsonPath("$.nationId").value(alphaBritish.getId().toString()));
 
         CampaignMember updated = campaignMemberRepository.findById(alphaPlayerMembership.getId()).orElseThrow();
         assertThat(updated.getRole()).isEqualTo(CampaignRole.OBSERVER);
+        assertThat(updated.getFaction().getId()).isEqualTo(alphaAllies.getId());
+        assertThat(updated.getNation().getId()).isEqualTo(alphaBritish.getId());
     }
 
     @Test
@@ -224,6 +231,17 @@ class CampaignLobbyIntegrationTest {
         faction.setCampaign(campaign);
         faction.setFactionKey(key);
         faction.setName(name);
+        faction.setType(FactionType.MAJOR);
+        faction.setPlayerControlled(true);
         return factionRepository.save(faction);
+    }
+
+    private Nation saveNation(Campaign campaign, Faction faction, String key, String name) {
+        Nation nation = new Nation();
+        nation.setCampaign(campaign);
+        nation.setFaction(faction);
+        nation.setNationKey(key);
+        nation.setName(name);
+        return nationRepository.save(nation);
     }
 }
