@@ -12,6 +12,9 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/CampaignStatus.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/FactionType.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/InviteStatus.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/OrderSubmissionStatus.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/PlatoonOrderType.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/PlatoonOrderValidationStatus.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/PlatoonReadinessStatus.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/TerritoryControlStatus.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/TerritoryStrategicStatus.java
@@ -21,7 +24,9 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/CampaignMember.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/Faction.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/Nation.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/OrderSubmission.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/Platoon.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/PlatoonOrder.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/PlatoonState.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/Territory.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/TerritoryState.java
@@ -44,11 +49,15 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/MapNationResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/MapTerritorySummaryResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/MapTheatreResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/MyOrderSubmissionResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/OrderLineRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/PlatoonMemberReferenceResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/PlatoonOrderResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/PlatoonTerritoryReferenceResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/PlayerPlatoonDetailResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/PlayerPlatoonSummaryResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/PlayerTerritoryResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/SaveOrderSubmissionRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/UpdateCampaignMemberRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/exception/ApiException.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/CampaignInviteRepository.java
@@ -56,6 +65,8 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/CampaignRepository.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/FactionRepository.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/NationRepository.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/OrderSubmissionRepository.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/PlatoonOrderRepository.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/PlatoonRepository.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/PlatoonStateRepository.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/TerritoryRepository.java
@@ -70,6 +81,7 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignLobbyService.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignMapService.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignMemberService.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignOrderService.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignPlatoonService.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignService.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CrudService.java

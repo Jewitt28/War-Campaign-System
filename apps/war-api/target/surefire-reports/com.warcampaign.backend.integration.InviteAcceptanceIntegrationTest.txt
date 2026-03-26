@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest
 -------------------------------------------------------------------------------
-Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 21.06 s -- in com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 22.08 s -- in com.warcampaign.backend.integration.InviteAcceptanceIntegrationTest

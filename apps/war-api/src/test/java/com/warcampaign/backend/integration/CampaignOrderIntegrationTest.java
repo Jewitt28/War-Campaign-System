@@ -21,8 +21,8 @@ import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
 import com.warcampaign.backend.repository.NationRepository;
 import com.warcampaign.backend.repository.OrderSubmissionRepository;
-import com.warcampaign.backend.repository.PlatoonRepository;
 import com.warcampaign.backend.repository.PlatoonOrderRepository;
+import com.warcampaign.backend.repository.PlatoonRepository;
 import com.warcampaign.backend.repository.PlatoonStateRepository;
 import com.warcampaign.backend.repository.TheatreRepository;
 import com.warcampaign.backend.repository.TerritoryRepository;
@@ -34,17 +34,20 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class CampaignPlatoonIntegrationTest {
+class CampaignOrderIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -92,12 +95,10 @@ class CampaignPlatoonIntegrationTest {
     private FactionRepository factionRepository;
 
     private Campaign alphaCampaign;
-    private Campaign bravoCampaign;
-    private CampaignMember allyPlayerMembership;
-    private Platoon alliedVisiblePlatoon;
-    private Platoon alliedHiddenPlatoon;
+    private Territory normandy;
+    private Territory calais;
+    private Platoon alliedPlatoon;
     private Platoon axisPlatoon;
-    private Platoon bravoPlatoon;
 
     @BeforeEach
     void setup() {
@@ -117,115 +118,164 @@ class CampaignPlatoonIntegrationTest {
         userRepository.deleteAll();
 
         User gmUser = saveUser("gm@war.local", "gm");
-        User allyPlayer = saveUser("allied@war.local", "ally");
+        User alliedPlayer = saveUser("allied@war.local", "ally");
         User observer = saveUser("observer@war.local", "observer");
-        User bravoGm = saveUser("bravo-gm@war.local", "bravo");
 
-        alphaCampaign = saveCampaign("Alpha Front", gmUser, 2);
-        bravoCampaign = saveCampaign("Bravo Front", bravoGm, 1);
+        alphaCampaign = saveCampaign("Alpha Front", gmUser, 2, CampaignPhase.OPERATIONS);
 
-        Theatre alphaTheatre = saveTheatre(alphaCampaign, "west", "Western Europe", 1);
-        Theatre bravoTheatre = saveTheatre(bravoCampaign, "east", "Eastern Europe", 1);
-
+        Theatre theatre = saveTheatre(alphaCampaign, "west", "Western Europe", 1);
         Faction allies = saveFaction(alphaCampaign, "allies", "Allies");
         Faction axis = saveFaction(alphaCampaign, "axis", "Axis");
-        Faction soviets = saveFaction(bravoCampaign, "soviet", "Soviet Union");
-
         Nation british = saveNation(alphaCampaign, allies, "uk", "United Kingdom");
         Nation german = saveNation(alphaCampaign, axis, "de", "Germany");
-        Nation soviet = saveNation(bravoCampaign, soviets, "su", "Soviet Union");
 
-        CampaignMember gmMembership = saveMembership(alphaCampaign, gmUser, CampaignRole.GM, null, null);
-        allyPlayerMembership = saveMembership(alphaCampaign, allyPlayer, CampaignRole.PLAYER, allies, british);
+        saveMembership(alphaCampaign, gmUser, CampaignRole.GM, null, null);
         saveMembership(alphaCampaign, observer, CampaignRole.OBSERVER, null, null);
-        CampaignMember bravoGmMembership = saveMembership(bravoCampaign, bravoGm, CampaignRole.GM, soviets, soviet);
+        CampaignMember alliedMembership = saveMembership(alphaCampaign, alliedPlayer, CampaignRole.PLAYER, allies, british);
 
-        Territory normandy = saveTerritory(alphaCampaign, alphaTheatre, "normandy", "Normandy");
-        Territory calais = saveTerritory(alphaCampaign, alphaTheatre, "calais", "Calais");
-        Territory smolensk = saveTerritory(bravoCampaign, bravoTheatre, "smolensk", "Smolensk");
+        normandy = saveTerritory(alphaCampaign, theatre, "normandy", "Normandy");
+        calais = saveTerritory(alphaCampaign, theatre, "calais", "Calais");
+        Territory berlin = saveTerritory(alphaCampaign, theatre, "berlin", "Berlin");
 
-        Turn alphaTurn1 = saveTurn(alphaCampaign, 1);
-        Turn alphaTurn2 = saveTurn(alphaCampaign, 2);
-        Turn bravoTurn1 = saveTurn(bravoCampaign, 1);
+        Turn turn1 = saveTurn(alphaCampaign, 1);
+        Turn turn2 = saveTurn(alphaCampaign, 2);
 
-        alliedVisiblePlatoon = savePlatoon(alphaCampaign, allies, british, allyPlayerMembership, normandy, "allies-1", "Allied 1st Platoon", "INFANTRY", false);
-        alliedHiddenPlatoon = savePlatoon(alphaCampaign, allies, british, gmMembership, normandy, "allies-2", "Allied Reserve Platoon", "RESERVE", true);
-        axisPlatoon = savePlatoon(alphaCampaign, axis, german, null, calais, "axis-1", "Axis 1st Platoon", "ARMOR", false);
-        bravoPlatoon = savePlatoon(bravoCampaign, soviets, soviet, bravoGmMembership, smolensk, "soviet-1", "Soviet 1st Platoon", "INFANTRY", false);
+        alliedPlatoon = savePlatoon(alphaCampaign, allies, british, alliedMembership, normandy, "allies-1", "Allied 1st Platoon");
+        axisPlatoon = savePlatoon(alphaCampaign, axis, german, null, berlin, "axis-1", "Axis 1st Platoon");
 
-        savePlatoonState(alphaTurn1, alliedVisiblePlatoon, normandy, PlatoonReadinessStatus.ACTIVE, 9, "Old turn");
-        savePlatoonState(alphaTurn2, alliedVisiblePlatoon, calais, PlatoonReadinessStatus.DAMAGED, 7, "Current turn");
-        savePlatoonState(alphaTurn2, alliedHiddenPlatoon, normandy, PlatoonReadinessStatus.RESERVES, 6, "Hidden reserve");
-        savePlatoonState(alphaTurn2, axisPlatoon, calais, PlatoonReadinessStatus.ACTIVE, 10, "Axis detail");
-        savePlatoonState(bravoTurn1, bravoPlatoon, smolensk, PlatoonReadinessStatus.ACTIVE, 12, "Bravo detail");
+        savePlatoonState(turn1, alliedPlatoon, berlin, PlatoonReadinessStatus.ACTIVE, 8);
+        savePlatoonState(turn2, alliedPlatoon, normandy, PlatoonReadinessStatus.ACTIVE, 7);
+        savePlatoonState(turn2, axisPlatoon, berlin, PlatoonReadinessStatus.ACTIVE, 9);
     }
 
     @Test
-    void playerCanListOnlyTheirVisibleFactionPlatoons() throws Exception {
-        mockMvc.perform(get("/api/campaigns/{campaignId}/platoons", alphaCampaign.getId())
+    void playerGetsEmptySubmissionForCurrentTurn() throws Exception {
+        mockMvc.perform(get("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
                         .header("X-Dev-User", "allied@war.local"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(alliedVisiblePlatoon.getId().toString()))
-                .andExpect(jsonPath("$[0].key").value("allies-1"))
-                .andExpect(jsonPath("$[0].currentTerritory.key").value("calais"))
-                .andExpect(jsonPath("$[0].strength").value(7));
+                .andExpect(jsonPath("$.submissionId").isEmpty())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.orders.length()").value(0));
     }
 
     @Test
-    void nonMemberCannotListAnotherCampaignPlatoons() throws Exception {
-        mockMvc.perform(get("/api/campaigns/{campaignId}/platoons", bravoCampaign.getId())
-                        .header("X-Dev-User", "allied@war.local"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("CAMPAIGN_NOT_FOUND"));
+    void playerCanSaveValidOrdersForControlledPlatoon() throws Exception {
+        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
+                        .header("X-Dev-User", "allied@war.local")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "orders": [
+                                    {
+                                      "platoonId": "%s",
+                                      "orderType": "MOVE",
+                                      "sourceTerritoryId": "%s",
+                                      "targetTerritoryId": "%s",
+                                      "payloadJson": "{\\"stance\\":\\"aggressive\\"}"
+                                    }
+                                  ]
+                                }
+                                """.formatted(alliedPlatoon.getId(), normandy.getId(), calais.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("VALIDATED"))
+                .andExpect(jsonPath("$.orders.length()").value(1))
+                .andExpect(jsonPath("$.orders[0].platoonId").value(alliedPlatoon.getId().toString()))
+                .andExpect(jsonPath("$.orders[0].validationStatus").value("VALID"))
+                .andExpect(jsonPath("$.orders[0].targetTerritoryId").value(calais.getId().toString()));
     }
 
     @Test
-    void playerCanReadOwnPlatoonDetail() throws Exception {
-        mockMvc.perform(get("/api/campaigns/{campaignId}/platoons/{platoonId}", alphaCampaign.getId(), alliedVisiblePlatoon.getId())
+    void playerCannotSaveOrdersForAnotherFactionPlatoon() throws Exception {
+        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
+                        .header("X-Dev-User", "allied@war.local")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "orders": [
+                                    {
+                                      "platoonId": "%s",
+                                      "orderType": "MOVE",
+                                      "sourceTerritoryId": "%s",
+                                      "targetTerritoryId": "%s"
+                                    }
+                                  ]
+                                }
+                                """.formatted(axisPlatoon.getId(), normandy.getId(), calais.getId())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PLATOON_FORBIDDEN"));
+    }
+
+    @Test
+    void lockRequiresValidatedSubmissionAndEnforcesImmutability() throws Exception {
+        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
+                        .header("X-Dev-User", "allied@war.local")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "orders": [
+                                    {
+                                      "platoonId": "%s",
+                                      "orderType": "MOVE",
+                                      "sourceTerritoryId": "%s",
+                                      "targetTerritoryId": "%s"
+                                    }
+                                  ]
+                                }
+                                """.formatted(alliedPlatoon.getId(), normandy.getId(), calais.getId())))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me/lock", alphaCampaign.getId(), 2)
                         .header("X-Dev-User", "allied@war.local"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(alliedVisiblePlatoon.getId().toString()))
-                .andExpect(jsonPath("$.currentTerritory.key").value("calais"))
-                .andExpect(jsonPath("$.strength").value(7))
-                .andExpect(jsonPath("$.notes").doesNotExist())
-                .andExpect(jsonPath("$.hiddenFromPlayers").doesNotExist())
-                .andExpect(jsonPath("$.assignedMember").doesNotExist());
+                .andExpect(jsonPath("$.status").value("LOCKED"))
+                .andExpect(jsonPath("$.lockedAt").isNotEmpty())
+                .andExpect(jsonPath("$.checksum").isNotEmpty());
+
+        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
+                        .header("X-Dev-User", "allied@war.local")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "orders": [
+                                    {
+                                      "platoonId": "%s",
+                                      "orderType": "HOLD"
+                                    }
+                                  ]
+                                }
+                                """.formatted(alliedPlatoon.getId())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ORDER_SUBMISSION_LOCKED"));
     }
 
     @Test
-    void gmCanReadGmPlatoonDetail() throws Exception {
-        mockMvc.perform(get("/api/campaigns/{campaignId}/platoons/{platoonId}", alphaCampaign.getId(), alliedHiddenPlatoon.getId())
-                        .header("X-Dev-User", "gm@war.local"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(alliedHiddenPlatoon.getId().toString()))
-                .andExpect(jsonPath("$.hiddenFromPlayers").value(true))
-                .andExpect(jsonPath("$.notes").value("Hidden reserve"))
-                .andExpect(jsonPath("$.assignedMember.displayName").value("gm"));
+    void cannotEditOrdersOutsideOperationsPhase() throws Exception {
+        alphaCampaign.setCurrentPhase(CampaignPhase.LOBBY);
+        campaignRepository.save(alphaCampaign);
+
+        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
+                        .header("X-Dev-User", "allied@war.local")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "orders": [
+                                    {
+                                      "platoonId": "%s",
+                                      "orderType": "HOLD"
+                                    }
+                                  ]
+                                }
+                                """.formatted(alliedPlatoon.getId())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ORDER_PHASE_INVALID"));
     }
 
     @Test
-    void nonGmCannotReadOtherFactionPlatoon() throws Exception {
-        mockMvc.perform(get("/api/campaigns/{campaignId}/platoons/{platoonId}", alphaCampaign.getId(), axisPlatoon.getId())
-                        .header("X-Dev-User", "allied@war.local"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("PLATOON_NOT_FOUND"));
-    }
-
-    @Test
-    void observerCannotAccessPlatoonReads() throws Exception {
-        mockMvc.perform(get("/api/campaigns/{campaignId}/platoons", alphaCampaign.getId())
+    void observerCannotAccessOrderSubmission() throws Exception {
+        mockMvc.perform(get("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
                         .header("X-Dev-User", "observer@war.local"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("CAMPAIGN_FORBIDDEN"));
-    }
-
-    @Test
-    void crossCampaignPlatoonIdsAreRejected() throws Exception {
-        mockMvc.perform(get("/api/campaigns/{campaignId}/platoons/{platoonId}", alphaCampaign.getId(), bravoPlatoon.getId())
-                        .header("X-Dev-User", "gm@war.local"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("PLATOON_NOT_FOUND"));
     }
 
     private User saveUser(String email, String displayName) {
@@ -236,10 +286,10 @@ class CampaignPlatoonIntegrationTest {
         return userRepository.save(user);
     }
 
-    private Campaign saveCampaign(String name, User createdBy, int currentTurnNumber) {
+    private Campaign saveCampaign(String name, User createdBy, int currentTurnNumber, CampaignPhase phase) {
         Campaign campaign = new Campaign();
         campaign.setName(name);
-        campaign.setCurrentPhase(CampaignPhase.OPERATIONS);
+        campaign.setCurrentPhase(phase);
         campaign.setCurrentTurnNumber(currentTurnNumber);
         campaign.setCampaignStatus(CampaignStatus.ACTIVE);
         campaign.setRulesetVersion("alpha-1");
@@ -300,11 +350,11 @@ class CampaignPlatoonIntegrationTest {
         territory.setTerritoryKey(key);
         territory.setName(name);
         territory.setTerrainType("PLAINS");
-        territory.setBaseIndustry(2);
-        territory.setBaseManpower(3);
+        territory.setBaseIndustry(1);
+        territory.setBaseManpower(1);
         territory.setHasPort(false);
         territory.setHasAirfield(false);
-        territory.setMaxFortLevel(4);
+        territory.setMaxFortLevel(3);
         return territoryRepository.save(territory);
     }
 
@@ -323,9 +373,7 @@ class CampaignPlatoonIntegrationTest {
                                 CampaignMember assignedMember,
                                 Territory homeTerritory,
                                 String key,
-                                String name,
-                                String unitType,
-                                boolean hiddenFromPlayers) {
+                                String name) {
         Platoon platoon = new Platoon();
         platoon.setCampaign(campaign);
         platoon.setFaction(faction);
@@ -334,8 +382,7 @@ class CampaignPlatoonIntegrationTest {
         platoon.setHomeTerritory(homeTerritory);
         platoon.setPlatoonKey(key);
         platoon.setName(name);
-        platoon.setUnitType(unitType);
-        platoon.setHiddenFromPlayers(hiddenFromPlayers);
+        platoon.setUnitType("INFANTRY");
         return platoonRepository.save(platoon);
     }
 
@@ -343,15 +390,13 @@ class CampaignPlatoonIntegrationTest {
                                           Platoon platoon,
                                           Territory territory,
                                           PlatoonReadinessStatus readinessStatus,
-                                          int strength,
-                                          String notes) {
+                                          int strength) {
         PlatoonState state = new PlatoonState();
         state.setTurn(turn);
         state.setPlatoon(platoon);
         state.setTerritory(territory);
         state.setReadinessStatus(readinessStatus);
         state.setStrength(strength);
-        state.setNotes(notes);
         return platoonStateRepository.save(state);
     }
 }

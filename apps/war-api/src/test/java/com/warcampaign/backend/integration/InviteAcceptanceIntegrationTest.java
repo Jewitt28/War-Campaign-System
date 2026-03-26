@@ -12,7 +12,9 @@ import com.warcampaign.backend.repository.CampaignMemberRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
 import com.warcampaign.backend.repository.NationRepository;
+import com.warcampaign.backend.repository.OrderSubmissionRepository;
 import com.warcampaign.backend.repository.PlatoonRepository;
+import com.warcampaign.backend.repository.PlatoonOrderRepository;
 import com.warcampaign.backend.repository.PlatoonStateRepository;
 import com.warcampaign.backend.repository.TheatreRepository;
 import com.warcampaign.backend.repository.TerritoryRepository;
@@ -54,6 +56,12 @@ class InviteAcceptanceIntegrationTest {
     private CampaignMemberRepository memberRepository;
 
     @Autowired
+    private PlatoonOrderRepository platoonOrderRepository;
+
+    @Autowired
+    private OrderSubmissionRepository orderSubmissionRepository;
+
+    @Autowired
     private PlatoonStateRepository platoonStateRepository;
 
     @Autowired
@@ -81,6 +89,8 @@ class InviteAcceptanceIntegrationTest {
 
     @BeforeEach
     void setup() {
+        platoonOrderRepository.deleteAll();
+        orderSubmissionRepository.deleteAll();
         platoonStateRepository.deleteAll();
         territoryStateRepository.deleteAll();
         platoonRepository.deleteAll();
