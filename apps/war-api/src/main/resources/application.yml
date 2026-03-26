@@ -21,3 +21,12 @@ app:
   security:
     dev-auth:
       enabled: ${WAR_DEV_AUTH_ENABLED:false}
+  jobs:
+    enabled: ${WAR_JOBS_ENABLED:false}
+    phase-expiry-delay: ${WAR_JOBS_PHASE_EXPIRY_DELAY:PT1M}
+    reminder-delay: ${WAR_JOBS_REMINDER_DELAY:PT15M}
+    visibility-delay: ${WAR_JOBS_VISIBILITY_DELAY:PT1H}
+    snapshot-delay: ${WAR_JOBS_SNAPSHOT_DELAY:PT6H}
+    phase-reminder-window: ${WAR_JOBS_PHASE_REMINDER_WINDOW:PT30M}
+    invite-reminder-window: ${WAR_JOBS_INVITE_REMINDER_WINDOW:PT24H}
+    snapshot-directory: ${WAR_JOBS_SNAPSHOT_DIRECTORY:target/campaign-snapshots}

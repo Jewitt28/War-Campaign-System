@@ -1,6 +1,7 @@
 package com.warcampaign.backend.repository;
 
 import com.warcampaign.backend.domain.model.Campaign;
+import com.warcampaign.backend.domain.enums.CampaignRole;
 import com.warcampaign.backend.domain.model.CampaignMember;
 import com.warcampaign.backend.domain.model.User;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -27,6 +28,9 @@ public interface CampaignMemberRepository extends JpaRepository<CampaignMember, 
     @EntityGraph(attributePaths = {"user", "faction", "nation"})
     @Query("select cm from CampaignMember cm where cm.campaign.id = :campaignId order by cm.user.displayName asc")
     List<CampaignMember> findAllByCampaignIdWithUser(UUID campaignId);
+
+    @EntityGraph(attributePaths = {"campaign", "user", "faction", "nation"})
+    Optional<CampaignMember> findFirstByCampaignIdAndRole(UUID campaignId, CampaignRole role);
 
     Optional<CampaignMember> findByIdAndCampaignId(UUID memberId, UUID campaignId);
 

@@ -16,3 +16,6 @@ app:
   security:
     dev-auth:
       enabled: true
+  jobs:
+    enabled: false
+    snapshot-directory: target/test-campaign-snapshots

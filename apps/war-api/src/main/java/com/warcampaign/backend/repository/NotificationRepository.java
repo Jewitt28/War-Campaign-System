@@ -15,4 +15,9 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
     @EntityGraph(attributePaths = {"campaign", "recipientUser"})
     Optional<Notification> findByIdAndRecipientUserId(UUID notificationId, UUID recipientUserId);
+
+    boolean existsByRecipientUserIdAndCampaignIdAndTypeAndPayloadJson(UUID recipientUserId,
+                                                                      UUID campaignId,
+                                                                      String type,
+                                                                      String payloadJson);
 }

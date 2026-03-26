@@ -66,6 +66,26 @@ public class NotificationService {
     }
 
     @Transactional
+    public boolean notifyUserIfAbsent(Campaign campaign,
+                                      User recipient,
+                                      String type,
+                                      String title,
+                                      String body,
+                                      String payloadJson) {
+        if (notificationRepository.existsByRecipientUserIdAndCampaignIdAndTypeAndPayloadJson(
+                recipient.getId(),
+                campaign.getId(),
+                type,
+                payloadJson
+        )) {
+            return false;
+        }
+
+        notifyUser(campaign, recipient, type, title, body, payloadJson);
+        return true;
+    }
+
+    @Transactional
     public void notifyUsers(Campaign campaign,
                             Collection<User> recipients,
                             String type,
