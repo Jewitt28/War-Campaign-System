@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import type { NormalizedData } from "../data/theatres";
+import { usePostWorldChatMessage, useWorldChatMessages } from "../features/mapBridge";
 import { useCampaignStore, type OwnerKey } from "../store/useCampaignStore";
 import { factionLabel } from "../store/factionLabel";
 import { nationLabel } from "../store/nationLabel";
@@ -13,6 +14,7 @@ import ProfilePage from "../auth/ProfilePage";
 type Props = {
   data: NormalizedData | null;
   variant?: "full" | "compact";
+  campaignId?: string;
 };
 
 type RegionStatus = {
@@ -82,7 +84,7 @@ function buildOwnerSet(owners: OwnerKey[]) {
   return new Set(owners.filter((o) => o !== "neutral" && o !== "contested"));
 }
 
-export default function CommandHub({ data, variant = "full" }: Props) {
+export default function CommandHub({ data, variant = "full", campaignId }: Props) {
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerMode = useCampaignStore((s) => s.viewerMode);
@@ -214,30 +216,9 @@ export default function CommandHub({ data, variant = "full" }: Props) {
     );
   }, [resourceSnapshot]);
 
-  const [worldChatMessages, setWorldChatMessages] = useState<
-    Array<{
-      id: string;
-      sender: string;
-      text: string;
-      ts: string;
-      system?: boolean;
-    }>
-  >([
-    {
-      id: "sys-1",
-      sender: "System",
-      text: "World channel open for strategic coordination.",
-      ts: "Just now",
-      system: true,
-    },
-    {
-      id: "msg-1",
-      sender: "Allied High Command",
-      text: "Share intel on contested regions and supply routes.",
-      ts: "2m ago",
-    },
-  ]);
   const [worldChatInput, setWorldChatInput] = useState("");
+  const worldChat = useWorldChatMessages(campaignId ?? "", Boolean(campaignId));
+  const postWorldChat = usePostWorldChatMessage(campaignId ?? "");
   // const hasFactionAccess = viewerMode === "GM" ? true : playerFactionId !== null;
   const availableFactions = useMemo(() => {
     return [
@@ -268,10 +249,7 @@ export default function CommandHub({ data, variant = "full" }: Props) {
   const sendWorldChat = () => {
     const trimmed = worldChatInput.trim();
     if (!trimmed) return;
-    setWorldChatMessages((prev) => [
-      { id: String(Date.now()), sender: "You", text: trimmed, ts: "now" },
-      ...prev,
-    ]);
+    postWorldChat.mutate(trimmed);
     setWorldChatInput("");
   };
 
@@ -703,24 +681,36 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                   gap: 8,
                 }}
               >
-                {worldChatMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    style={{
-                      padding: 6,
-                      borderRadius: 8,
-                      background: msg.system
-                        ? "rgba(255,255,255,.08)"
-                        : "rgba(0,0,0,.2)",
-                      fontSize: 12,
-                    }}
-                  >
-                    <div style={{ fontWeight: 700, fontSize: 11, opacity: 0.8 }}>
-                      {msg.sender} · {msg.ts}
-                    </div>
-                    <div>{msg.text}</div>
+                {worldChat.isLoading ? (
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    Loading world chat...
                   </div>
-                ))}
+                ) : worldChat.isError ? (
+                  <div style={{ fontSize: 12, color: "#fca5a5" }}>
+                    {worldChat.error.message}
+                  </div>
+                ) : worldChat.data && worldChat.data.length > 0 ? (
+                  worldChat.data.map((msg) => (
+                    <div
+                      key={msg.messageId}
+                      style={{
+                        padding: 6,
+                        borderRadius: 8,
+                        background: "rgba(0,0,0,.2)",
+                        fontSize: 12,
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: 11, opacity: 0.8 }}>
+                        {msg.authorDisplayName} · {msg.createdAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                      <div>{msg.message}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    World channel open for strategic coordination.
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <input
@@ -732,9 +722,9 @@ export default function CommandHub({ data, variant = "full" }: Props) {
                 <button
                   type="button"
                   onClick={sendWorldChat}
-                  disabled={!worldChatInput.trim()}
+                  disabled={!worldChatInput.trim() || postWorldChat.isPending}
                 >
-                  Send
+                  {postWorldChat.isPending ? "Sending..." : "Send"}
                 </button>
               </div>
             </div>

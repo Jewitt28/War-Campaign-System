@@ -207,6 +207,11 @@ async function recordBattleResult(campaignId: string, battleId: string, payload:
   return mapBattleDetail(response.data)
 }
 
+async function resolveTurn(campaignId: string, turnNumber: number) {
+  const response = await api.post<ResolutionSummaryDto>(`/api/campaigns/${campaignId}/turns/${turnNumber}/resolve`)
+  return mapResolutionSummary(response.data)
+}
+
 export function useResolutionSummary(campaignId: string, turnNumber: number, enabled = true) {
   return useQuery({
     queryKey: queryKeys.resolutionSummary(campaignId, turnNumber),
@@ -240,6 +245,20 @@ export function useRecordBattleResult(campaignId: string, battleId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.battleDetail(campaignId, battleId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.resolutionSummary(campaignId, detail.turnNumber) }),
+      ])
+    },
+  })
+}
+
+export function useResolveTurn(campaignId: string, turnNumber: number) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => resolveTurn(campaignId, turnNumber),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.resolutionSummary(campaignId, turnNumber) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaignMap(campaignId) }),
       ])
     },
   })

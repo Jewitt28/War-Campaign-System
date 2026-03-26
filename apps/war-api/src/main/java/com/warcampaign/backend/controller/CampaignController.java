@@ -2,6 +2,8 @@ package com.warcampaign.backend.controller;
 
 import com.warcampaign.backend.dto.CampaignDetailResponse;
 import com.warcampaign.backend.dto.CampaignAuditLogResponse;
+import com.warcampaign.backend.dto.CampaignChatMessageResponse;
+import com.warcampaign.backend.dto.CampaignMapBridgeResponse;
 import com.warcampaign.backend.dto.CampaignMapResponse;
 import com.warcampaign.backend.dto.CampaignMemberResponse;
 import com.warcampaign.backend.dto.CampaignPhaseResponse;
@@ -9,18 +11,26 @@ import com.warcampaign.backend.dto.CampaignResolutionResponse;
 import com.warcampaign.backend.dto.CampaignSnapshotExportResponse;
 import com.warcampaign.backend.dto.CampaignSummaryResponse;
 import com.warcampaign.backend.dto.BattleDetailResponse;
+import com.warcampaign.backend.dto.CreateCampaignPlatoonRequest;
 import com.warcampaign.backend.dto.GmTerritoryResponse;
 import com.warcampaign.backend.dto.MyOrderSubmissionResponse;
+import com.warcampaign.backend.dto.PostCampaignWorldChatMessageRequest;
 import com.warcampaign.backend.dto.PlayerTerritoryResponse;
+import com.warcampaign.backend.dto.PlatoonDetailResponse;
 import com.warcampaign.backend.dto.PlayerPlatoonSummaryResponse;
 import com.warcampaign.backend.dto.RecordBattleResultRequest;
 import com.warcampaign.backend.dto.SaveOrderSubmissionRequest;
+import com.warcampaign.backend.dto.SaveCampaignMapSetupRequest;
+import com.warcampaign.backend.dto.SaveCampaignNationStatesRequest;
+import com.warcampaign.backend.dto.UpdateCampaignPlatoonRequest;
 import com.warcampaign.backend.dto.UpdateCampaignMemberRequest;
 import com.warcampaign.backend.dto.VisibilityRebuildResponse;
 import com.warcampaign.backend.service.AuthenticationService;
 import com.warcampaign.backend.service.CampaignAdminService;
 import com.warcampaign.backend.service.CampaignBattleService;
+import com.warcampaign.backend.service.CampaignChatService;
 import com.warcampaign.backend.service.CampaignLobbyService;
+import com.warcampaign.backend.service.CampaignMapBridgeService;
 import com.warcampaign.backend.service.CampaignMapService;
 import com.warcampaign.backend.service.CampaignOrderService;
 import com.warcampaign.backend.service.CampaignPhaseService;
@@ -45,6 +55,7 @@ public class CampaignController {
 
     private final CampaignLobbyService campaignLobbyService;
     private final CampaignMapService campaignMapService;
+    private final CampaignMapBridgeService campaignMapBridgeService;
     private final CampaignPlatoonService campaignPlatoonService;
     private final CampaignOrderService campaignOrderService;
     private final CampaignPhaseService campaignPhaseService;
@@ -52,10 +63,12 @@ public class CampaignController {
     private final CampaignBattleService campaignBattleService;
     private final CampaignVisibilityService campaignVisibilityService;
     private final CampaignAdminService campaignAdminService;
+    private final CampaignChatService campaignChatService;
     private final AuthenticationService authenticationService;
 
     public CampaignController(CampaignLobbyService campaignLobbyService,
                               CampaignMapService campaignMapService,
+                              CampaignMapBridgeService campaignMapBridgeService,
                               CampaignPlatoonService campaignPlatoonService,
                               CampaignOrderService campaignOrderService,
                               CampaignPhaseService campaignPhaseService,
@@ -63,9 +76,11 @@ public class CampaignController {
                               CampaignBattleService campaignBattleService,
                               CampaignVisibilityService campaignVisibilityService,
                               CampaignAdminService campaignAdminService,
+                              CampaignChatService campaignChatService,
                               AuthenticationService authenticationService) {
         this.campaignLobbyService = campaignLobbyService;
         this.campaignMapService = campaignMapService;
+        this.campaignMapBridgeService = campaignMapBridgeService;
         this.campaignPlatoonService = campaignPlatoonService;
         this.campaignOrderService = campaignOrderService;
         this.campaignPhaseService = campaignPhaseService;
@@ -73,6 +88,7 @@ public class CampaignController {
         this.campaignBattleService = campaignBattleService;
         this.campaignVisibilityService = campaignVisibilityService;
         this.campaignAdminService = campaignAdminService;
+        this.campaignChatService = campaignChatService;
         this.authenticationService = authenticationService;
     }
 
@@ -91,6 +107,23 @@ public class CampaignController {
         return campaignMapService.getMap(campaignId, authenticationService.currentUser());
     }
 
+    @GetMapping("/{campaignId}/map/bridge")
+    public CampaignMapBridgeResponse getMapBridge(@PathVariable UUID campaignId) {
+        return campaignMapBridgeService.getBridge(campaignId, authenticationService.currentUser());
+    }
+
+    @PutMapping("/{campaignId}/map/bridge/setup")
+    public CampaignMapBridgeResponse saveMapSetup(@PathVariable UUID campaignId,
+                                                  @RequestBody SaveCampaignMapSetupRequest request) {
+        return campaignMapBridgeService.saveSetup(campaignId, request, authenticationService.currentUser());
+    }
+
+    @PutMapping("/{campaignId}/map/bridge/nation-states")
+    public CampaignMapBridgeResponse saveNationStates(@PathVariable UUID campaignId,
+                                                      @RequestBody SaveCampaignNationStatesRequest request) {
+        return campaignMapBridgeService.saveNationStates(campaignId, request, authenticationService.currentUser());
+    }
+
     @GetMapping("/{campaignId}/territories/{territoryId}")
     public PlayerTerritoryResponse getTerritory(@PathVariable UUID campaignId, @PathVariable UUID territoryId) {
         return campaignMapService.getPlayerTerritory(campaignId, territoryId, authenticationService.currentUser());
@@ -107,8 +140,21 @@ public class CampaignController {
     }
 
     @GetMapping("/{campaignId}/platoons/{platoonId}")
-    public Object getPlatoon(@PathVariable UUID campaignId, @PathVariable UUID platoonId) {
+    public PlatoonDetailResponse getPlatoon(@PathVariable UUID campaignId, @PathVariable UUID platoonId) {
         return campaignPlatoonService.getPlatoon(campaignId, platoonId, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/platoons")
+    public PlatoonDetailResponse createPlatoon(@PathVariable UUID campaignId,
+                                               @RequestBody CreateCampaignPlatoonRequest request) {
+        return campaignPlatoonService.createPlatoon(campaignId, request, authenticationService.currentUser());
+    }
+
+    @PutMapping("/{campaignId}/platoons/{platoonId}")
+    public PlatoonDetailResponse updatePlatoon(@PathVariable UUID campaignId,
+                                               @PathVariable UUID platoonId,
+                                               @RequestBody UpdateCampaignPlatoonRequest request) {
+        return campaignPlatoonService.updatePlatoon(campaignId, platoonId, request, authenticationService.currentUser());
     }
 
     @GetMapping("/{campaignId}/turns/{turnNumber}/orders/me")
@@ -163,6 +209,17 @@ public class CampaignController {
     @GetMapping("/{campaignId}/audit")
     public List<CampaignAuditLogResponse> getAuditLog(@PathVariable UUID campaignId) {
         return campaignAdminService.getAuditLog(campaignId, authenticationService.currentUser());
+    }
+
+    @GetMapping("/{campaignId}/world-chat")
+    public List<CampaignChatMessageResponse> getWorldChat(@PathVariable UUID campaignId) {
+        return campaignChatService.listWorldMessages(campaignId, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/world-chat")
+    public CampaignChatMessageResponse postWorldChat(@PathVariable UUID campaignId,
+                                                     @RequestBody PostCampaignWorldChatMessageRequest request) {
+        return campaignChatService.postWorldMessage(campaignId, request, authenticationService.currentUser());
     }
 
     @PostMapping("/{campaignId}/visibility/rebuild")

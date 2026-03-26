@@ -1,7 +1,9 @@
 package com.warcampaign.backend.dto;
 
+import com.warcampaign.backend.domain.enums.PlatoonCondition;
 import com.warcampaign.backend.domain.enums.PlatoonReadinessStatus;
 
+import java.util.List;
 import java.util.UUID;
 
 public record PlayerPlatoonSummaryResponse(UUID id,
@@ -12,5 +14,9 @@ public record PlayerPlatoonSummaryResponse(UUID id,
                                            MapNationReferenceResponse nation,
                                            PlatoonTerritoryReferenceResponse currentTerritory,
                                            PlatoonReadinessStatus readinessStatus,
-                                           int strength) {
+                                           PlatoonCondition condition,
+                                           int strength,
+                                           int mpBase,
+                                           List<String> traits,
+                                           boolean entrenched) {
 }

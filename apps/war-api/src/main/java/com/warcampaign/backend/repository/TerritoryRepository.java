@@ -14,5 +14,8 @@ public interface TerritoryRepository extends JpaRepository<Territory, UUID> {
     List<Territory> findAllByCampaignIdOrderByNameAsc(UUID campaignId);
 
     @EntityGraph(attributePaths = {"theatre"})
+    Optional<Territory> findByCampaignIdAndTerritoryKey(UUID campaignId, String territoryKey);
+
+    @EntityGraph(attributePaths = {"theatre"})
     Optional<Territory> findByIdAndCampaignId(UUID territoryId, UUID campaignId);
 }

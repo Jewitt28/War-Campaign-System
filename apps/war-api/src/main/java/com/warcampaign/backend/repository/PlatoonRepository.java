@@ -11,4 +11,7 @@ public interface PlatoonRepository extends JpaRepository<Platoon, UUID> {
 
     @EntityGraph(attributePaths = {"faction", "nation", "assignedMember", "assignedMember.user", "homeTerritory"})
     Optional<Platoon> findByIdAndCampaignId(UUID id, UUID campaignId);
+
+    @EntityGraph(attributePaths = {"faction", "nation", "assignedMember", "assignedMember.user", "homeTerritory"})
+    Optional<Platoon> findByCampaignIdAndPlatoonKey(UUID campaignId, String platoonKey);
 }

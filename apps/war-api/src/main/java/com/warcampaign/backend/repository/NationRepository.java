@@ -14,5 +14,8 @@ public interface NationRepository extends JpaRepository<Nation, UUID> {
     List<Nation> findAllByCampaignIdOrderByNameAsc(UUID campaignId);
 
     @EntityGraph(attributePaths = {"faction"})
+    Optional<Nation> findByCampaignIdAndNationKey(UUID campaignId, String nationKey);
+
+    @EntityGraph(attributePaths = {"faction"})
     Optional<Nation> findByIdAndCampaignId(UUID nationId, UUID campaignId);
 }

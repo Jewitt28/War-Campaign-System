@@ -1,12 +1,12 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from "react";
+import type {
+  CampaignMapSummary,
+  CampaignMembership,
+} from "../features/campaigns";
 import type { NormalizedData } from "../data/theatres";
 import { NATION_BY_ID, type BaseNationKey } from "../setup/NationDefinitions";
-import {
-  useCampaignStore,
-  type FactionKey,
-  type TurnLogType,
-} from "../store/useCampaignStore";
+import { useCampaignStore, type TurnLogType } from "../store/useCampaignStore";
 
 import { factionLabel } from "../store/factionLabel";
 import { nationLabel } from "../store/nationLabel";
@@ -14,6 +14,12 @@ import { getFactionAccent } from "./factionColors";
 import { getDoctrineDerivedStats } from "../strategy/selectors/getStrategicModifiers";
 import { formatTerritoryLabel, formatTerritoryList } from "./territoryLabel";
 import type { Platoon, PlatoonCondition, PlatoonTrait } from "../domain/types";
+import {
+  type PlatoonDetail,
+  type PlatoonSummary,
+  useCreateCampaignPlatoon,
+  useUpdateCampaignPlatoon,
+} from "../features/platoons";
 import {
   getPlatoonArchetypeById,
   getPlatoonArchetypeByTrait,
@@ -28,13 +34,73 @@ const CONDITION_ORDER: PlatoonCondition[] = [
   "WORN",
   "FRESH",
 ];
+
+const BACKEND_NATION_KEY_ALIASES: Record<string, string> = {
+  uk: "great_britain",
+  united_kingdom: "great_britain",
+  de: "germany",
+  jp: "imperial_japan",
+  japan: "imperial_japan",
+  su: "soviet_union",
+  soviet: "soviet_union",
+  ussr: "soviet_union",
+  nl: "the_netherlands",
+  netherlands: "the_netherlands",
+  holland: "the_netherlands",
+  ppa: "polish_peoples_army",
+  polish_peoples_army: "polish_peoples_army",
+};
+
+const BACKEND_FACTION_KEY_ALIASES: Record<string, string> = {
+  soviet: "ussr",
+};
+
 const clamp = (n: number, lo: number, hi: number) =>
   Math.min(Math.max(n, lo), hi);
+
+function normalizeKey(value: string | null | undefined) {
+  return value?.trim().toLowerCase().replace(/[\s-]+/g, "_") ?? null;
+}
+
+function normalizeNationKey(value: string | null | undefined) {
+  const normalized = normalizeKey(value);
+  if (!normalized) {
+    return null;
+  }
+  return BACKEND_NATION_KEY_ALIASES[normalized] ?? normalized;
+}
+
+function normalizeFactionKey(value: string | null | undefined) {
+  const normalized = normalizeKey(value);
+  if (!normalized) {
+    return null;
+  }
+  return BACKEND_FACTION_KEY_ALIASES[normalized] ?? normalized;
+}
 
 function nextBetterCondition(c: PlatoonCondition, steps = 1): PlatoonCondition {
   const idx = CONDITION_ORDER.indexOf(c);
   if (idx < 0) return c;
   return CONDITION_ORDER[clamp(idx + steps, 0, CONDITION_ORDER.length - 1)];
+}
+
+function mapReadinessToCondition(readinessStatus: string): PlatoonCondition {
+  const normalized = readinessStatus.trim().toUpperCase();
+  if (normalized.includes("SHATTER")) {
+    return "SHATTERED";
+  }
+  if (normalized.includes("DEPLET") || normalized.includes("BROKEN")) {
+    return "DEPLETED";
+  }
+  if (
+    normalized.includes("WORN") ||
+    normalized.includes("REDUCED") ||
+    normalized.includes("DAMAGED")
+  ) {
+    return "WORN";
+  }
+
+  return "FRESH";
 }
 
 function logAction(type: TurnLogType, text: string) {
@@ -46,24 +112,50 @@ function logAction(type: TurnLogType, text: string) {
   }));
 }
 
-function patchPlatoon(platoonId: string, patch: Partial<Platoon>) {
-  useCampaignStore.setState((state) => {
-    const current = state.platoonsById?.[platoonId];
-    if (!current) return state;
-    return {
-      platoonsById: {
-        ...state.platoonsById,
-        [platoonId]: { ...current, ...patch },
-      },
-    };
-  });
+function logPlatoonMutationError(action: string, error: unknown) {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  logAction("ERROR", `${action} failed: ${message}`);
 }
 
 type Props = {
+  campaignId: string;
   data: NormalizedData | null;
+  mapSummary: CampaignMapSummary;
+  membership: CampaignMembership;
 };
 
-export default function NationCommandPanel({ data }: Props) {
+function commitPlatoonSnapshot(platoon: Platoon) {
+  useCampaignStore.setState((state) => ({
+    platoonsById: {
+      ...state.platoonsById,
+      [platoon.id]: platoon,
+    },
+  }));
+}
+
+function toLocalPlatoon(
+  source: PlatoonSummary | PlatoonDetail,
+  fallback: Platoon,
+): Platoon {
+  return {
+    ...fallback,
+    id: source.id,
+    name: source.name,
+    territoryId: source.currentTerritory?.key ?? fallback.territoryId,
+    condition: mapReadinessToCondition(source.readinessStatus),
+    strengthPct: Math.max(0, Math.min(100, Math.round(source.strength))),
+    mpBase: source.mpBase,
+    traits: source.traits ?? fallback.traits ?? [],
+    entrenched: source.entrenched ?? false,
+  }
+}
+
+export default function NationCommandPanel({
+  campaignId,
+  data,
+  mapSummary,
+  membership,
+}: Props) {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
   const customNations = useCampaignStore((s) => s.customNations);
@@ -81,12 +173,11 @@ export default function NationCommandPanel({ data }: Props) {
   const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
   const cancelDraftOrder = useCampaignStore((s) => s.cancelDraftOrder);
   const territoryNameById = useCampaignStore((s) => s.territoryNameById);
-  const createPlatoonWithLoadout = useCampaignStore(
-    (s) => s.createPlatoonWithLoadout,
-  );
   const ensureSupplies = useCampaignStore((s) => s.ensureSupplies);
   const getSupplies = useCampaignStore((s) => s.getSupplies);
   const spendSupplies = useCampaignStore((s) => s.spendSupplies);
+  const createPlatoonMutation = useCreateCampaignPlatoon(campaignId);
+  const updatePlatoonMutation = useUpdateCampaignPlatoon(campaignId);
   const nationDoctrineState = useCampaignStore((s) => s.nationDoctrineState);
   const nationResearchState = useCampaignStore((s) => s.nationResearchState);
   const nationUpgradesState = useCampaignStore((s) => s.nationUpgradesState);
@@ -124,6 +215,46 @@ export default function NationCommandPanel({ data }: Props) {
   const [wizardName, setWizardName] = useState("");
   const [wizardTrait, setWizardTrait] = useState<PlatoonTrait | "">("");
   const [wizardMpBase, setWizardMpBase] = useState(1);
+
+  const viewerFactionId = useMemo(() => {
+    if (membership.factionId) {
+      return membership.factionId;
+    }
+
+    const normalizedViewerFaction = normalizeFactionKey(viewerFaction);
+    return (
+      mapSummary.factions.find(
+        (faction) => normalizeFactionKey(faction.key) === normalizedViewerFaction,
+      )?.id ?? null
+    );
+  }, [mapSummary.factions, membership.factionId, viewerFaction]);
+
+  const viewerNationId = useMemo(() => {
+    if (
+      membership.nationId &&
+      normalizeNationKey(
+        mapSummary.nations.find((nation) => nation.id === membership.nationId)?.key,
+      ) === normalizeNationKey(viewerNation)
+    ) {
+      return membership.nationId;
+    }
+
+    const normalizedViewerNation = normalizeNationKey(viewerNation);
+    return (
+      mapSummary.nations.find(
+        (nation) => normalizeNationKey(nation.key) === normalizedViewerNation,
+      )?.id ?? null
+    );
+  }, [mapSummary.nations, membership.nationId, viewerNation]);
+
+  const selectedTerritoryBackendId = useMemo(
+    () =>
+      selectedTerritoryId
+        ? mapSummary.territories.find((territory) => territory.key === selectedTerritoryId)
+            ?.id ?? null
+        : null,
+    [mapSummary.territories, selectedTerritoryId],
+  );
 
   const viewerNationLabel =
     (viewerNation.startsWith("custom:")
@@ -271,18 +402,32 @@ export default function NationCommandPanel({ data }: Props) {
     return conditionColor.SHATTERED;
   };
 
-  const applyRename = () => {
-    if (!expandedPlatoon) return;
+  const applyRename = async () => {
+    if (!expandedPlatoon || !campaignId) return;
     const name = renameDraft.trim();
     if (!name) return;
 
-    patchPlatoon(expandedPlatoon.id, { name });
-    logAction("PLATOON", `Renamed platoon ${expandedPlatoon.id} to "${name}"`);
-    setRenameDraft("");
+    try {
+      const updated = await updatePlatoonMutation.mutateAsync({
+        platoonId: expandedPlatoon.id,
+        payload: { name },
+      });
+
+      commitPlatoonSnapshot(
+        toLocalPlatoon(updated, { ...expandedPlatoon, name }),
+      );
+      logAction(
+        "PLATOON",
+        `Renamed platoon ${expandedPlatoon.id} to "${name}"`,
+      );
+      setRenameDraft("");
+    } catch (error) {
+      logPlatoonMutationError(`Rename ${expandedPlatoon.name}`, error);
+    }
   };
 
-  const applyRefit = () => {
-    if (!expandedPlatoon) return;
+  const applyRefit = async () => {
+    if (!expandedPlatoon || !campaignId) return;
 
     const cur = expandedPlatoon.strengthPct ?? 0;
     const target = clamp(cur + refitPct, 0, 100);
@@ -292,63 +437,100 @@ export default function NationCommandPanel({ data }: Props) {
     if (gain <= 0) return;
     if (!mustMatchNation) return;
 
-    const ok = spendSupplies(expandedPlatoon.nation, cost, "Refit");
-    if (!ok) return;
-
     const nextCondition =
       target >= 80 && expandedPlatoon.condition !== "FRESH"
         ? nextBetterCondition(expandedPlatoon.condition, 1)
         : expandedPlatoon.condition;
 
-    patchPlatoon(expandedPlatoon.id, {
-      strengthPct: target,
-      condition: nextCondition,
-    });
-    logAction(
-      "PLATOON",
-      `Refit ${expandedPlatoon.name}: +${gain}% strength (cost ${cost})`,
-    );
+    try {
+      const updated = await updatePlatoonMutation.mutateAsync({
+        platoonId: expandedPlatoon.id,
+        payload: {
+          strength: target,
+          condition: nextCondition,
+        },
+      });
+
+      commitPlatoonSnapshot(
+        toLocalPlatoon(updated, {
+          ...expandedPlatoon,
+          strengthPct: target,
+          condition: nextCondition,
+        }),
+      );
+      spendSupplies(expandedPlatoon.nation, cost, "Refit");
+      logAction(
+        "PLATOON",
+        `Refit ${expandedPlatoon.name}: +${gain}% strength (cost ${cost})`,
+      );
+    } catch (error) {
+      logPlatoonMutationError(`Refit ${expandedPlatoon.name}`, error);
+    }
   };
 
-  const upgradeMobility = () => {
-    if (!expandedPlatoon) return;
+  const upgradeMobility = async () => {
+    if (!expandedPlatoon || !campaignId) return;
     const cur = expandedPlatoon.mpBase ?? 1;
     if (cur >= 3) return;
     if (!mustMatchNation) return;
 
-    const ok = spendSupplies(
-      expandedPlatoon.nation,
-      COST_UPGRADE_MP,
-      "Mobility upgrade",
-    );
-    if (!ok) return;
+    try {
+      const updated = await updatePlatoonMutation.mutateAsync({
+        platoonId: expandedPlatoon.id,
+        payload: { mpBase: cur + 1 },
+      });
 
-    patchPlatoon(expandedPlatoon.id, { mpBase: cur + 1 });
-    logAction(
-      "PLATOON",
-      `Upgraded mobility for ${expandedPlatoon.name}: MP ${cur} → ${cur + 1} (cost ${COST_UPGRADE_MP})`,
-    );
+      commitPlatoonSnapshot(
+        toLocalPlatoon(updated, { ...expandedPlatoon, mpBase: cur + 1 }),
+      );
+      spendSupplies(
+        expandedPlatoon.nation,
+        COST_UPGRADE_MP,
+        "Mobility upgrade",
+      );
+      logAction(
+        "PLATOON",
+        `Upgraded mobility for ${expandedPlatoon.name}: MP ${cur} → ${cur + 1} (cost ${COST_UPGRADE_MP})`,
+      );
+    } catch (error) {
+      logPlatoonMutationError(
+        `Mobility upgrade for ${expandedPlatoon.name}`,
+        error,
+      );
+    }
   };
 
-  const upgradeCondition = () => {
-    if (!expandedPlatoon) return;
+  const upgradeCondition = async () => {
+    if (!expandedPlatoon || !campaignId) return;
     if (expandedPlatoon.condition === "FRESH") return;
     if (!mustMatchNation) return;
 
-    const ok = spendSupplies(
-      expandedPlatoon.nation,
-      COST_UPGRADE_CONDITION,
-      "Readiness upgrade",
-    );
-    if (!ok) return;
-
     const next = nextBetterCondition(expandedPlatoon.condition, 1);
-    patchPlatoon(expandedPlatoon.id, { condition: next });
+    try {
+      const updated = await updatePlatoonMutation.mutateAsync({
+        platoonId: expandedPlatoon.id,
+        payload: { condition: next },
+      });
 
-    logAction(
-      "PLATOON",
-      `Upgraded readiness for ${expandedPlatoon.name}: ${expandedPlatoon.condition} → ${next} (cost ${COST_UPGRADE_CONDITION})`,
-    );
+      commitPlatoonSnapshot(
+        toLocalPlatoon(updated, { ...expandedPlatoon, condition: next }),
+      );
+      spendSupplies(
+        expandedPlatoon.nation,
+        COST_UPGRADE_CONDITION,
+        "Readiness upgrade",
+      );
+
+      logAction(
+        "PLATOON",
+        `Upgraded readiness for ${expandedPlatoon.name}: ${expandedPlatoon.condition} → ${next} (cost ${COST_UPGRADE_CONDITION})`,
+      );
+    } catch (error) {
+      logPlatoonMutationError(
+        `Readiness upgrade for ${expandedPlatoon.name}`,
+        error,
+      );
+    }
   };
 
   const traits: PlatoonTrait[] = (expandedPlatoon?.traits ?? [])
@@ -358,47 +540,75 @@ export default function NationCommandPanel({ data }: Props) {
   const selectedArchetype = getPlatoonArchetypeForTraits(traits);
   const selectedClass = selectedArchetype.id;
 
-  const addTrait = (trait: PlatoonTrait, cost: number) => {
-    if (!expandedPlatoon) return;
+  const addTrait = async (trait: PlatoonTrait, cost: number) => {
+    if (!expandedPlatoon || !campaignId) return;
     if (!mustMatchNation) return;
     if (hasTrait(trait)) return;
 
-    const ok = spendSupplies(expandedPlatoon.nation, cost, `Trait: ${trait}`);
-    if (!ok) return;
+    try {
+      const updated = await updatePlatoonMutation.mutateAsync({
+        platoonId: expandedPlatoon.id,
+        payload: { traits: [...traits, trait] },
+      });
 
-    patchPlatoon(expandedPlatoon.id, { traits: [...traits, trait] });
-    logAction(
-      "PLATOON",
-      `Purchased trait ${trait} for ${expandedPlatoon.name} (cost ${cost})`,
-    );
+      commitPlatoonSnapshot(
+        toLocalPlatoon(updated, {
+          ...expandedPlatoon,
+          traits: [...traits, trait],
+        }),
+      );
+      spendSupplies(expandedPlatoon.nation, cost, `Trait: ${trait}`);
+      logAction(
+        "PLATOON",
+        `Purchased trait ${trait} for ${expandedPlatoon.name} (cost ${cost})`,
+      );
+    } catch (error) {
+      logPlatoonMutationError(`Trait purchase ${trait}`, error);
+    }
   };
 
-  const toggleEntrench = () => {
-    if (!expandedPlatoon) return;
+  const toggleEntrench = async () => {
+    if (!expandedPlatoon || !campaignId) return;
     if (!mustMatchNation) return;
 
     const currently = !!expandedPlatoon.entrenched;
+    const nextEntrenched = !currently;
 
-    if (!currently) {
-      const ok = spendSupplies(
-        expandedPlatoon.nation,
-        COST_TOGGLE_ENTRENCH,
-        "Entrench",
+    try {
+      const updated = await updatePlatoonMutation.mutateAsync({
+        platoonId: expandedPlatoon.id,
+        payload: { entrenched: nextEntrenched },
+      });
+
+      commitPlatoonSnapshot(
+        toLocalPlatoon(updated, {
+          ...expandedPlatoon,
+          entrenched: nextEntrenched,
+        }),
       );
-      if (!ok) return;
-    }
 
-    patchPlatoon(expandedPlatoon.id, { entrenched: !currently });
-    logAction(
-      "PLATOON",
-      `${expandedPlatoon.name} is now ${
-        !currently ? "ENTRENCHED" : "NOT entrenched"
-      }`,
-    );
+      if (!currently) {
+        spendSupplies(
+          expandedPlatoon.nation,
+          COST_TOGGLE_ENTRENCH,
+          "Entrench",
+        );
+      }
+
+      logAction(
+        "PLATOON",
+        `${expandedPlatoon.name} is now ${
+          nextEntrenched ? "ENTRENCHED" : "NOT entrenched"
+        }`,
+      );
+    } catch (error) {
+      logPlatoonMutationError(`Entrench ${expandedPlatoon.name}`, error);
+    }
   };
 
   const openCreateWizard = () => {
-    if (!selectedTerritoryId) return;
+    if (!selectedTerritoryId || !selectedTerritoryBackendId || !viewerFactionId)
+      return;
     setWizardName("");
     setWizardTrait("");
     setWizardMpBase(1);
@@ -414,18 +624,69 @@ export default function NationCommandPanel({ data }: Props) {
     setWizardStep(clamp(nextStep, 0, wizardSteps.length - 1));
   };
 
-  const deployWizardPlatoon = () => {
-    if (!selectedTerritoryId) return;
+  const deployWizardPlatoon = async () => {
+    if (
+      !campaignId ||
+      !selectedTerritoryId ||
+      !selectedTerritoryBackendId ||
+      !viewerFactionId
+    ) {
+      return;
+    }
     const trimmedName = wizardName.trim();
     if (!trimmedName) return;
-    createPlatoonWithLoadout(viewerFaction as FactionKey, selectedTerritoryId, {
-      name: trimmedName,
-      traits: wizardTrait ? [wizardTrait] : [],
-      mpBase: wizardMpBase,
-      condition: "FRESH",
-      strengthPct: 100,
-    });
-    setWizardOpen(false);
+
+    const platoonKeyBase = `${viewerNation}-${trimmedName}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    const platoonKey = `${platoonKeyBase || "platoon"}-${crypto
+      .randomUUID()
+      .slice(0, 8)}`.slice(0, 60);
+    const unitType =
+      wizardTrait === "ARMOURED"
+        ? "ARMOR"
+        : wizardTrait === "ENGINEERS"
+          ? "ENGINEERS"
+          : wizardTrait === "RECON"
+            ? "RECON"
+            : "INFANTRY";
+
+    try {
+      const created = await createPlatoonMutation.mutateAsync({
+        platoonKey,
+        name: trimmedName,
+        factionId: viewerFactionId,
+        nationId: viewerNationId,
+        homeTerritoryId: selectedTerritoryBackendId,
+        unitType,
+        condition: "FRESH",
+        strength: 100,
+        mpBase: wizardMpBase,
+        traits: wizardTrait ? [wizardTrait] : [],
+        entrenched: false,
+      });
+
+      commitPlatoonSnapshot(
+        toLocalPlatoon(created, {
+          id: created.id,
+          faction: viewerFaction,
+          nation: viewerNation,
+          name: trimmedName,
+          territoryId: created.currentTerritory?.key ?? selectedTerritoryId,
+          condition: "FRESH",
+          strengthPct: 100,
+          mpBase: wizardMpBase,
+          traits: wizardTrait ? [wizardTrait] : [],
+          entrenched: false,
+        }),
+      );
+      setSelectedPlatoonId(created.id);
+      setSelectedTerritory(created.currentTerritory?.key ?? selectedTerritoryId);
+      setWizardOpen(false);
+    } catch (error) {
+      logPlatoonMutationError(`Create platoon ${trimmedName}`, error);
+    }
   };
 
   return (
@@ -463,10 +724,14 @@ export default function NationCommandPanel({ data }: Props) {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
             onClick={openCreateWizard}
-            disabled={!selectedTerritoryId}
+            disabled={!selectedTerritoryId || !selectedTerritoryBackendId || !viewerFactionId}
             title={
               !selectedTerritoryId
                 ? "Select a territory on the map to create a platoon."
+                : !selectedTerritoryBackendId
+                  ? "Selected territory is not mapped to the backend read model."
+                  : !viewerFactionId
+                    ? "No backend faction is available for the current viewer."
                 : undefined
             }
           >

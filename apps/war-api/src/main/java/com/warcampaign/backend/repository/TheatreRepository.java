@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface TheatreRepository extends JpaRepository<Theatre, UUID> {
 
     List<Theatre> findAllByCampaignIdOrderByDisplayOrderAscNameAsc(UUID campaignId);
+
+    java.util.Optional<Theatre> findByCampaignIdAndTheatreKey(UUID campaignId, String theatreKey);
 }

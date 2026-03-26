@@ -42,6 +42,9 @@ public class Campaign extends BaseEntity {
     @Column(name = "timers_enabled", nullable = false)
     private boolean timersEnabled;
 
+    @Column(name = "metadata_json", columnDefinition = "TEXT")
+    private String metadataJson;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by_user_id", nullable = false)
     private User createdBy;
@@ -124,6 +127,14 @@ public class Campaign extends BaseEntity {
 
     public void setTimersEnabled(boolean timersEnabled) {
         this.timersEnabled = timersEnabled;
+    }
+
+    public String getMetadataJson() {
+        return metadataJson;
+    }
+
+    public void setMetadataJson(String metadataJson) {
+        this.metadataJson = metadataJson;
     }
 
     public User getCreatedBy() {

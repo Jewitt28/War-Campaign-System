@@ -4,7 +4,6 @@ import { useCampaignStore } from "../store/useCampaignStore";
 
 import PlayerDashboard from "../player/PlayerDashboard";
 
-import PlatoonsPanel from "./PlatoonsPanel";
 import TurnLogPanel from "./TurnLogPanel";
 import BattlesPanel from "./BattlesPanel";
 import { getFactionAccent } from "./factionColors";
@@ -22,7 +21,6 @@ export type Tab =
   | "BATTLES"
   | "INTEL"
   | "LOG";
-type RightTab = Tab | "PLATOONS";
 
 export default function CommandPanel({ data }: Props) {
   const mode = useCampaignStore((s) => s.mode);
@@ -47,24 +45,23 @@ export default function CommandPanel({ data }: Props) {
     customs,
   });
 
-  const [tab, setTab] = useState<RightTab>("DASHBOARD");
+  const [tab, setTab] = useState<Tab>("DASHBOARD");
 
-  const tabs: Array<{ id: RightTab; label: string; gmOnly?: boolean }> =
+  const tabs: Array<{ id: Tab; label: string; gmOnly?: boolean }> =
     useMemo(() => {
       return [
         { id: "DASHBOARD", label: "Dashboard" },
         { id: "RESOLUTION", label: "Resolution" },
         { id: "BATTLES", label: "Battles" },
-        { id: "PLATOONS", label: "Platoons" },
         { id: "INTEL", label: "Intel/Owners", gmOnly: true },
         { id: "LOG", label: "Log" },
       ];
     }, []);
 
-  const playerTabsByPhase: Record<string, RightTab[]> = useMemo(
+  const playerTabsByPhase: Record<string, Tab[]> = useMemo(
     () => ({
       SETUP: ["DASHBOARD", "LOG"],
-      ORDERS: ["DASHBOARD", "PLATOONS", "LOG"],
+      ORDERS: ["DASHBOARD", "LOG"],
       RESOLUTION: ["DASHBOARD", "RESOLUTION", "LOG"],
       BATTLES: ["DASHBOARD", "BATTLES", "LOG"],
     }),
@@ -93,7 +90,7 @@ export default function CommandPanel({ data }: Props) {
         return commandHubExpanded ? (
           <GMPanelNotice message="Nation Hub is expanded in the center panel." />
         ) : (
-          <GMPanelNotice message="Nation Hub, My Forces, and Faction Command live in the left panel." />
+          <GMPanelNotice message="Nation Hub, My Forces, and Faction Command live in the left panel. Platoon management now stays on the map command tab." />
         );
       // return gmEffective ? <GMTools data={data} setTab={tab} /> : <CommandHub data={data}  />;
       case "RESOLUTION":
@@ -112,8 +109,6 @@ export default function CommandPanel({ data }: Props) {
         ) : (
           <div>Not available in PLAYER mode.</div>
         );
-      case "PLATOONS":
-        return <PlatoonsPanel />;
       default:
         return null;
     }

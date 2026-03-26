@@ -11,5 +11,7 @@ public interface FactionRepository extends JpaRepository<Faction, UUID> {
 
     List<Faction> findAllByCampaignIdOrderByNameAsc(UUID campaignId);
 
+    Optional<Faction> findByCampaignIdAndFactionKey(UUID campaignId, String factionKey);
+
     Optional<Faction> findByIdAndCampaignId(UUID factionId, UUID campaignId);
 }

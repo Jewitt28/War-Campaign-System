@@ -39,6 +39,9 @@ public class Platoon extends BaseEntity {
     @Column(name = "hidden_from_players", nullable = false)
     private boolean hiddenFromPlayers;
 
+    @Column(name = "metadata_json", columnDefinition = "TEXT")
+    private String metadataJson;
+
     public Campaign getCampaign() {
         return campaign;
     }
@@ -109,5 +112,13 @@ public class Platoon extends BaseEntity {
 
     public void setHiddenFromPlayers(boolean hiddenFromPlayers) {
         this.hiddenFromPlayers = hiddenFromPlayers;
+    }
+
+    public String getMetadataJson() {
+        return metadataJson;
+    }
+
+    public void setMetadataJson(String metadataJson) {
+        this.metadataJson = metadataJson;
     }
 }

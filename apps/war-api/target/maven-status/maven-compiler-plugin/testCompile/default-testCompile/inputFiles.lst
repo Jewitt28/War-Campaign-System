@@ -2,6 +2,7 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/CampaignAutomationIntegrationTest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/CampaignBattleIntegrationTest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/CampaignLobbyIntegrationTest.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/CampaignMapBridgeIntegrationTest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/CampaignMapIntegrationTest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/CampaignOrderIntegrationTest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/test/java/com/warcampaign/backend/integration/CampaignPhaseIntegrationTest.java

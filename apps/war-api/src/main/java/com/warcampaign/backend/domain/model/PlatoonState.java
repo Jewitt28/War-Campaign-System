@@ -20,12 +20,18 @@ public class PlatoonState extends BaseEntity {
     @JoinColumn(name = "territory_id")
     private Territory territory;
 
+    @Column(length = 120)
+    private String name;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PlatoonReadinessStatus readinessStatus;
 
     @Column(nullable = false)
     private int strength;
+
+    @Column(name = "hidden_from_players")
+    private Boolean hiddenFromPlayers;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
@@ -54,6 +60,14 @@ public class PlatoonState extends BaseEntity {
         this.territory = territory;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public PlatoonReadinessStatus getReadinessStatus() {
         return readinessStatus;
     }
@@ -68,6 +82,14 @@ public class PlatoonState extends BaseEntity {
 
     public void setStrength(int strength) {
         this.strength = strength;
+    }
+
+    public Boolean getHiddenFromPlayers() {
+        return hiddenFromPlayers;
+    }
+
+    public void setHiddenFromPlayers(Boolean hiddenFromPlayers) {
+        this.hiddenFromPlayers = hiddenFromPlayers;
     }
 
     public String getNotes() {

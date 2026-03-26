@@ -44,7 +44,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -178,10 +181,18 @@ class CampaignPlatoonIntegrationTest {
         Turn alphaTurn2 = saveTurn(alphaCampaign, 2);
         Turn bravoTurn1 = saveTurn(bravoCampaign, 1);
 
-        alliedVisiblePlatoon = savePlatoon(alphaCampaign, allies, british, allyPlayerMembership, normandy, "allies-1", "Allied 1st Platoon", "INFANTRY", false);
-        alliedHiddenPlatoon = savePlatoon(alphaCampaign, allies, british, gmMembership, normandy, "allies-2", "Allied Reserve Platoon", "RESERVE", true);
-        axisPlatoon = savePlatoon(alphaCampaign, axis, german, null, calais, "axis-1", "Axis 1st Platoon", "ARMOR", false);
-        bravoPlatoon = savePlatoon(bravoCampaign, soviets, soviet, bravoGmMembership, smolensk, "soviet-1", "Soviet 1st Platoon", "INFANTRY", false);
+        alliedVisiblePlatoon = savePlatoon(alphaCampaign, allies, british, allyPlayerMembership, normandy, "allies-1", "Allied 1st Platoon", "INFANTRY", false, """
+                {"mpBase":2,"traits":["RECON"],"entrenched":true}
+                """);
+        alliedHiddenPlatoon = savePlatoon(alphaCampaign, allies, british, gmMembership, normandy, "allies-2", "Allied Reserve Platoon", "RESERVE", true, """
+                {"mpBase":3,"traits":["ENGINEERS"],"entrenched":false}
+                """);
+        axisPlatoon = savePlatoon(alphaCampaign, axis, german, null, calais, "axis-1", "Axis 1st Platoon", "ARMOR", false, """
+                {"mpBase":1,"traits":[],"entrenched":false}
+                """);
+        bravoPlatoon = savePlatoon(bravoCampaign, soviets, soviet, bravoGmMembership, smolensk, "soviet-1", "Soviet 1st Platoon", "INFANTRY", false, """
+                {"mpBase":1,"traits":["ARMOURED"],"entrenched":false}
+                """);
 
         savePlatoonState(alphaTurn1, alliedVisiblePlatoon, normandy, PlatoonReadinessStatus.ACTIVE, 9, "Old turn");
         savePlatoonState(alphaTurn2, alliedVisiblePlatoon, calais, PlatoonReadinessStatus.DAMAGED, 7, "Current turn");
@@ -199,7 +210,12 @@ class CampaignPlatoonIntegrationTest {
                 .andExpect(jsonPath("$[0].id").value(alliedVisiblePlatoon.getId().toString()))
                 .andExpect(jsonPath("$[0].key").value("allies-1"))
                 .andExpect(jsonPath("$[0].currentTerritory.key").value("calais"))
-                .andExpect(jsonPath("$[0].strength").value(7));
+                .andExpect(jsonPath("$[0].readinessStatus").value("DAMAGED"))
+                .andExpect(jsonPath("$[0].condition").value("WORN"))
+                .andExpect(jsonPath("$[0].strength").value(7))
+                .andExpect(jsonPath("$[0].mpBase").value(2))
+                .andExpect(jsonPath("$[0].traits[0]").value("RECON"))
+                .andExpect(jsonPath("$[0].entrenched").value(true));
     }
 
     @Test
@@ -217,7 +233,12 @@ class CampaignPlatoonIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(alliedVisiblePlatoon.getId().toString()))
                 .andExpect(jsonPath("$.currentTerritory.key").value("calais"))
+                .andExpect(jsonPath("$.readinessStatus").value("DAMAGED"))
+                .andExpect(jsonPath("$.condition").value("WORN"))
                 .andExpect(jsonPath("$.strength").value(7))
+                .andExpect(jsonPath("$.mpBase").value(2))
+                .andExpect(jsonPath("$.traits[0]").value("RECON"))
+                .andExpect(jsonPath("$.entrenched").value(true))
                 .andExpect(jsonPath("$.notes").doesNotExist())
                 .andExpect(jsonPath("$.hiddenFromPlayers").doesNotExist())
                 .andExpect(jsonPath("$.assignedMember").doesNotExist());
@@ -230,6 +251,11 @@ class CampaignPlatoonIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(alliedHiddenPlatoon.getId().toString()))
                 .andExpect(jsonPath("$.hiddenFromPlayers").value(true))
+                .andExpect(jsonPath("$.readinessStatus").value("RESERVES"))
+                .andExpect(jsonPath("$.condition").value("DEPLETED"))
+                .andExpect(jsonPath("$.mpBase").value(3))
+                .andExpect(jsonPath("$.traits[0]").value("ENGINEERS"))
+                .andExpect(jsonPath("$.entrenched").value(false))
                 .andExpect(jsonPath("$.notes").value("Hidden reserve"))
                 .andExpect(jsonPath("$.assignedMember.displayName").value("gm"));
     }
@@ -256,6 +282,122 @@ class CampaignPlatoonIntegrationTest {
                         .header("X-Dev-User", "gm@war.local"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PLATOON_NOT_FOUND"));
+    }
+
+    @Test
+    void playerCanCreateOwnPlatoon() throws Exception {
+        mockMvc.perform(post("/api/campaigns/{campaignId}/platoons", alphaCampaign.getId())
+                        .header("X-Dev-User", "allied@war.local")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "platoonKey": "allies-3",
+                                  "name": "Allied Vanguard",
+                                  "homeTerritoryId": "%s",
+                                  "unitType": "INFANTRY",
+                                  "condition": "WORN",
+                                  "strength": 88,
+                                  "mpBase": 2,
+                                  "traits": ["RECON", "ENGINEERS"],
+                                  "entrenched": true
+                                }
+                                """.formatted(alliedVisiblePlatoon.getHomeTerritory().getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.key").value("allies-3"))
+                .andExpect(jsonPath("$.name").value("Allied Vanguard"))
+                .andExpect(jsonPath("$.currentTerritory.key").value("normandy"))
+                .andExpect(jsonPath("$.readinessStatus").value("DAMAGED"))
+                .andExpect(jsonPath("$.condition").value("WORN"))
+                .andExpect(jsonPath("$.strength").value(88))
+                .andExpect(jsonPath("$.mpBase").value(2))
+                .andExpect(jsonPath("$.traits[0]").value("RECON"))
+                .andExpect(jsonPath("$.traits[1]").value("ENGINEERS"))
+                .andExpect(jsonPath("$.entrenched").value(true))
+                .andExpect(jsonPath("$.hiddenFromPlayers").doesNotExist());
+
+        Platoon created = platoonRepository.findByCampaignIdAndPlatoonKey(alphaCampaign.getId(), "allies-3").orElseThrow();
+        PlatoonState state = platoonStateRepository.findByPlatoonIdAndCampaignIdAndTurnNumber(created.getId(), alphaCampaign.getId(), alphaCampaign.getCurrentTurnNumber()).orElseThrow();
+
+        assertThat(created.getFaction().getId()).isEqualTo(allyPlayerMembership.getFaction().getId());
+        assertThat(created.getNation().getId()).isEqualTo(allyPlayerMembership.getNation().getId());
+        assertThat(created.getMetadataJson()).contains("\"mpBase\":2");
+        assertThat(created.getMetadataJson()).contains("\"entrenched\":true");
+        assertThat(created.getMetadataJson()).contains("\"traits\":[\"RECON\",\"ENGINEERS\"]");
+        assertThat(state.getName()).isEqualTo("Allied Vanguard");
+        assertThat(state.getReadinessStatus()).isEqualTo(PlatoonReadinessStatus.DAMAGED);
+        assertThat(state.getStrength()).isEqualTo(88);
+        assertThat(state.getHiddenFromPlayers()).isFalse();
+    }
+
+    @Test
+    void playerCanUpdateOwnPlatoon() throws Exception {
+        mockMvc.perform(put("/api/campaigns/{campaignId}/platoons/{platoonId}", alphaCampaign.getId(), alliedVisiblePlatoon.getId())
+                        .header("X-Dev-User", "allied@war.local")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Allied Vanguard",
+                                  "condition": "DEPLETED",
+                                  "strength": 61,
+                                  "mpBase": 3,
+                                  "traits": ["ENGINEERS"],
+                                  "entrenched": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Allied Vanguard"))
+                .andExpect(jsonPath("$.readinessStatus").value("RESERVES"))
+                .andExpect(jsonPath("$.condition").value("DEPLETED"))
+                .andExpect(jsonPath("$.strength").value(61))
+                .andExpect(jsonPath("$.mpBase").value(3))
+                .andExpect(jsonPath("$.traits[0]").value("ENGINEERS"))
+                .andExpect(jsonPath("$.entrenched").value(false));
+
+        Platoon updated = platoonRepository.findById(alliedVisiblePlatoon.getId()).orElseThrow();
+        PlatoonState state = platoonStateRepository.findByPlatoonIdAndCampaignIdAndTurnNumber(updated.getId(), alphaCampaign.getId(), alphaCampaign.getCurrentTurnNumber()).orElseThrow();
+
+        assertThat(updated.getName()).isEqualTo("Allied Vanguard");
+        assertThat(updated.getMetadataJson()).contains("\"mpBase\":3");
+        assertThat(updated.getMetadataJson()).contains("\"traits\":[\"ENGINEERS\"]");
+        assertThat(updated.getMetadataJson()).contains("\"entrenched\":false");
+        assertThat(state.getName()).isEqualTo("Allied Vanguard");
+        assertThat(state.getReadinessStatus()).isEqualTo(PlatoonReadinessStatus.RESERVES);
+        assertThat(state.getStrength()).isEqualTo(61);
+    }
+
+    @Test
+    void playerCannotCreatePlatoonForOtherFactionOrNation() throws Exception {
+        mockMvc.perform(post("/api/campaigns/{campaignId}/platoons", alphaCampaign.getId())
+                        .header("X-Dev-User", "allied@war.local")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "platoonKey": "axis-2",
+                                  "name": "Axis Intrusion",
+                                  "factionId": "%s",
+                                  "nationId": "%s",
+                                  "homeTerritoryId": "%s",
+                                  "condition": "FRESH"
+                                }
+                                """.formatted(axisPlatoon.getFaction().getId(), axisPlatoon.getNation().getId(), alliedVisiblePlatoon.getHomeTerritory().getId())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PLATOON_FORBIDDEN"));
+    }
+
+    @Test
+    void playerCannotUpdatePlatoonFromOtherFactionOrNation() throws Exception {
+        mockMvc.perform(put("/api/campaigns/{campaignId}/platoons/{platoonId}", alphaCampaign.getId(), axisPlatoon.getId())
+                        .header("X-Dev-User", "allied@war.local")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "name": "Axis Intrusion",
+                                  "condition": "FRESH",
+                                  "strength": 77
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PLATOON_FORBIDDEN"));
     }
 
     private User saveUser(String email, String displayName) {
@@ -356,6 +498,19 @@ class CampaignPlatoonIntegrationTest {
                                 String name,
                                 String unitType,
                                 boolean hiddenFromPlayers) {
+        return savePlatoon(campaign, faction, nation, assignedMember, homeTerritory, key, name, unitType, hiddenFromPlayers, null);
+    }
+
+    private Platoon savePlatoon(Campaign campaign,
+                                Faction faction,
+                                Nation nation,
+                                CampaignMember assignedMember,
+                                Territory homeTerritory,
+                                String key,
+                                String name,
+                                String unitType,
+                                boolean hiddenFromPlayers,
+                                String metadataJson) {
         Platoon platoon = new Platoon();
         platoon.setCampaign(campaign);
         platoon.setFaction(faction);
@@ -366,6 +521,7 @@ class CampaignPlatoonIntegrationTest {
         platoon.setName(name);
         platoon.setUnitType(unitType);
         platoon.setHiddenFromPlayers(hiddenFromPlayers);
+        platoon.setMetadataJson(metadataJson);
         return platoonRepository.save(platoon);
     }
 
@@ -375,12 +531,25 @@ class CampaignPlatoonIntegrationTest {
                                           PlatoonReadinessStatus readinessStatus,
                                           int strength,
                                           String notes) {
+        return savePlatoonState(turn, platoon, territory, readinessStatus, strength, notes, null, null);
+    }
+
+    private PlatoonState savePlatoonState(Turn turn,
+                                          Platoon platoon,
+                                          Territory territory,
+                                          PlatoonReadinessStatus readinessStatus,
+                                          int strength,
+                                          String notes,
+                                          String name,
+                                          Boolean hiddenFromPlayers) {
         PlatoonState state = new PlatoonState();
         state.setTurn(turn);
         state.setPlatoon(platoon);
         state.setTerritory(territory);
+        state.setName(name);
         state.setReadinessStatus(readinessStatus);
         state.setStrength(strength);
+        state.setHiddenFromPlayers(hiddenFromPlayers);
         state.setNotes(notes);
         return platoonStateRepository.save(state);
     }
