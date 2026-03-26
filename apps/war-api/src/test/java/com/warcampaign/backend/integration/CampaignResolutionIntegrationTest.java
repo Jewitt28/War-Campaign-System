@@ -1,24 +1,29 @@
 package com.warcampaign.backend.integration;
 
+import com.warcampaign.backend.domain.enums.BattleStatus;
 import com.warcampaign.backend.domain.enums.CampaignPhase;
 import com.warcampaign.backend.domain.enums.CampaignRole;
 import com.warcampaign.backend.domain.enums.CampaignStatus;
 import com.warcampaign.backend.domain.enums.FactionType;
+import com.warcampaign.backend.domain.enums.OrderSubmissionStatus;
 import com.warcampaign.backend.domain.enums.PlatoonReadinessStatus;
+import com.warcampaign.backend.domain.enums.TerritoryStrategicStatus;
 import com.warcampaign.backend.domain.model.Campaign;
 import com.warcampaign.backend.domain.model.CampaignMember;
 import com.warcampaign.backend.domain.model.Faction;
 import com.warcampaign.backend.domain.model.Nation;
+import com.warcampaign.backend.domain.model.OrderSubmission;
 import com.warcampaign.backend.domain.model.Platoon;
 import com.warcampaign.backend.domain.model.PlatoonState;
 import com.warcampaign.backend.domain.model.Theatre;
 import com.warcampaign.backend.domain.model.Territory;
+import com.warcampaign.backend.domain.model.TerritoryState;
 import com.warcampaign.backend.domain.model.Turn;
 import com.warcampaign.backend.domain.model.User;
-import com.warcampaign.backend.repository.CampaignInviteRepository;
-import com.warcampaign.backend.repository.CampaignAuditLogRepository;
 import com.warcampaign.backend.repository.BattleParticipantRepository;
 import com.warcampaign.backend.repository.BattleRepository;
+import com.warcampaign.backend.repository.CampaignAuditLogRepository;
+import com.warcampaign.backend.repository.CampaignInviteRepository;
 import com.warcampaign.backend.repository.CampaignMemberRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
@@ -27,11 +32,11 @@ import com.warcampaign.backend.repository.OrderSubmissionRepository;
 import com.warcampaign.backend.repository.PlatoonOrderRepository;
 import com.warcampaign.backend.repository.PlatoonRepository;
 import com.warcampaign.backend.repository.PlatoonStateRepository;
+import com.warcampaign.backend.repository.ResolutionEventRepository;
 import com.warcampaign.backend.repository.TheatreRepository;
 import com.warcampaign.backend.repository.TerritoryRepository;
 import com.warcampaign.backend.repository.TerritoryStateRepository;
 import com.warcampaign.backend.repository.TurnRepository;
-import com.warcampaign.backend.repository.ResolutionEventRepository;
 import com.warcampaign.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +48,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -51,7 +57,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class CampaignOrderIntegrationTest {
+class CampaignResolutionIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -110,7 +116,10 @@ class CampaignOrderIntegrationTest {
     @Autowired
     private ResolutionEventRepository resolutionEventRepository;
 
-    private Campaign alphaCampaign;
+    private Campaign campaign;
+    private CampaignMember alliedMember;
+    private Faction allies;
+    private Faction axis;
     private Territory normandy;
     private Territory calais;
     private Platoon alliedPlatoon;
@@ -138,49 +147,37 @@ class CampaignOrderIntegrationTest {
         userRepository.deleteAll();
 
         User gmUser = saveUser("gm@war.local", "gm");
-        User alliedPlayer = saveUser("allied@war.local", "ally");
-        User observer = saveUser("observer@war.local", "observer");
+        User alliedUser = saveUser("allied@war.local", "ally");
+        User observerUser = saveUser("observer@war.local", "observer");
 
-        alphaCampaign = saveCampaign("Alpha Front", gmUser, 2, CampaignPhase.OPERATIONS);
+        campaign = saveCampaign("Resolution Front", gmUser);
+        Theatre theatre = saveTheatre(campaign, "west", "Western Europe", 1);
+        allies = saveFaction(campaign, "allies", "Allies");
+        axis = saveFaction(campaign, "axis", "Axis");
+        Nation british = saveNation(campaign, allies, "uk", "United Kingdom");
+        Nation german = saveNation(campaign, axis, "de", "Germany");
 
-        Theatre theatre = saveTheatre(alphaCampaign, "west", "Western Europe", 1);
-        Faction allies = saveFaction(alphaCampaign, "allies", "Allies");
-        Faction axis = saveFaction(alphaCampaign, "axis", "Axis");
-        Nation british = saveNation(alphaCampaign, allies, "uk", "United Kingdom");
-        Nation german = saveNation(alphaCampaign, axis, "de", "Germany");
+        saveMembership(campaign, gmUser, CampaignRole.GM, null, null);
+        alliedMember = saveMembership(campaign, alliedUser, CampaignRole.PLAYER, allies, british);
+        saveMembership(campaign, observerUser, CampaignRole.OBSERVER, null, null);
 
-        saveMembership(alphaCampaign, gmUser, CampaignRole.GM, null, null);
-        saveMembership(alphaCampaign, observer, CampaignRole.OBSERVER, null, null);
-        CampaignMember alliedMembership = saveMembership(alphaCampaign, alliedPlayer, CampaignRole.PLAYER, allies, british);
+        normandy = saveTerritory(campaign, theatre, "normandy", "Normandy");
+        calais = saveTerritory(campaign, theatre, "calais", "Calais");
 
-        normandy = saveTerritory(alphaCampaign, theatre, "normandy", "Normandy");
-        calais = saveTerritory(alphaCampaign, theatre, "calais", "Calais");
-        Territory berlin = saveTerritory(alphaCampaign, theatre, "berlin", "Berlin");
+        Turn turn = saveTurn(campaign, 1, CampaignPhase.RESOLUTION);
+        saveTerritoryState(turn, normandy, allies, british, TerritoryStrategicStatus.CONTROLLED, 1, "SUPPLIED");
+        saveTerritoryState(turn, calais, axis, german, TerritoryStrategicStatus.CONTROLLED, 2, "SUPPLIED");
 
-        Turn turn1 = saveTurn(alphaCampaign, 1);
-        Turn turn2 = saveTurn(alphaCampaign, 2);
+        alliedPlatoon = savePlatoon(campaign, allies, british, alliedMember, normandy, "allied-1", "Allied 1st Platoon");
+        axisPlatoon = savePlatoon(campaign, axis, german, null, calais, "axis-1", "Axis 1st Platoon");
 
-        alliedPlatoon = savePlatoon(alphaCampaign, allies, british, alliedMembership, normandy, "allies-1", "Allied 1st Platoon");
-        axisPlatoon = savePlatoon(alphaCampaign, axis, german, null, berlin, "axis-1", "Axis 1st Platoon");
-
-        savePlatoonState(turn1, alliedPlatoon, berlin, PlatoonReadinessStatus.ACTIVE, 8);
-        savePlatoonState(turn2, alliedPlatoon, normandy, PlatoonReadinessStatus.ACTIVE, 7);
-        savePlatoonState(turn2, axisPlatoon, berlin, PlatoonReadinessStatus.ACTIVE, 9);
+        savePlatoonState(turn, alliedPlatoon, normandy, PlatoonReadinessStatus.ACTIVE, 8);
+        savePlatoonState(turn, axisPlatoon, calais, PlatoonReadinessStatus.ACTIVE, 9);
     }
 
     @Test
-    void playerGetsEmptySubmissionForCurrentTurn() throws Exception {
-        mockMvc.perform(get("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
-                        .header("X-Dev-User", "allied@war.local"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.submissionId").isEmpty())
-                .andExpect(jsonPath("$.status").value("DRAFT"))
-                .andExpect(jsonPath("$.orders.length()").value(0));
-    }
-
-    @Test
-    void playerCanSaveValidOrdersForControlledPlatoon() throws Exception {
-        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
+    void gmCanResolveTurnAndGenerateBattleSummary() throws Exception {
+        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", campaign.getId(), 1)
                         .header("X-Dev-User", "allied@war.local")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -188,114 +185,105 @@ class CampaignOrderIntegrationTest {
                                   "orders": [
                                     {
                                       "platoonId": "%s",
-                                      "orderType": "MOVE",
-                                      "sourceTerritoryId": "%s",
-                                      "targetTerritoryId": "%s",
-                                      "payloadJson": "{\\"stance\\":\\"aggressive\\"}"
-                                    }
-                                  ]
-                                }
-                                """.formatted(alliedPlatoon.getId(), normandy.getId(), calais.getId())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("VALIDATED"))
-                .andExpect(jsonPath("$.orders.length()").value(1))
-                .andExpect(jsonPath("$.orders[0].platoonId").value(alliedPlatoon.getId().toString()))
-                .andExpect(jsonPath("$.orders[0].validationStatus").value("VALID"))
-                .andExpect(jsonPath("$.orders[0].targetTerritoryId").value(calais.getId().toString()));
-    }
-
-    @Test
-    void playerCannotSaveOrdersForAnotherFactionPlatoon() throws Exception {
-        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
-                        .header("X-Dev-User", "allied@war.local")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "orders": [
-                                    {
-                                      "platoonId": "%s",
-                                      "orderType": "MOVE",
-                                      "sourceTerritoryId": "%s",
-                                      "targetTerritoryId": "%s"
-                                    }
-                                  ]
-                                }
-                                """.formatted(axisPlatoon.getId(), normandy.getId(), calais.getId())))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("PLATOON_FORBIDDEN"));
-    }
-
-    @Test
-    void lockRequiresValidatedSubmissionAndEnforcesImmutability() throws Exception {
-        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
-                        .header("X-Dev-User", "allied@war.local")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "orders": [
-                                    {
-                                      "platoonId": "%s",
-                                      "orderType": "MOVE",
+                                      "orderType": "ATTACK",
                                       "sourceTerritoryId": "%s",
                                       "targetTerritoryId": "%s"
                                     }
                                   ]
                                 }
                                 """.formatted(alliedPlatoon.getId(), normandy.getId(), calais.getId())))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(post("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me/lock", alphaCampaign.getId(), 2)
-                        .header("X-Dev-User", "allied@war.local"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("LOCKED"))
-                .andExpect(jsonPath("$.lockedAt").isNotEmpty())
-                .andExpect(jsonPath("$.checksum").isNotEmpty());
-
-        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
-                        .header("X-Dev-User", "allied@war.local")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "orders": [
-                                    {
-                                      "platoonId": "%s",
-                                      "orderType": "HOLD"
-                                    }
-                                  ]
-                                }
-                                """.formatted(alliedPlatoon.getId())))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("ORDER_SUBMISSION_LOCKED"));
-    }
-
-    @Test
-    void cannotEditOrdersOutsideOperationsPhase() throws Exception {
-        alphaCampaign.setCurrentPhase(CampaignPhase.LOBBY);
-        campaignRepository.save(alphaCampaign);
-
-        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
-                        .header("X-Dev-User", "allied@war.local")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "orders": [
-                                    {
-                                      "platoonId": "%s",
-                                      "orderType": "HOLD"
-                                    }
-                                  ]
-                                }
-                                """.formatted(alliedPlatoon.getId())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ORDER_PHASE_INVALID"));
+
+        campaign.setCurrentPhase(CampaignPhase.OPERATIONS);
+        campaignRepository.save(campaign);
+        Turn turn = turnRepository.findByCampaignIdAndTurnNumber(campaign.getId(), 1).orElseThrow();
+        turn.setPhase(CampaignPhase.OPERATIONS);
+        turnRepository.save(turn);
+
+        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", campaign.getId(), 1)
+                        .header("X-Dev-User", "allied@war.local")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "orders": [
+                                    {
+                                      "platoonId": "%s",
+                                      "orderType": "ATTACK",
+                                      "sourceTerritoryId": "%s",
+                                      "targetTerritoryId": "%s"
+                                    }
+                                  ]
+                                }
+                                """.formatted(alliedPlatoon.getId(), normandy.getId(), calais.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("VALIDATED"));
+
+        mockMvc.perform(post("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me/lock", campaign.getId(), 1)
+                        .header("X-Dev-User", "allied@war.local"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("LOCKED"));
+
+        campaign.setCurrentPhase(CampaignPhase.RESOLUTION);
+        campaignRepository.save(campaign);
+        turn.setPhase(CampaignPhase.RESOLUTION);
+        turnRepository.save(turn);
+
+        mockMvc.perform(post("/api/campaigns/{campaignId}/turns/{turnNumber}/resolve", campaign.getId(), 1)
+                        .header("X-Dev-User", "gm@war.local"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.turnNumber").value(1))
+                .andExpect(jsonPath("$.revealedSubmissionCount").value(1))
+                .andExpect(jsonPath("$.battleCount").value(1))
+                .andExpect(jsonPath("$.eventCount").value(3))
+                .andExpect(jsonPath("$.submissions[0].status").value("REVEALED"))
+                .andExpect(jsonPath("$.battles[0].battleStatus").value("PENDING"))
+                .andExpect(jsonPath("$.battles[0].territoryId").value(calais.getId().toString()))
+                .andExpect(jsonPath("$.battles[0].participants.length()").value(2))
+                .andExpect(jsonPath("$.events[?(@.eventType=='BATTLE_GENERATED')]").exists());
+
+        OrderSubmission submission = orderSubmissionRepository.findAll().getFirst();
+        assertThat(submission.getStatus()).isEqualTo(OrderSubmissionStatus.REVEALED);
+        assertThat(submission.getRevealAt()).isNotNull();
+        assertThat(battleRepository.findAll()).hasSize(1);
+        assertThat(battleParticipantRepository.findAll()).hasSize(2);
+        assertThat(resolutionEventRepository.findAll()).hasSize(3);
+        assertThat(battleRepository.findAll().getFirst().getBattleStatus()).isEqualTo(BattleStatus.PENDING);
     }
 
     @Test
-    void observerCannotAccessOrderSubmission() throws Exception {
-        mockMvc.perform(get("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", alphaCampaign.getId(), 2)
+    void nonGmCannotResolveOrReadResolutionSummary() throws Exception {
+        mockMvc.perform(post("/api/campaigns/{campaignId}/turns/{turnNumber}/resolve", campaign.getId(), 1)
+                        .header("X-Dev-User", "allied@war.local"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("CAMPAIGN_FORBIDDEN"));
+
+        mockMvc.perform(get("/api/campaigns/{campaignId}/turns/{turnNumber}/resolution", campaign.getId(), 1)
                         .header("X-Dev-User", "observer@war.local"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("CAMPAIGN_FORBIDDEN"));
+    }
+
+    @Test
+    void gmCanReadGeneratedResolutionSummary() throws Exception {
+        gmCanResolveTurnAndGenerateBattleSummary();
+
+        mockMvc.perform(get("/api/campaigns/{campaignId}/turns/{turnNumber}/resolution", campaign.getId(), 1)
+                        .header("X-Dev-User", "gm@war.local"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.battleCount").value(1))
+                .andExpect(jsonPath("$.submissions[0].submittedByDisplayName").value("ally"))
+                .andExpect(jsonPath("$.events.length()").value(3));
+    }
+
+    @Test
+    void resolutionCannotRunTwice() throws Exception {
+        gmCanResolveTurnAndGenerateBattleSummary();
+
+        mockMvc.perform(post("/api/campaigns/{campaignId}/turns/{turnNumber}/resolve", campaign.getId(), 1)
+                        .header("X-Dev-User", "gm@war.local"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("TURN_RESOLUTION_ALREADY_RUN"));
     }
 
     private User saveUser(String email, String displayName) {
@@ -306,17 +294,16 @@ class CampaignOrderIntegrationTest {
         return userRepository.save(user);
     }
 
-    private Campaign saveCampaign(String name, User createdBy, int currentTurnNumber, CampaignPhase phase) {
-        Campaign campaign = new Campaign();
-        campaign.setName(name);
-        campaign.setCurrentPhase(phase);
-        campaign.setCurrentTurnNumber(currentTurnNumber);
-        campaign.setCampaignStatus(CampaignStatus.ACTIVE);
-        campaign.setRulesetVersion("alpha-1");
-        campaign.setPhaseStartedAt(Instant.parse("2026-03-26T10:00:00Z"));
-        campaign.setPhaseEndsAt(Instant.parse("2026-03-26T18:00:00Z"));
-        campaign.setCreatedBy(createdBy);
-        return campaignRepository.save(campaign);
+    private Campaign saveCampaign(String name, User createdBy) {
+        Campaign savedCampaign = new Campaign();
+        savedCampaign.setName(name);
+        savedCampaign.setCurrentPhase(CampaignPhase.RESOLUTION);
+        savedCampaign.setCurrentTurnNumber(1);
+        savedCampaign.setCampaignStatus(CampaignStatus.ACTIVE);
+        savedCampaign.setRulesetVersion("alpha-1");
+        savedCampaign.setPhaseStartedAt(Instant.parse("2026-03-26T12:00:00Z"));
+        savedCampaign.setCreatedBy(createdBy);
+        return campaignRepository.save(savedCampaign);
     }
 
     private CampaignMember saveMembership(Campaign campaign,
@@ -333,22 +320,13 @@ class CampaignOrderIntegrationTest {
         return campaignMemberRepository.save(membership);
     }
 
-    private Theatre saveTheatre(Campaign campaign, String key, String name, int displayOrder) {
-        Theatre theatre = new Theatre();
-        theatre.setCampaign(campaign);
-        theatre.setTheatreKey(key);
-        theatre.setName(name);
-        theatre.setDisplayOrder(displayOrder);
-        theatre.setActive(true);
-        return theatreRepository.save(theatre);
-    }
-
     private Faction saveFaction(Campaign campaign, String key, String name) {
         Faction faction = new Faction();
         faction.setCampaign(campaign);
         faction.setFactionKey(key);
         faction.setName(name);
         faction.setType(FactionType.MAJOR);
+        faction.setColor("#123456");
         faction.setPlayerControlled(true);
         return factionRepository.save(faction);
     }
@@ -359,32 +337,58 @@ class CampaignOrderIntegrationTest {
         nation.setFaction(faction);
         nation.setNationKey(key);
         nation.setName(name);
-        nation.setNpc(false);
         return nationRepository.save(nation);
     }
 
-    private Territory saveTerritory(Campaign campaign, Theatre theatre, String key, String name) {
+    private Theatre saveTheatre(Campaign campaign, String key, String name, int displayOrder) {
+        Theatre theatre = new Theatre();
+        theatre.setCampaign(campaign);
+        theatre.setTheatreKey(key);
+        theatre.setName(name);
+        theatre.setDisplayOrder(displayOrder);
+        theatre.setActive(true);
+        return theatreRepository.save(theatre);
+    }
+
+    private Territory saveTerritory(Campaign campaign, Theatre theatre, String code, String name) {
         Territory territory = new Territory();
         territory.setCampaign(campaign);
         territory.setTheatre(theatre);
-        territory.setTerritoryKey(key);
+        territory.setTerritoryKey(code);
         territory.setName(name);
         territory.setTerrainType("PLAINS");
         territory.setBaseIndustry(1);
         territory.setBaseManpower(1);
-        territory.setHasPort(false);
-        territory.setHasAirfield(false);
-        territory.setMaxFortLevel(3);
+        territory.setMetadataJson("{\"priority\":\"high\"}");
         return territoryRepository.save(territory);
     }
 
-    private Turn saveTurn(Campaign campaign, int turnNumber) {
+    private Turn saveTurn(Campaign campaign, int turnNumber, CampaignPhase phase) {
         Turn turn = new Turn();
         turn.setCampaign(campaign);
         turn.setTurnNumber(turnNumber);
-        turn.setPhase(CampaignPhase.OPERATIONS);
-        turn.setStartsAt(Instant.parse("2026-03-26T00:00:00Z").plusSeconds(turnNumber));
+        turn.setPhase(phase);
+        turn.setStartsAt(Instant.parse("2026-03-26T12:00:00Z"));
         return turnRepository.save(turn);
+    }
+
+    private TerritoryState saveTerritoryState(Turn turn,
+                                              Territory territory,
+                                              Faction faction,
+                                              Nation nation,
+                                              com.warcampaign.backend.domain.enums.TerritoryStrategicStatus status,
+                                              int fortLevel,
+                                              String supplyStatus) {
+        TerritoryState state = new TerritoryState();
+        state.setTurn(turn);
+        state.setTerritory(territory);
+        state.setControllingFaction(faction);
+        state.setControllerNation(nation);
+        state.setStrategicStatus(status);
+        state.setFortLevel(fortLevel);
+        state.setPartisanRisk(0);
+        state.setSupplyStatus(supplyStatus);
+        return territoryStateRepository.save(state);
     }
 
     private Platoon savePlatoon(Campaign campaign,
@@ -403,6 +407,7 @@ class CampaignOrderIntegrationTest {
         platoon.setPlatoonKey(key);
         platoon.setName(name);
         platoon.setUnitType("INFANTRY");
+        platoon.setHiddenFromPlayers(false);
         return platoonRepository.save(platoon);
     }
 

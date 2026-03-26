@@ -5,12 +5,15 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 
 public interface PlatoonOrderRepository extends JpaRepository<PlatoonOrder, UUID> {
 
     @EntityGraph(attributePaths = {"platoon", "sourceTerritory", "targetTerritory"})
     List<PlatoonOrder> findAllByOrderSubmissionIdOrderByCreatedAtAsc(UUID orderSubmissionId);
+
+    List<PlatoonOrder> findAllByOrderSubmissionIdInOrderByCreatedAtAsc(Collection<UUID> orderSubmissionIds);
 
     void deleteAllByOrderSubmissionId(UUID orderSubmissionId);
 }

@@ -1,0 +1,61 @@
+CREATE TABLE battle (
+    id UUID PRIMARY KEY,
+    campaign_id UUID NOT NULL,
+    turn_number INTEGER NOT NULL,
+    territory_id UUID NOT NULL,
+    battle_status VARCHAR(20) NOT NULL,
+    attacker_faction_id UUID NOT NULL,
+    defender_faction_id UUID NOT NULL,
+    battle_mode VARCHAR(20) NOT NULL,
+    scenario_key VARCHAR(80),
+    scheduled_for TIMESTAMP WITH TIME ZONE,
+    tabletop_result_summary TEXT,
+    strategic_result_json TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_battle_campaign FOREIGN KEY (campaign_id) REFERENCES campaign (id),
+    CONSTRAINT fk_battle_territory FOREIGN KEY (territory_id) REFERENCES territory (id),
+    CONSTRAINT fk_battle_attacker_faction FOREIGN KEY (attacker_faction_id) REFERENCES faction (id),
+    CONSTRAINT fk_battle_defender_faction FOREIGN KEY (defender_faction_id) REFERENCES faction (id),
+    CONSTRAINT ck_battle_status CHECK (battle_status IN ('PENDING', 'SCHEDULED', 'RESOLVED', 'CANCELLED')),
+    CONSTRAINT ck_battle_mode CHECK (battle_mode IN ('TABLETOP', 'HYBRID', 'AUTO'))
+);
+
+CREATE TABLE battle_participant (
+    id UUID PRIMARY KEY,
+    battle_id UUID NOT NULL,
+    platoon_id UUID NOT NULL,
+    side VARCHAR(20) NOT NULL,
+    pre_condition_band VARCHAR(30),
+    post_condition_band VARCHAR(30),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_battle_participant_battle FOREIGN KEY (battle_id) REFERENCES battle (id),
+    CONSTRAINT fk_battle_participant_platoon FOREIGN KEY (platoon_id) REFERENCES platoon (id),
+    CONSTRAINT uq_battle_participant_battle_platoon UNIQUE (battle_id, platoon_id),
+    CONSTRAINT ck_battle_participant_side CHECK (side IN ('ATTACKER', 'DEFENDER'))
+);
+
+CREATE TABLE resolution_event (
+    id UUID PRIMARY KEY,
+    campaign_id UUID NOT NULL,
+    turn_number INTEGER NOT NULL,
+    phase VARCHAR(30) NOT NULL,
+    event_type VARCHAR(80) NOT NULL,
+    visibility_scope VARCHAR(20) NOT NULL,
+    viewer_faction_id UUID,
+    territory_id UUID,
+    actor_faction_id UUID,
+    target_faction_id UUID,
+    payload_json TEXT,
+    created_by_type VARCHAR(20) NOT NULL,
+    created_by_member_id UUID,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_resolution_event_campaign FOREIGN KEY (campaign_id) REFERENCES campaign (id),
+    CONSTRAINT fk_resolution_event_viewer_faction FOREIGN KEY (viewer_faction_id) REFERENCES faction (id),
+    CONSTRAINT fk_resolution_event_territory FOREIGN KEY (territory_id) REFERENCES territory (id),
+    CONSTRAINT fk_resolution_event_actor_faction FOREIGN KEY (actor_faction_id) REFERENCES faction (id),
+    CONSTRAINT fk_resolution_event_target_faction FOREIGN KEY (target_faction_id) REFERENCES faction (id),
+    CONSTRAINT fk_resolution_event_created_by_member FOREIGN KEY (created_by_member_id) REFERENCES campaign_member (id),
+    CONSTRAINT ck_resolution_event_phase CHECK (phase IN ('LOBBY', 'STRATEGIC', 'OPERATIONS', 'RESOLUTION', 'INTERTURN')),
+    CONSTRAINT ck_resolution_event_visibility_scope CHECK (visibility_scope IN ('GM_ONLY', 'FACTION_ONLY', 'PUBLIC')),
+    CONSTRAINT ck_resolution_event_created_by_type CHECK (created_by_type IN ('SYSTEM', 'GM'))
+);

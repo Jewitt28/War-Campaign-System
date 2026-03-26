@@ -4,6 +4,7 @@ import com.warcampaign.backend.dto.CampaignDetailResponse;
 import com.warcampaign.backend.dto.CampaignMapResponse;
 import com.warcampaign.backend.dto.CampaignMemberResponse;
 import com.warcampaign.backend.dto.CampaignPhaseResponse;
+import com.warcampaign.backend.dto.CampaignResolutionResponse;
 import com.warcampaign.backend.dto.CampaignSummaryResponse;
 import com.warcampaign.backend.dto.GmTerritoryResponse;
 import com.warcampaign.backend.dto.MyOrderSubmissionResponse;
@@ -17,6 +18,7 @@ import com.warcampaign.backend.service.CampaignMapService;
 import com.warcampaign.backend.service.CampaignOrderService;
 import com.warcampaign.backend.service.CampaignPhaseService;
 import com.warcampaign.backend.service.CampaignPlatoonService;
+import com.warcampaign.backend.service.CampaignResolutionService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,6 +40,7 @@ public class CampaignController {
     private final CampaignPlatoonService campaignPlatoonService;
     private final CampaignOrderService campaignOrderService;
     private final CampaignPhaseService campaignPhaseService;
+    private final CampaignResolutionService campaignResolutionService;
     private final AuthenticationService authenticationService;
 
     public CampaignController(CampaignLobbyService campaignLobbyService,
@@ -45,12 +48,14 @@ public class CampaignController {
                               CampaignPlatoonService campaignPlatoonService,
                               CampaignOrderService campaignOrderService,
                               CampaignPhaseService campaignPhaseService,
+                              CampaignResolutionService campaignResolutionService,
                               AuthenticationService authenticationService) {
         this.campaignLobbyService = campaignLobbyService;
         this.campaignMapService = campaignMapService;
         this.campaignPlatoonService = campaignPlatoonService;
         this.campaignOrderService = campaignOrderService;
         this.campaignPhaseService = campaignPhaseService;
+        this.campaignResolutionService = campaignResolutionService;
         this.authenticationService = authenticationService;
     }
 
@@ -109,6 +114,16 @@ public class CampaignController {
     @PostMapping("/{campaignId}/phase/advance")
     public CampaignPhaseResponse advancePhase(@PathVariable UUID campaignId) {
         return campaignPhaseService.advancePhase(campaignId, authenticationService.currentUser());
+    }
+
+    @GetMapping("/{campaignId}/turns/{turnNumber}/resolution")
+    public CampaignResolutionResponse getResolution(@PathVariable UUID campaignId, @PathVariable int turnNumber) {
+        return campaignResolutionService.getResolutionSummary(campaignId, turnNumber, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/turns/{turnNumber}/resolve")
+    public CampaignResolutionResponse resolveTurn(@PathVariable UUID campaignId, @PathVariable int turnNumber) {
+        return campaignResolutionService.resolveTurn(campaignId, turnNumber, authenticationService.currentUser());
     }
 
     @GetMapping("/{campaignId}/members")

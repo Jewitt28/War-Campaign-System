@@ -20,6 +20,8 @@ import com.warcampaign.backend.domain.model.Turn;
 import com.warcampaign.backend.domain.model.User;
 import com.warcampaign.backend.repository.CampaignAuditLogRepository;
 import com.warcampaign.backend.repository.CampaignInviteRepository;
+import com.warcampaign.backend.repository.BattleParticipantRepository;
+import com.warcampaign.backend.repository.BattleRepository;
 import com.warcampaign.backend.repository.CampaignMemberRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
@@ -32,6 +34,7 @@ import com.warcampaign.backend.repository.TheatreRepository;
 import com.warcampaign.backend.repository.TerritoryRepository;
 import com.warcampaign.backend.repository.TerritoryStateRepository;
 import com.warcampaign.backend.repository.TurnRepository;
+import com.warcampaign.backend.repository.ResolutionEventRepository;
 import com.warcampaign.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,6 +68,12 @@ class CampaignPhaseIntegrationTest {
 
     @Autowired
     private CampaignAuditLogRepository campaignAuditLogRepository;
+
+    @Autowired
+    private BattleParticipantRepository battleParticipantRepository;
+
+    @Autowired
+    private BattleRepository battleRepository;
 
     @Autowired
     private CampaignMemberRepository campaignMemberRepository;
@@ -102,6 +111,9 @@ class CampaignPhaseIntegrationTest {
     @Autowired
     private FactionRepository factionRepository;
 
+    @Autowired
+    private ResolutionEventRepository resolutionEventRepository;
+
     private Campaign campaign;
     private CampaignMember playerMembership;
     private Platoon platoon;
@@ -110,6 +122,9 @@ class CampaignPhaseIntegrationTest {
 
     @BeforeEach
     void setup() {
+        resolutionEventRepository.deleteAll();
+        battleParticipantRepository.deleteAll();
+        battleRepository.deleteAll();
         campaignAuditLogRepository.deleteAll();
         platoonOrderRepository.deleteAll();
         orderSubmissionRepository.deleteAll();

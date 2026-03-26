@@ -24,6 +24,12 @@ class CampaignMapIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
+    private BattleParticipantRepository battleParticipantRepository;
+
+    @Autowired
+    private BattleRepository battleRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -68,6 +74,9 @@ class CampaignMapIntegrationTest {
     @Autowired
     private FactionRepository factionRepository;
 
+    @Autowired
+    private ResolutionEventRepository resolutionEventRepository;
+
     private Campaign alphaCampaign;
     private Campaign bravoCampaign;
     private Territory alphaTerritory;
@@ -77,6 +86,9 @@ class CampaignMapIntegrationTest {
 
     @BeforeEach
     void setup() {
+        resolutionEventRepository.deleteAll();
+        battleParticipantRepository.deleteAll();
+        battleRepository.deleteAll();
         campaignAuditLogRepository.deleteAll();
         platoonOrderRepository.deleteAll();
         orderSubmissionRepository.deleteAll();
