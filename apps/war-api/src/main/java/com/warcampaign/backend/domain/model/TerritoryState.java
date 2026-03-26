@@ -1,6 +1,7 @@
 package com.warcampaign.backend.domain.model;
 
 import com.warcampaign.backend.domain.enums.TerritoryControlStatus;
+import com.warcampaign.backend.domain.enums.TerritoryStrategicStatus;
 import jakarta.persistence.*;
 
 @Entity
@@ -20,9 +21,32 @@ public class TerritoryState extends BaseEntity {
     @JoinColumn(name = "controlling_faction_id")
     private Faction controllingFaction;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "controller_nation_id")
+    private Nation controllerNation;
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private TerritoryControlStatus controlStatus;
+    @Column(name = "control_status", nullable = false, length = 20)
+    private TerritoryControlStatus legacyControlStatus = TerritoryControlStatus.NEUTRAL;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "strategic_status", nullable = false, length = 20)
+    private TerritoryStrategicStatus strategicStatus = TerritoryStrategicStatus.NEUTRAL;
+
+    @Column(name = "fort_level", nullable = false)
+    private int fortLevel;
+
+    @Column(name = "partisan_risk", nullable = false)
+    private int partisanRisk;
+
+    @Column(name = "supply_status", nullable = false, length = 30)
+    private String supplyStatus = "SUPPLIED";
+
+    @Column(name = "damage_json", columnDefinition = "TEXT")
+    private String damageJson;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
 
     public Turn getTurn() {
         return turn;
@@ -48,11 +72,64 @@ public class TerritoryState extends BaseEntity {
         this.controllingFaction = controllingFaction;
     }
 
-    public TerritoryControlStatus getControlStatus() {
-        return controlStatus;
+    public Nation getControllerNation() {
+        return controllerNation;
     }
 
-    public void setControlStatus(TerritoryControlStatus controlStatus) {
-        this.controlStatus = controlStatus;
+    public void setControllerNation(Nation controllerNation) {
+        this.controllerNation = controllerNation;
+    }
+
+    public TerritoryStrategicStatus getStrategicStatus() {
+        return strategicStatus;
+    }
+
+    public void setStrategicStatus(TerritoryStrategicStatus strategicStatus) {
+        this.strategicStatus = strategicStatus;
+        this.legacyControlStatus = switch (strategicStatus) {
+            case CONTROLLED, OCCUPIED, DEVASTATED -> TerritoryControlStatus.CONTROLLED;
+            case CONTESTED -> TerritoryControlStatus.CONTESTED;
+            case NEUTRAL -> TerritoryControlStatus.NEUTRAL;
+        };
+    }
+
+    public int getFortLevel() {
+        return fortLevel;
+    }
+
+    public void setFortLevel(int fortLevel) {
+        this.fortLevel = fortLevel;
+    }
+
+    public int getPartisanRisk() {
+        return partisanRisk;
+    }
+
+    public void setPartisanRisk(int partisanRisk) {
+        this.partisanRisk = partisanRisk;
+    }
+
+    public String getSupplyStatus() {
+        return supplyStatus;
+    }
+
+    public void setSupplyStatus(String supplyStatus) {
+        this.supplyStatus = supplyStatus;
+    }
+
+    public String getDamageJson() {
+        return damageJson;
+    }
+
+    public void setDamageJson(String damageJson) {
+        this.damageJson = damageJson;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

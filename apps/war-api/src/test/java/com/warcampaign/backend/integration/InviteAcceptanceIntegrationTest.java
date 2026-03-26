@@ -10,6 +10,14 @@ import com.warcampaign.backend.domain.model.User;
 import com.warcampaign.backend.repository.CampaignInviteRepository;
 import com.warcampaign.backend.repository.CampaignMemberRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
+import com.warcampaign.backend.repository.FactionRepository;
+import com.warcampaign.backend.repository.NationRepository;
+import com.warcampaign.backend.repository.PlatoonRepository;
+import com.warcampaign.backend.repository.PlatoonStateRepository;
+import com.warcampaign.backend.repository.TheatreRepository;
+import com.warcampaign.backend.repository.TerritoryRepository;
+import com.warcampaign.backend.repository.TerritoryStateRepository;
+import com.warcampaign.backend.repository.TurnRepository;
 import com.warcampaign.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,12 +53,44 @@ class InviteAcceptanceIntegrationTest {
     @Autowired
     private CampaignMemberRepository memberRepository;
 
+    @Autowired
+    private PlatoonStateRepository platoonStateRepository;
+
+    @Autowired
+    private TerritoryStateRepository territoryStateRepository;
+
+    @Autowired
+    private PlatoonRepository platoonRepository;
+
+    @Autowired
+    private NationRepository nationRepository;
+
+    @Autowired
+    private TerritoryRepository territoryRepository;
+
+    @Autowired
+    private TurnRepository turnRepository;
+
+    @Autowired
+    private TheatreRepository theatreRepository;
+
+    @Autowired
+    private FactionRepository factionRepository;
+
     private Campaign campaign;
 
     @BeforeEach
     void setup() {
+        platoonStateRepository.deleteAll();
+        territoryStateRepository.deleteAll();
+        platoonRepository.deleteAll();
         memberRepository.deleteAll();
         inviteRepository.deleteAll();
+        nationRepository.deleteAll();
+        territoryRepository.deleteAll();
+        turnRepository.deleteAll();
+        theatreRepository.deleteAll();
+        factionRepository.deleteAll();
         campaignRepository.deleteAll();
         userRepository.deleteAll();
 

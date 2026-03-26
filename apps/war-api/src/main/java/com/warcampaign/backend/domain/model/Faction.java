@@ -1,5 +1,6 @@
 package com.warcampaign.backend.domain.model;
 
+import com.warcampaign.backend.domain.enums.FactionType;
 import jakarta.persistence.*;
 
 @Entity
@@ -16,6 +17,16 @@ public class Faction extends BaseEntity {
 
     @Column(nullable = false, length = 120)
     private String name;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private FactionType type = FactionType.MAJOR;
+
+    @Column(length = 20)
+    private String color;
+
+    @Column(name = "is_player_controlled", nullable = false)
+    private boolean playerControlled = true;
 
     public Campaign getCampaign() {
         return campaign;
@@ -39,5 +50,29 @@ public class Faction extends BaseEntity {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public FactionType getType() {
+        return type;
+    }
+
+    public void setType(FactionType type) {
+        this.type = type;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    public boolean isPlayerControlled() {
+        return playerControlled;
+    }
+
+    public void setPlayerControlled(boolean playerControlled) {
+        this.playerControlled = playerControlled;
     }
 }

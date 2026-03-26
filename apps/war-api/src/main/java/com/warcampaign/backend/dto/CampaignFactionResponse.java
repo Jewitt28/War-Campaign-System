@@ -4,5 +4,8 @@ import java.util.UUID;
 
 public record CampaignFactionResponse(UUID id,
                                       String key,
-                                      String name) {
+                                      String name,
+                                      String type,
+                                      String color,
+                                      boolean playerControlled) {
 }

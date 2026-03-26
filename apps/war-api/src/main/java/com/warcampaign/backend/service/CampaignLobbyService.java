@@ -145,6 +145,13 @@ public class CampaignLobbyService {
     }
 
     private CampaignFactionResponse toFactionResponse(Faction faction) {
-        return new CampaignFactionResponse(faction.getId(), faction.getFactionKey(), faction.getName());
+        return new CampaignFactionResponse(
+                faction.getId(),
+                faction.getFactionKey(),
+                faction.getName(),
+                faction.getType().name(),
+                faction.getColor(),
+                faction.isPlayerControlled()
+        );
     }
 }
