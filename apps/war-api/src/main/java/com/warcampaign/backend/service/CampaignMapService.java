@@ -1,6 +1,7 @@
 package com.warcampaign.backend.service;
 
 import com.warcampaign.backend.domain.enums.CampaignRole;
+import com.warcampaign.backend.domain.enums.VisibilityLevel;
 import com.warcampaign.backend.domain.model.*;
 import com.warcampaign.backend.dto.*;
 import com.warcampaign.backend.exception.ApiException;
@@ -12,10 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 @Service
@@ -28,6 +26,7 @@ public class CampaignMapService {
     private final TerritoryRepository territoryRepository;
     private final TerritoryStateRepository territoryStateRepository;
     private final TurnRepository turnRepository;
+    private final CampaignVisibilityService campaignVisibilityService;
 
     public CampaignMapService(CampaignMemberRepository campaignMemberRepository,
                               TheatreRepository theatreRepository,
@@ -35,7 +34,8 @@ public class CampaignMapService {
                               NationRepository nationRepository,
                               TerritoryRepository territoryRepository,
                               TerritoryStateRepository territoryStateRepository,
-                              TurnRepository turnRepository) {
+                              TurnRepository turnRepository,
+                              CampaignVisibilityService campaignVisibilityService) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.theatreRepository = theatreRepository;
         this.factionRepository = factionRepository;
@@ -43,17 +43,19 @@ public class CampaignMapService {
         this.territoryRepository = territoryRepository;
         this.territoryStateRepository = territoryStateRepository;
         this.turnRepository = turnRepository;
+        this.campaignVisibilityService = campaignVisibilityService;
     }
 
     @Transactional(readOnly = true)
     public CampaignMapResponse getMap(UUID campaignId, AuthenticatedUser authenticatedUser) {
-        Campaign campaign = requireMembership(campaignId, authenticatedUser.id()).getCampaign();
+        CampaignMember membership = requireMembership(campaignId, authenticatedUser.id());
+        Campaign campaign = membership.getCampaign();
         Turn currentTurn = requireCurrentTurn(campaign);
 
         List<Theatre> theatres = theatreRepository.findAllByCampaignIdOrderByDisplayOrderAscNameAsc(campaignId);
         List<Faction> factions = factionRepository.findAllByCampaignIdOrderByNameAsc(campaignId);
         List<Nation> nations = nationRepository.findAllByCampaignIdOrderByNameAsc(campaignId);
-        List<TerritoryState> states = territoryStateRepository.findAllByCampaignIdAndTurnNumber(campaignId, currentTurn.getTurnNumber());
+        List<MapTerritorySummaryResponse> territories = resolveMapTerritories(campaign, membership, currentTurn.getTurnNumber());
 
         return new CampaignMapResponse(
                 campaign.getId(),
@@ -67,17 +69,22 @@ public class CampaignMapService {
                 theatres.stream().map(this::toTheatreResponse).toList(),
                 factions.stream().map(this::toCampaignFactionResponse).toList(),
                 nations.stream().map(this::toNationResponse).toList(),
-                states.stream()
-                        .sorted(Comparator.comparing(state -> state.getTerritory().getName()))
-                        .map(this::toTerritorySummaryResponse)
-                        .toList()
+                territories
         );
     }
 
     @Transactional(readOnly = true)
     public PlayerTerritoryResponse getPlayerTerritory(UUID campaignId, UUID territoryId, AuthenticatedUser authenticatedUser) {
-        Campaign campaign = requireMembership(campaignId, authenticatedUser.id()).getCampaign();
+        CampaignMember membership = requireMembership(campaignId, authenticatedUser.id());
+        Campaign campaign = membership.getCampaign();
         TerritoryState state = requireTerritoryState(campaign, territoryId);
+        if (membership.getRole() == CampaignRole.PLAYER && membership.getFaction() != null) {
+            VisibilityState visibilityState = campaignVisibilityService.ensureVisibilityForTerritory(campaign, membership.getFaction(), territoryId);
+            if (visibilityState.getVisibilityLevel() == VisibilityLevel.UNKNOWN) {
+                throw new ApiException("TERRITORY_NOT_FOUND", HttpStatus.NOT_FOUND, "Territory not found");
+            }
+            return toPlayerTerritoryResponse(state, visibilityState);
+        }
         return toPlayerTerritoryResponse(state);
     }
 
@@ -107,6 +114,20 @@ public class CampaignMapService {
         }
         return territoryStateRepository.findByTerritoryIdAndCampaignIdAndTurnNumber(territoryId, campaign.getId(), campaign.getCurrentTurnNumber())
                 .orElseThrow(() -> new ApiException("TERRITORY_STATE_NOT_FOUND", HttpStatus.NOT_FOUND, "Current territory state not found"));
+    }
+
+    private List<MapTerritorySummaryResponse> resolveMapTerritories(Campaign campaign, CampaignMember membership, int turnNumber) {
+        if (membership.getRole() == CampaignRole.GM || membership.getFaction() == null) {
+            return territoryStateRepository.findAllByCampaignIdAndTurnNumber(campaign.getId(), turnNumber).stream()
+                    .sorted(Comparator.comparing(state -> state.getTerritory().getName()))
+                    .map(this::toTerritorySummaryResponse)
+                    .toList();
+        }
+
+        return campaignVisibilityService.ensureVisibility(campaign, membership.getFaction()).stream()
+                .filter(visibilityState -> visibilityState.getVisibilityLevel() != VisibilityLevel.UNKNOWN)
+                .map(this::toVisibleTerritorySummaryResponse)
+                .toList();
     }
 
     private CampaignFactionResponse toCampaignFactionResponse(Faction faction) {
@@ -148,6 +169,20 @@ public class CampaignMapService {
         );
     }
 
+    private MapTerritorySummaryResponse toVisibleTerritorySummaryResponse(VisibilityState visibilityState) {
+        return new MapTerritorySummaryResponse(
+                visibilityState.getTerritory().getId(),
+                visibilityState.getTerritory().getTerritoryKey(),
+                visibilityState.getTerritory().getName(),
+                visibilityState.getTerritory().getTheatre().getId(),
+                null,
+                visibilityState.getVisibleOwnerFaction() != null ? visibilityState.getVisibleOwnerFaction().getId() : null,
+                null,
+                visibilityState.getVisibleFortLevel() != null ? visibilityState.getVisibleFortLevel() : 0,
+                null
+        );
+    }
+
     private PlayerTerritoryResponse toPlayerTerritoryResponse(TerritoryState state) {
         Territory territory = state.getTerritory();
         return new PlayerTerritoryResponse(
@@ -167,6 +202,30 @@ public class CampaignMapService {
                 state.getSupplyStatus(),
                 toFactionReference(state.getControllingFaction()),
                 toNationReference(state.getControllerNation())
+        );
+    }
+
+    private PlayerTerritoryResponse toPlayerTerritoryResponse(TerritoryState state, VisibilityState visibilityState) {
+        Territory territory = state.getTerritory();
+        return new PlayerTerritoryResponse(
+                territory.getId(),
+                territory.getTerritoryKey(),
+                territory.getName(),
+                toTheatreResponse(territory.getTheatre()),
+                territory.getTerrainType(),
+                territory.getStrategicTagsJson(),
+                territory.getBaseIndustry(),
+                territory.getBaseManpower(),
+                territory.isHasPort(),
+                territory.isHasAirfield(),
+                territory.getMaxFortLevel(),
+                null,
+                visibilityState.getVisibleFortLevel() != null ? visibilityState.getVisibleFortLevel() : 0,
+                visibilityState.getVisibilityLevel().ordinal() >= VisibilityLevel.OWNED.ordinal() ? state.getSupplyStatus() : null,
+                toFactionReference(visibilityState.getVisibleOwnerFaction()),
+                visibilityState.getVisibilityLevel().ordinal() >= VisibilityLevel.OWNED.ordinal()
+                        ? toNationReference(state.getControllerNation())
+                        : null
         );
     }
 

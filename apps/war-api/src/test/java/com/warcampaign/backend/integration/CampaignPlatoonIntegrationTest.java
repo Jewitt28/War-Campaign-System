@@ -33,6 +33,7 @@ import com.warcampaign.backend.repository.TerritoryStateRepository;
 import com.warcampaign.backend.repository.TurnRepository;
 import com.warcampaign.backend.repository.ResolutionEventRepository;
 import com.warcampaign.backend.repository.UserRepository;
+import com.warcampaign.backend.repository.VisibilityStateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,6 +108,9 @@ class CampaignPlatoonIntegrationTest {
     @Autowired
     private ResolutionEventRepository resolutionEventRepository;
 
+    @Autowired
+    private VisibilityStateRepository visibilityStateRepository;
+
     private Campaign alphaCampaign;
     private Campaign bravoCampaign;
     private CampaignMember allyPlayerMembership;
@@ -117,6 +121,7 @@ class CampaignPlatoonIntegrationTest {
 
     @BeforeEach
     void setup() {
+        visibilityStateRepository.deleteAll();
         resolutionEventRepository.deleteAll();
         battleParticipantRepository.deleteAll();
         battleRepository.deleteAll();

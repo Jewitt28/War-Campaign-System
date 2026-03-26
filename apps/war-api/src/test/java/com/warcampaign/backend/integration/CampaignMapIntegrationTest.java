@@ -77,6 +77,9 @@ class CampaignMapIntegrationTest {
     @Autowired
     private ResolutionEventRepository resolutionEventRepository;
 
+    @Autowired
+    private VisibilityStateRepository visibilityStateRepository;
+
     private Campaign alphaCampaign;
     private Campaign bravoCampaign;
     private Territory alphaTerritory;
@@ -86,6 +89,7 @@ class CampaignMapIntegrationTest {
 
     @BeforeEach
     void setup() {
+        visibilityStateRepository.deleteAll();
         resolutionEventRepository.deleteAll();
         battleParticipantRepository.deleteAll();
         battleRepository.deleteAll();

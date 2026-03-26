@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.warcampaign.backend.integration.CampaignResolutionIntegrationTest
 -------------------------------------------------------------------------------
-Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.357 s -- in com.warcampaign.backend.integration.CampaignResolutionIntegrationTest
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.879 s -- in com.warcampaign.backend.integration.CampaignResolutionIntegrationTest
