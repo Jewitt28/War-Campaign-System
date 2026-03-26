@@ -122,6 +122,14 @@ export function CampaignWorkspaceLayout() {
           >
             Events
           </NavLink>
+          {campaign.data.myMembership.role === 'GM' ? (
+            <NavLink
+              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              to={`/app/campaigns/${campaignId}/admin`}
+            >
+              Admin
+            </NavLink>
+          ) : null}
         </nav>
       </section>
 

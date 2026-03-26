@@ -1,7 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { NavLink, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { authQueryOptions, useAuth } from '../features/auth'
 import { useCampaign } from '../features/campaigns'
+import { useMarkNotificationRead, useNotifications } from '../features/notifications'
+import type { UserNotification } from '../features/notifications'
 import { clearDevSessionEmail } from '../lib/session'
 import { Notice, SkeletonCard, StateCard } from './components'
 
@@ -55,6 +58,9 @@ export function AppShellLayout() {
   const auth = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const notifications = useNotifications()
+  const markNotificationRead = useMarkNotificationRead()
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   async function handleLogout() {
     clearDevSessionEmail()
@@ -62,6 +68,38 @@ export function AppShellLayout() {
     await queryClient.invalidateQueries({ queryKey: authQueryOptions().queryKey })
     navigate('/login', { replace: true })
   }
+
+  function buildNotificationLink(notification: UserNotification) {
+    const payload = notification.payloadJson ? safeParse(notification.payloadJson) : null
+    const payloadCampaignId = typeof payload?.campaignId === 'string' ? payload.campaignId : null
+    const campaignId = notification.campaignId ?? payloadCampaignId
+    if (!campaignId) {
+      return '/app/campaigns'
+    }
+    if (typeof payload?.battleId === 'string') {
+      return `/app/campaigns/${campaignId}/battles`
+    }
+    if (typeof payload?.territoryId === 'string') {
+      return `/app/campaigns/${campaignId}/map`
+    }
+    if (typeof payload?.turnNumber === 'number' && notification.type.includes('ORDERS')) {
+      return `/app/campaigns/${campaignId}/orders`
+    }
+    if (notification.type.includes('RESOLUTION')) {
+      return `/app/campaigns/${campaignId}/events`
+    }
+    return `/app/campaigns/${campaignId}/dashboard`
+  }
+
+  async function handleNotificationClick(notification: UserNotification) {
+    if (!notification.readAt) {
+      await markNotificationRead.mutateAsync(notification.id)
+    }
+    setDrawerOpen(false)
+    navigate(buildNotificationLink(notification))
+  }
+
+  const unreadCount = notifications.data?.filter((notification) => !notification.readAt).length ?? 0
 
   return (
     <div className="app-shell">
@@ -78,7 +116,9 @@ export function AppShellLayout() {
             <NavLink className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} to="/app/updates">
               Updates
             </NavLink>
-            <span className="nav-link-disabled">Notifications</span>
+            <button className="button-secondary" onClick={() => setDrawerOpen((value) => !value)} type="button">
+              Notifications {unreadCount > 0 ? `(${unreadCount})` : ''}
+            </button>
             <span className="nav-link-disabled">GM Tools</span>
           </nav>
           <div className="shell-user">
@@ -93,10 +133,47 @@ export function AppShellLayout() {
         </div>
       </header>
       <main className="shell-main">
+        {drawerOpen ? (
+          <section className="surface-card page-card page-stack">
+            <div className="page-header">
+              <div className="page-header-copy">
+                <h2 className="detail-title">Notifications</h2>
+                <p className="muted">Open an item to mark it read and jump to the relevant campaign page.</p>
+              </div>
+            </div>
+            {notifications.isLoading ? (
+              <SkeletonCard lines={4} />
+            ) : notifications.data && notifications.data.length > 0 ? (
+              <div className="page-stack">
+                {notifications.data.map((notification) => (
+                  <button
+                    key={notification.id}
+                    className="territory-tile"
+                    onClick={() => void handleNotificationClick(notification)}
+                    type="button"
+                  >
+                    <strong>{notification.title}</strong>
+                    <span>{notification.body}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <Notice>No notifications yet.</Notice>
+            )}
+          </section>
+        ) : null}
         <Outlet />
       </main>
     </div>
   )
+}
+
+function safeParse(payloadJson: string) {
+  try {
+    return JSON.parse(payloadJson) as Record<string, unknown>
+  } catch {
+    return null
+  }
 }
 
 export function CampaignMembershipRoute() {

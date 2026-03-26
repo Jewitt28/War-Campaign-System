@@ -21,15 +21,18 @@ import { GmAdminPlaceholderPage } from '../routes/pages/GmAdminPlaceholderPage'
 import { InvitePage } from '../routes/pages/InvitePage'
 import { LoginPage } from '../routes/pages/LoginPage'
 import { UpdatesPage } from '../routes/pages/UpdatesPage'
+import { RouteErrorPage } from '../routes/error-page'
 
 export const router = createBrowserRouter(
   [
     {
       path: '/',
       element: <RootRedirect />,
+      errorElement: <RouteErrorPage />,
     },
     {
       element: <PublicLayout />,
+      errorElement: <RouteErrorPage />,
       children: [
         {
           path: '/login',
@@ -44,6 +47,7 @@ export const router = createBrowserRouter(
     {
       path: '/app',
       element: <AuthenticatedRoute />,
+      errorElement: <RouteErrorPage />,
       children: [
         {
           element: <AppShellLayout />,

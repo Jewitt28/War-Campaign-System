@@ -1,5 +1,6 @@
 export const queryKeys = {
   auth: ['auth', 'me'] as const,
+  notifications: ['me', 'notifications'] as const,
   campaigns: ['campaigns'] as const,
   campaign: (campaignId: string) => ['campaigns', campaignId] as const,
   campaignMembers: (campaignId: string) => ['campaigns', campaignId, 'members'] as const,
