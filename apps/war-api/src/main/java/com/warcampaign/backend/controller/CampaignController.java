@@ -133,6 +133,11 @@ public class CampaignController {
         return campaignPhaseService.advancePhase(campaignId, authenticationService.currentUser());
     }
 
+    @GetMapping("/{campaignId}/phase")
+    public CampaignPhaseResponse getPhase(@PathVariable UUID campaignId) {
+        return campaignPhaseService.getPhase(campaignId, authenticationService.currentUser());
+    }
+
     @GetMapping("/{campaignId}/turns/{turnNumber}/resolution")
     public CampaignResolutionResponse getResolution(@PathVariable UUID campaignId, @PathVariable int turnNumber) {
         return campaignResolutionService.getResolutionSummary(campaignId, turnNumber, authenticationService.currentUser());

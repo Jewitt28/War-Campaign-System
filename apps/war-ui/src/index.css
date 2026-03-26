@@ -61,7 +61,8 @@ a {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -349,6 +350,39 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr);
+  gap: 18px;
+}
+
+.territory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.territory-tile {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+}
+
+.territory-tile span {
+  color: var(--muted);
+}
+
+.territory-tile-active,
+.territory-tile:hover {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .campaign-card {
   display: grid;
   gap: 18px;
@@ -464,6 +498,10 @@ button {
   }
 
   .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-layout {
     grid-template-columns: 1fr;
   }
 

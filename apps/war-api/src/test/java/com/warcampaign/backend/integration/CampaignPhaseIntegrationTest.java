@@ -52,6 +52,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -153,6 +154,7 @@ class CampaignPhaseIntegrationTest {
 
         User gmUser = saveUser("gm@war.local", "gm");
         User playerUser = saveUser("player@war.local", "player");
+        saveUser("outsider@war.local", "outsider");
 
         campaign = saveCampaign("Alpha Front", gmUser, 1, CampaignPhase.LOBBY);
 
@@ -168,6 +170,24 @@ class CampaignPhaseIntegrationTest {
         platoon = savePlatoon(campaign, allies, british, playerMembership, origin, "allies-1", "Allied 1st Platoon");
         Turn turn1 = saveTurn(campaign, 1, CampaignPhase.LOBBY);
         savePlatoonState(turn1, platoon, origin, PlatoonReadinessStatus.ACTIVE, 8);
+    }
+
+    @Test
+    void memberCanReadCurrentPhaseSnapshot() throws Exception {
+        mockMvc.perform(get("/api/campaigns/{campaignId}/phase", campaign.getId())
+                        .header("X-Dev-User", "player@war.local"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.campaignId").value(campaign.getId().toString()))
+                .andExpect(jsonPath("$.currentTurnNumber").value(1))
+                .andExpect(jsonPath("$.currentPhase").value("LOBBY"));
+    }
+
+    @Test
+    void nonMemberCannotReadCurrentPhaseSnapshot() throws Exception {
+        mockMvc.perform(get("/api/campaigns/{campaignId}/phase", campaign.getId())
+                        .header("X-Dev-User", "outsider@war.local"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("CAMPAIGN_NOT_FOUND"));
     }
 
     @Test

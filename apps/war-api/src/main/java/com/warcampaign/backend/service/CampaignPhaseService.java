@@ -85,6 +85,13 @@ public class CampaignPhaseService {
         return toResponse(savedCampaign);
     }
 
+    @Transactional(readOnly = true)
+    public CampaignPhaseResponse getPhase(UUID campaignId, AuthenticatedUser authenticatedUser) {
+        CampaignMember membership = campaignMemberRepository.findByCampaignIdAndUserIdWithCampaign(campaignId, authenticatedUser.id())
+                .orElseThrow(() -> new ApiException("CAMPAIGN_NOT_FOUND", HttpStatus.NOT_FOUND, "Campaign not found"));
+        return toResponse(membership.getCampaign());
+    }
+
     @Transactional
     public int advanceExpiredCampaigns() {
         List<Campaign> campaigns = campaignRepository.findAllWithExpiredPhase(Instant.now());
@@ -239,6 +246,16 @@ public class CampaignPhaseService {
         } catch (JsonProcessingException exception) {
             throw new ApiException("AUDIT_SERIALIZATION_ERROR", HttpStatus.INTERNAL_SERVER_ERROR, "Unable to serialize audit transition");
         }
+    }
+
+    private CampaignPhaseResponse toResponse(Campaign campaign) {
+        return new CampaignPhaseResponse(
+                campaign.getId(),
+                campaign.getCurrentTurnNumber(),
+                campaign.getCurrentPhase(),
+                campaign.getPhaseStartedAt(),
+                campaign.getPhaseEndsAt()
+        );
     }
 
     private CampaignPhaseResponse toResponse(Campaign campaign) {
