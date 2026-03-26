@@ -62,7 +62,8 @@ a {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -282,6 +283,11 @@ button {
 .field-input:focus {
   outline: 2px solid rgba(240, 203, 127, 0.38);
   outline-offset: 1px;
+}
+
+.field-textarea {
+  min-height: 120px;
+  resize: vertical;
 }
 
 .button-row,

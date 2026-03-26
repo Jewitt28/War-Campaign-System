@@ -98,8 +98,30 @@ export function CampaignWorkspaceLayout() {
           >
             Map
           </NavLink>
-          <span className="nav-link-disabled">Orders</span>
-          <span className="nav-link-disabled">Platoons</span>
+          <NavLink
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+            to={`/app/campaigns/${campaignId}/orders`}
+          >
+            Orders
+          </NavLink>
+          <NavLink
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+            to={`/app/campaigns/${campaignId}/platoons`}
+          >
+            Platoons
+          </NavLink>
+          <NavLink
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+            to={`/app/campaigns/${campaignId}/battles`}
+          >
+            Battles
+          </NavLink>
+          <NavLink
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+            to={`/app/campaigns/${campaignId}/events`}
+          >
+            Events
+          </NavLink>
         </nav>
       </section>
 

@@ -12,10 +12,15 @@ import { CampaignDashboardPage } from '../routes/pages/CampaignDashboardPage'
 import { CampaignIndexRedirect } from '../routes/pages/CampaignIndexRedirect'
 import { CampaignLobbyPage } from '../routes/pages/CampaignLobbyPage'
 import { CampaignMapPage } from '../routes/pages/CampaignMapPage'
+import { CampaignOrdersPage } from '../routes/pages/CampaignOrdersPage'
+import { CampaignBattlesPage } from '../routes/pages/CampaignBattlesPage'
+import { CampaignEventsPage } from '../routes/pages/CampaignEventsPage'
+import { CampaignPlatoonsPage } from '../routes/pages/CampaignPlatoonsPage'
 import { CampaignWorkspaceLayout } from '../routes/pages/CampaignWorkspaceLayout'
 import { GmAdminPlaceholderPage } from '../routes/pages/GmAdminPlaceholderPage'
 import { InvitePage } from '../routes/pages/InvitePage'
 import { LoginPage } from '../routes/pages/LoginPage'
+import { UpdatesPage } from '../routes/pages/UpdatesPage'
 
 export const router = createBrowserRouter(
   [
@@ -48,6 +53,10 @@ export const router = createBrowserRouter(
               element: <CampaignsPage />,
             },
             {
+              path: 'updates',
+              element: <UpdatesPage />,
+            },
+            {
               path: 'campaigns/:campaignId',
               element: <CampaignMembershipRoute />,
               children: [
@@ -69,6 +78,22 @@ export const router = createBrowserRouter(
                     {
                       path: 'map',
                       element: <CampaignMapPage />,
+                    },
+                    {
+                      path: 'orders',
+                      element: <CampaignOrdersPage />,
+                    },
+                    {
+                      path: 'platoons',
+                      element: <CampaignPlatoonsPage />,
+                    },
+                    {
+                      path: 'battles',
+                      element: <CampaignBattlesPage />,
+                    },
+                    {
+                      path: 'events',
+                      element: <CampaignEventsPage />,
                     },
                   ],
                 },

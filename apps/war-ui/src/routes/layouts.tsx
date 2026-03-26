@@ -75,6 +75,9 @@ export function AppShellLayout() {
             <NavLink className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} to="/app/campaigns">
               Campaigns
             </NavLink>
+            <NavLink className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} to="/app/updates">
+              Updates
+            </NavLink>
             <span className="nav-link-disabled">Notifications</span>
             <span className="nav-link-disabled">GM Tools</span>
           </nav>
