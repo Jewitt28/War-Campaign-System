@@ -16,6 +16,7 @@ import com.warcampaign.backend.domain.model.Territory;
 import com.warcampaign.backend.domain.model.Turn;
 import com.warcampaign.backend.domain.model.User;
 import com.warcampaign.backend.repository.CampaignInviteRepository;
+import com.warcampaign.backend.repository.CampaignAuditLogRepository;
 import com.warcampaign.backend.repository.CampaignMemberRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
@@ -54,6 +55,9 @@ class CampaignPlatoonIntegrationTest {
 
     @Autowired
     private CampaignRepository campaignRepository;
+
+    @Autowired
+    private CampaignAuditLogRepository campaignAuditLogRepository;
 
     @Autowired
     private CampaignMemberRepository campaignMemberRepository;
@@ -101,6 +105,7 @@ class CampaignPlatoonIntegrationTest {
 
     @BeforeEach
     void setup() {
+        campaignAuditLogRepository.deleteAll();
         platoonOrderRepository.deleteAll();
         orderSubmissionRepository.deleteAll();
         platoonStateRepository.deleteAll();

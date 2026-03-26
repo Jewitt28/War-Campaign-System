@@ -30,6 +30,9 @@ class CampaignMapIntegrationTest {
     private CampaignRepository campaignRepository;
 
     @Autowired
+    private CampaignAuditLogRepository campaignAuditLogRepository;
+
+    @Autowired
     private CampaignMemberRepository campaignMemberRepository;
 
     @Autowired
@@ -74,6 +77,7 @@ class CampaignMapIntegrationTest {
 
     @BeforeEach
     void setup() {
+        campaignAuditLogRepository.deleteAll();
         platoonOrderRepository.deleteAll();
         orderSubmissionRepository.deleteAll();
         platoonStateRepository.deleteAll();

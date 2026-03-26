@@ -8,6 +8,7 @@ import com.warcampaign.backend.domain.model.CampaignInvite;
 import com.warcampaign.backend.domain.model.CampaignMember;
 import com.warcampaign.backend.domain.model.User;
 import com.warcampaign.backend.repository.CampaignInviteRepository;
+import com.warcampaign.backend.repository.CampaignAuditLogRepository;
 import com.warcampaign.backend.repository.CampaignMemberRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
@@ -50,6 +51,9 @@ class InviteAcceptanceIntegrationTest {
     private CampaignRepository campaignRepository;
 
     @Autowired
+    private CampaignAuditLogRepository campaignAuditLogRepository;
+
+    @Autowired
     private CampaignInviteRepository inviteRepository;
 
     @Autowired
@@ -89,6 +93,7 @@ class InviteAcceptanceIntegrationTest {
 
     @BeforeEach
     void setup() {
+        campaignAuditLogRepository.deleteAll();
         platoonOrderRepository.deleteAll();
         orderSubmissionRepository.deleteAll();
         platoonStateRepository.deleteAll();
