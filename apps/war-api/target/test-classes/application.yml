@@ -16,6 +16,10 @@ app:
   security:
     dev-auth:
       enabled: true
+  web:
+    cors:
+      allowed-origins:
+        - http://localhost:5173
   jobs:
     enabled: false
     snapshot-directory: target/test-campaign-snapshots

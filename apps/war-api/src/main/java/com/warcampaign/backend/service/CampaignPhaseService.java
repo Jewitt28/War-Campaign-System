@@ -258,15 +258,15 @@ public class CampaignPhaseService {
         );
     }
 
-    private CampaignPhaseResponse toResponse(Campaign campaign) {
-        return new CampaignPhaseResponse(
-                campaign.getId(),
-                campaign.getCurrentTurnNumber(),
-                campaign.getCurrentPhase(),
-                campaign.getPhaseStartedAt(),
-                campaign.getPhaseEndsAt()
-        );
-    }
+    // private CampaignPhaseResponse toResponse(Campaign campaign) {
+    //     return new CampaignPhaseResponse(
+    //             campaign.getId(),
+    //             campaign.getCurrentTurnNumber(),
+    //             campaign.getCurrentPhase(),
+    //             campaign.getPhaseStartedAt(),
+    //             campaign.getPhaseEndsAt()
+    //     );
+    // }
 
     private record TransitionSnapshot(int currentTurnNumber,
                                       CampaignPhase currentPhase,

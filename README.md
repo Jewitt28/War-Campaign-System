@@ -84,6 +84,13 @@ Key architectural principles:
    ```
    The API will start on `http://localhost:8080`
    
+   For local frontend login, start the API with dev auth enabled:
+   ```bash
+   cd apps/war-api
+   WAR_DEV_AUTH_ENABLED=true mvn spring-boot:run
+   ```
+   Local CORS allows the Vite frontend origin `http://localhost:5173` by default.
+   
    The backend includes:
    - User authentication endpoints
    - Campaign management (create, join, manage campaigns)
@@ -99,12 +106,14 @@ Key architectural principles:
    npm run dev
    ```
    The UI will start on `http://localhost:5173` (Vite dev server).
+   If your API is not running on `http://localhost:8080`, set `VITE_API_BASE_URL` before starting the frontend.
 
 3. **Access the Application**:
    - Open `http://localhost:5173` in your browser
    - The backend must be running for full functionality
    - Authentication is required to access campaigns
    - In local development, the frontend uses the backend dev-auth flow by storing the chosen email locally and sending it as the `X-Dev-User` header
+   - There is no separate admin login. Use `gm@war.local` for local GM access, or `player1@war.local` / `player2@war.local` for player test accounts.
 
 #### Current Alpha Frontend Routes
 

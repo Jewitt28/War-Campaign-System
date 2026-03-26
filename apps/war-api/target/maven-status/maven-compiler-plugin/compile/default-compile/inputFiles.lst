@@ -4,6 +4,8 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/api/ApiExceptionHandler.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/config/JobsProperties.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/config/SecurityConfig.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/config/WebCorsConfig.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/config/WebCorsProperties.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/controller/AuthController.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/controller/CampaignController.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/controller/InviteController.java

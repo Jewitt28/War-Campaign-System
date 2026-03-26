@@ -21,6 +21,10 @@ app:
   security:
     dev-auth:
       enabled: ${WAR_DEV_AUTH_ENABLED:false}
+  web:
+    cors:
+      allowed-origins:
+        - ${WAR_ALLOWED_ORIGIN:http://localhost:5173}
   jobs:
     enabled: ${WAR_JOBS_ENABLED:false}
     phase-expiry-delay: ${WAR_JOBS_PHASE_EXPIRY_DELAY:PT1M}
