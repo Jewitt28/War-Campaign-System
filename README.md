@@ -5,6 +5,7 @@ An invite-only, backend-authoritative online campaign management platform for th
 ## Documentation
 
 - **[WAR! Online Campaign Alpha — Technical Blueprint](blueprint.md)** — The canonical architecture document. All implementation must align with this blueprint unless explicitly revised.
+- **[Alpha Setup Guide](docs/alpha-setup-guide.md)** — Practical walkthrough for local setup plus current GM and player flows in the alpha UI.
 
 ## Architecture Overview
 
@@ -103,6 +104,18 @@ Key architectural principles:
    - Open `http://localhost:5173` in your browser
    - The backend must be running for full functionality
    - Authentication is required to access campaigns
+   - In local development, the frontend uses the backend dev-auth flow by storing the chosen email locally and sending it as the `X-Dev-User` header
+
+#### Current Alpha Frontend Routes
+
+- `/login` — dev-mode sign in
+- `/invite/:token` — invite lookup and acceptance
+- `/app/campaigns` — joined campaigns list
+- `/app/campaigns/:campaignId/lobby` — roster and assignment view
+- `/app/campaigns/:campaignId/dashboard` — current phase, turn, timer, next-action view
+- `/app/campaigns/:campaignId/map` — strategic map page with territory selection and role-safe detail panel
+
+See [docs/alpha-setup-guide.md](docs/alpha-setup-guide.md) for a practical walkthrough as GM or player.
 
 #### Notes on Development
 
@@ -150,6 +163,8 @@ README.md               # This file
 - ✅ Campaign lobbies with GM and player roles
 - ✅ Invite-based access control
 - ✅ Campaign phase management
+- ✅ Campaign dashboard with current phase and timer strip
+- ✅ Campaign map with role-safe territory detail reads
 - ✅ Order submission system
 - ✅ Resolution and outcome calculation
 - ✅ Fog of war (server-enforced visibility)
