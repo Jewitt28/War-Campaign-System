@@ -821,9 +821,9 @@ export function CampaignMapPage() {
 
       <div
         className="map-layout"
-        style={{ gridTemplateColumns: 'minmax(0, 2.2fr) minmax(380px, 1fr)', alignItems: 'stretch' }}
+        style={{ gridTemplateColumns: 'minmax(0, 2.8fr) minmax(360px, .95fr)', alignItems: 'stretch' }}
       >
-        <section className="surface-card page-card" style={{ padding: 0, minHeight: 920, overflow: 'hidden' }}>
+        <section className="surface-card page-card" style={{ padding: 0, minHeight: 1080, overflow: 'hidden' }}>
           <MapBoard />
         </section>
 
@@ -866,6 +866,7 @@ export function CampaignMapPage() {
               data={staticMapData}
               mapSummary={mapSummary.data}
               membership={campaign.data.myMembership}
+              onOpenOrders={() => setSidebarTab('orders')}
             />
           ) : null}
           {safeSidebarTab === 'hq' ? <CommandHub campaignId={campaignId} data={staticMapData} /> : null}

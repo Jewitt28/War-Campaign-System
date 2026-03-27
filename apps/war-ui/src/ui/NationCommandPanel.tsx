@@ -11,8 +11,7 @@ import { useCampaignStore, type TurnLogType } from "../store/useCampaignStore";
 import { factionLabel } from "../store/factionLabel";
 import { nationLabel } from "../store/nationLabel";
 import { getFactionAccent } from "./factionColors";
-import { getDoctrineDerivedStats } from "../strategy/selectors/getStrategicModifiers";
-import { formatTerritoryLabel, formatTerritoryList } from "./territoryLabel";
+import { formatTerritoryLabel } from "./territoryLabel";
 import type { Platoon, PlatoonCondition, PlatoonTrait } from "../domain/types";
 import {
   type PlatoonDetail,
@@ -122,6 +121,7 @@ type Props = {
   data: NormalizedData | null;
   mapSummary: CampaignMapSummary;
   membership: CampaignMembership;
+  onOpenOrders: () => void;
 };
 
 function commitPlatoonSnapshot(platoon: Platoon) {
@@ -155,56 +155,25 @@ export default function NationCommandPanel({
   data,
   mapSummary,
   membership,
+  onOpenOrders,
 }: Props) {
   const viewerNation = useCampaignStore((s) => s.viewerNation);
   const viewerFaction = useCampaignStore((s) => s.viewerFaction);
   const customNations = useCampaignStore((s) => s.customNations);
   const customs = useCampaignStore((s) => s.customs);
   const turnNumber = useCampaignStore((s) => s.turnNumber);
-  const phase = useCampaignStore((s) => s.phase);
   const platoonsById = useCampaignStore((s) => s.platoonsById);
-  const ordersByTurn = useCampaignStore((s) => s.ordersByTurn);
   const selectedTerritoryId = useCampaignStore((s) => s.selectedTerritoryId);
   const selectedPlatoonId = useCampaignStore((s) => s.selectedPlatoonId);
   const setSelectedPlatoonId = useCampaignStore((s) => s.setSelectedPlatoonId);
   const setSelectedTerritory = useCampaignStore((s) => s.setSelectedTerritory);
-  const orderDraftType = useCampaignStore((s) => s.orderDraftType);
-  const setOrderDraftType = useCampaignStore((s) => s.setOrderDraftType);
-  const submitFactionOrders = useCampaignStore((s) => s.submitFactionOrders);
-  const cancelDraftOrder = useCampaignStore((s) => s.cancelDraftOrder);
   const territoryNameById = useCampaignStore((s) => s.territoryNameById);
   const ensureSupplies = useCampaignStore((s) => s.ensureSupplies);
   const getSupplies = useCampaignStore((s) => s.getSupplies);
   const spendSupplies = useCampaignStore((s) => s.spendSupplies);
   const createPlatoonMutation = useCreateCampaignPlatoon(campaignId);
   const updatePlatoonMutation = useUpdateCampaignPlatoon(campaignId);
-  const nationDoctrineState = useCampaignStore((s) => s.nationDoctrineState);
-  const nationResearchState = useCampaignStore((s) => s.nationResearchState);
-  const nationUpgradesState = useCampaignStore((s) => s.nationUpgradesState);
-  const doctrineStats = useMemo(
-    () =>
-      getDoctrineDerivedStats(
-        {
-          nationDoctrineState,
-          nationResearchState,
-          nationUpgradesState,
-        },
-        viewerNation,
-      ),
-    [
-      nationDoctrineState,
-      nationResearchState,
-      nationUpgradesState,
-      viewerNation,
-    ],
-  );
 
-  const [openOrderPlatoonId, setOpenOrderPlatoonId] = useState<string | null>(
-    null,
-  );
-  const [pendingOrderPlatoonId, setPendingOrderPlatoonId] = useState<
-    string | null
-  >(null);
   const [expandedPlatoonId, setExpandedPlatoonId] = useState<string | null>(
     null,
   );
@@ -267,63 +236,16 @@ export default function NationCommandPanel({
       ),
     [platoonsById, viewerNation],
   );
-  const draftOrders = useMemo(() => {
-    const byTurn = ordersByTurn?.[turnNumber] ?? {};
-    return Object.values(byTurn)
-      .flat()
-      .filter((order) => {
-        const platoon = platoonsById[order.platoonId];
-        return platoon?.nation === viewerNation && !order.submittedAt;
-      });
-  }, [ordersByTurn, platoonsById, turnNumber, viewerNation]);
-  const orderStatusByPlatoon = useMemo(() => {
-    const byTurn = ordersByTurn?.[turnNumber] ?? {};
-    const statuses = new Map<string, "none" | "draft" | "submitted">();
-    Object.values(byTurn)
-      .flat()
-      .forEach((order) => {
-        if (order.submittedAt) {
-          statuses.set(order.platoonId, "submitted");
-          return;
-        }
-        if (statuses.get(order.platoonId) !== "submitted") {
-          statuses.set(order.platoonId, "draft");
-        }
-      });
-    return statuses;
-  }, [ordersByTurn, turnNumber]);
   const supplies = useMemo(
     () => getSupplies(viewerNation),
     [getSupplies, viewerNation],
   );
-  const canCancelOrders = doctrineStats.orderFlexibility > 0;
   const accentColor = getFactionAccent({
     viewerNation,
     viewerFaction,
     customNations,
     customs,
   });
-
-  useEffect(() => {
-    if (phase !== "ORDERS") {
-      setOpenOrderPlatoonId(null);
-      setPendingOrderPlatoonId(null);
-      setOrderDraftType(null);
-    }
-  }, [phase, setOrderDraftType]);
-
-  useEffect(() => {
-    if (orderDraftType && selectedPlatoonId) {
-      setPendingOrderPlatoonId(selectedPlatoonId);
-    }
-  }, [orderDraftType, selectedPlatoonId]);
-
-  useEffect(() => {
-    if (!orderDraftType && pendingOrderPlatoonId) {
-      setOpenOrderPlatoonId(null);
-      setPendingOrderPlatoonId(null);
-    }
-  }, [orderDraftType, pendingOrderPlatoonId]);
 
   useEffect(() => {
     ensureSupplies();
@@ -720,7 +642,27 @@ export default function NationCommandPanel({
           padding: 12,
         }}
       >
-        <h3 style={{ marginTop: 0 }}>Nation Platoons</h3>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            marginBottom: 10,
+          }}
+        >
+          <div>
+            <h3 style={{ marginTop: 0, marginBottom: 4 }}>Nation Platoons</h3>
+            <div style={{ fontSize: 12, opacity: 0.72 }}>
+              Force management stays here. Backend order drafting now lives on
+              the map Orders tab so the SVG map is the only targeting surface.
+            </div>
+          </div>
+          <button type="button" onClick={onOpenOrders}>
+            Open Orders Tab
+          </button>
+        </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
             onClick={openCreateWizard}
@@ -979,68 +921,10 @@ export default function NationCommandPanel({
             </div>
           </div>
         ) : null}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-            fontSize: 12,
-            marginBottom: 10,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "#d14b47",
-              }}
-            />
-            No order
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "#e2b340",
-              }}
-            />
-            Drafted
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "#38b56f",
-              }}
-            />
-            Submitted
-          </div>
-        </div>
         {platoons.length ? (
           <div style={{ display: "grid", gap: 8 }}>
             {platoons.map((platoon) => {
               const platoonClass = getPlatoonClass(platoon.traits);
-              const status = orderStatusByPlatoon.get(platoon.id) ?? "none";
-              const statusColor =
-                status === "submitted"
-                  ? "#38b56f"
-                  : status === "draft"
-                    ? "#e2b340"
-                    : "#d14b47";
-              const statusLabel =
-                status === "submitted"
-                  ? "Submitted order"
-                  : status === "draft"
-                    ? "Draft order"
-                    : "No order";
-              const orderPanelOpen =
-                phase === "ORDERS" && openOrderPlatoonId === platoon.id;
               const detailOpen = expandedPlatoonId === platoon.id;
               return (
                 <div key={platoon.id} style={{ display: "grid", gap: 8 }}>
@@ -1050,21 +934,11 @@ export default function NationCommandPanel({
                     onClick={() => {
                       setSelectedPlatoonId(platoon.id);
                       setSelectedTerritory(platoon.territoryId);
-                      if (phase === "ORDERS") {
-                        setOpenOrderPlatoonId(platoon.id);
-                        setOrderDraftType(null);
-                        setPendingOrderPlatoonId(null);
-                      }
                     }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         setSelectedPlatoonId(platoon.id);
                         setSelectedTerritory(platoon.territoryId);
-                        if (phase === "ORDERS") {
-                          setOpenOrderPlatoonId(platoon.id);
-                          setOrderDraftType(null);
-                          setPendingOrderPlatoonId(null);
-                        }
                       }
                     }}
                     style={{
@@ -1140,18 +1014,6 @@ export default function NationCommandPanel({
                         >
                           {detailOpen ? "Collapse" : "Expand"}
                         </button>
-                        <span
-                          title={statusLabel}
-                          style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: "50%",
-                            background: statusColor,
-                            boxShadow: `0 0 6px ${statusColor}66`,
-                            flexShrink: 0,
-                            alignSelf: "center",
-                          }}
-                        />
                       </div>
                     </div>
                     <div style={{ fontSize: 12, opacity: 0.85 }}>
@@ -1172,75 +1034,6 @@ export default function NationCommandPanel({
                       · Faction: {factionLabel(platoon.faction, customs)}
                     </div>
                   </div>
-                  {orderPanelOpen ? (
-                    <div
-                      style={{
-                        border: "1px solid rgba(255,255,255,.12)",
-                        borderRadius: 10,
-                        padding: 10,
-                        background: "rgba(0,0,0,.18)",
-                        display: "grid",
-                        gap: 8,
-                      }}
-                    >
-                      <div style={{ fontWeight: 700 }}>
-                        Issue order · Turn {turnNumber}
-                      </div>
-                      <div style={{ fontSize: 12, opacity: 0.7 }}>
-                        Choose an order type, then select a highlighted
-                        territory on the map.
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gap: 6,
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(120px, 1fr))",
-                        }}
-                      >
-                        {(
-                          [
-                            ["MOVE", "Move"],
-                            ["HOLD", "Hold"],
-                            ["RECON", "Recon"],
-                            ["INTEL", "Intel"],
-                          ] as const
-                        ).map(([value, label]) => {
-                          const isActive =
-                            orderDraftType === value &&
-                            selectedPlatoonId === platoon.id;
-                          return (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => {
-                                setSelectedPlatoonId(platoon.id);
-                                setOrderDraftType(value);
-                                setPendingOrderPlatoonId(platoon.id);
-                              }}
-                              style={{
-                                textAlign: "left",
-                                padding: "6px 8px",
-                                borderRadius: 8,
-                                border: "1px solid rgba(255,255,255,.12)",
-                                background: isActive
-                                  ? "rgba(59,130,246,.2)"
-                                  : "rgba(0,0,0,.12)",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div style={{ fontSize: 12, opacity: 0.75 }}>
-                        {orderDraftType && selectedPlatoonId === platoon.id
-                          ? "Targets are highlighted on the map. Click one to draft the order."
-                          : "No order type selected yet."}
-                      </div>
-                    </div>
-                  ) : null}
                   {detailOpen && expandedPlatoon ? (
                     <div
                       style={{
@@ -1518,7 +1311,7 @@ export default function NationCommandPanel({
 
                       <div style={{ fontSize: 12, opacity: 0.75 }}>
                         Note: supplies are spent from the platoon’s nation —
-                        switch Viewer nation to match to apply upgrades/orders.
+                        switch Viewer nation to match to apply upgrades.
                       </div>
                     </div>
                   ) : null}
@@ -1549,75 +1342,21 @@ export default function NationCommandPanel({
             flexWrap: "wrap",
           }}
         >
-          <h3 style={{ marginTop: 0, marginBottom: 0 }}>Draft Orders</h3>
-          <button
-            type="button"
-            onClick={() => submitFactionOrders(turnNumber, viewerNation)}
-            disabled={!draftOrders.length}
-          >
-            Submit Orders
+          <h3 style={{ marginTop: 0, marginBottom: 0 }}>Map Order Flow</h3>
+          <button type="button" onClick={onOpenOrders}>
+            Open Orders Tab
           </button>
         </div>
         <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>
-          Order flexibility: <b>{doctrineStats.orderFlexibility}</b>{" "}
-          {canCancelOrders
-            ? "(draft orders can be canceled)"
-            : "(no edits without doctrine/upgrades)"}
+          Backend orders now use a single path: choose a platoon, select a map
+          target, save the draft, then lock the submission from the Orders tab.
         </div>
-        {draftOrders.length ? (
-          <ul style={{ margin: 0, paddingLeft: 18 }}>
-            {draftOrders.map((order) => {
-              const platoonName =
-                platoonsById[order.platoonId]?.name ?? order.platoonId;
-              return (
-                <li
-                  key={order.id}
-                  style={{ display: "flex", gap: 8, alignItems: "center" }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <b>{order.type}</b> · {platoonName}{" "}
-                    {order.type === "RECON" || order.type === "INTEL"
-                      ? `→ ${
-                          order.reconTargets?.length
-                            ? formatTerritoryList(
-                                order.reconTargets ?? [],
-                                territoryNameById,
-                              )
-                            : "—"
-                        }`
-                      : `→ ${
-                          order.path?.length
-                            ? formatTerritoryList(
-                                order.path ?? [],
-                                territoryNameById,
-                              )
-                            : formatTerritoryLabel(
-                                order.from,
-                                territoryNameById,
-                              )
-                        }`}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => cancelDraftOrder(turnNumber, order.id)}
-                    disabled={!canCancelOrders}
-                    title={
-                      canCancelOrders
-                        ? "Cancel draft order"
-                        : "Requires order flexibility"
-                    }
-                  >
-                    Cancel
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <div style={{ fontSize: 12, opacity: 0.8 }}>
-            No draft orders yet. Select a platoon above to issue actions.
-          </div>
-        )}
+        <ol style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 6 }}>
+          <li>Select a platoon here in the Forces panel.</li>
+          <li>Open the Orders tab beside the map.</li>
+          <li>Click a territory on the SVG map to choose the order target.</li>
+          <li>Save the backend draft, review validation, then lock when ready.</li>
+        </ol>
       </section>
     </div>
   );
