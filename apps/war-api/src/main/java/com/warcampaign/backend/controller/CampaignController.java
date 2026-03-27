@@ -2,6 +2,8 @@ package com.warcampaign.backend.controller;
 
 import com.warcampaign.backend.dto.CampaignDetailResponse;
 import com.warcampaign.backend.dto.CampaignAuditLogResponse;
+import com.warcampaign.backend.dto.CampaignInviteAdminResponse;
+import com.warcampaign.backend.dto.CampaignLifecycleResponse;
 import com.warcampaign.backend.dto.CampaignChatMessageResponse;
 import com.warcampaign.backend.dto.CampaignMapBridgeResponse;
 import com.warcampaign.backend.dto.CampaignMapResponse;
@@ -12,6 +14,8 @@ import com.warcampaign.backend.dto.CampaignSnapshotExportResponse;
 import com.warcampaign.backend.dto.CampaignSummaryResponse;
 import com.warcampaign.backend.dto.BattleDetailResponse;
 import com.warcampaign.backend.dto.CreateCampaignPlatoonRequest;
+import com.warcampaign.backend.dto.CreateCampaignInviteRequest;
+import com.warcampaign.backend.dto.CreateCampaignRequest;
 import com.warcampaign.backend.dto.GmTerritoryResponse;
 import com.warcampaign.backend.dto.MyOrderSubmissionResponse;
 import com.warcampaign.backend.dto.PostCampaignWorldChatMessageRequest;
@@ -95,6 +99,11 @@ public class CampaignController {
     @GetMapping
     public List<CampaignSummaryResponse> listCampaigns() {
         return campaignLobbyService.listCampaigns(authenticationService.currentUser());
+    }
+
+    @PostMapping
+    public CampaignLifecycleResponse createCampaign(@RequestBody CreateCampaignRequest request) {
+        return campaignAdminService.createCampaign(request, authenticationService.currentUser());
     }
 
     @GetMapping("/{campaignId}")
@@ -211,6 +220,23 @@ public class CampaignController {
         return campaignAdminService.getAuditLog(campaignId, authenticationService.currentUser());
     }
 
+    @GetMapping("/{campaignId}/invites")
+    public List<CampaignInviteAdminResponse> listInvites(@PathVariable UUID campaignId) {
+        return campaignAdminService.listInvites(campaignId, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/invites")
+    public CampaignInviteAdminResponse createInvite(@PathVariable UUID campaignId,
+                                                    @RequestBody CreateCampaignInviteRequest request) {
+        return campaignAdminService.createInvite(campaignId, request, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/invites/{inviteId}/revoke")
+    public CampaignInviteAdminResponse revokeInvite(@PathVariable UUID campaignId,
+                                                    @PathVariable UUID inviteId) {
+        return campaignAdminService.revokeInvite(campaignId, inviteId, authenticationService.currentUser());
+    }
+
     @GetMapping("/{campaignId}/world-chat")
     public List<CampaignChatMessageResponse> getWorldChat(@PathVariable UUID campaignId) {
         return campaignChatService.listWorldMessages(campaignId, authenticationService.currentUser());
@@ -225,6 +251,21 @@ public class CampaignController {
     @PostMapping("/{campaignId}/visibility/rebuild")
     public VisibilityRebuildResponse rebuildVisibility(@PathVariable UUID campaignId) {
         return campaignVisibilityService.rebuildVisibility(campaignId, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/complete")
+    public CampaignLifecycleResponse completeCampaign(@PathVariable UUID campaignId) {
+        return campaignAdminService.completeCampaign(campaignId, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/archive")
+    public CampaignLifecycleResponse archiveCampaign(@PathVariable UUID campaignId) {
+        return campaignAdminService.archiveCampaign(campaignId, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/reset-demo")
+    public CampaignLifecycleResponse resetDemoCampaign(@PathVariable UUID campaignId) {
+        return campaignAdminService.resetDemoCampaign(campaignId, authenticationService.currentUser());
     }
 
     @PostMapping("/{campaignId}/snapshots/export")

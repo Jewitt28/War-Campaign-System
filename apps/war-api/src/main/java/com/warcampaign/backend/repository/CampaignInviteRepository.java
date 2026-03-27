@@ -13,6 +13,10 @@ public interface CampaignInviteRepository extends JpaRepository<CampaignInvite, 
 
     Optional<CampaignInvite> findByInviteToken(String inviteToken);
 
+    Optional<CampaignInvite> findByIdAndCampaignId(UUID inviteId, UUID campaignId);
+
+    List<CampaignInvite> findAllByCampaignIdOrderByExpiresAtDesc(UUID campaignId);
+
     List<CampaignInvite> findAllByStatusAndExpiresAtBetween(InviteStatus status, Instant start, Instant end);
 
     List<CampaignInvite> findAllByStatusAndExpiresAtBefore(InviteStatus status, Instant threshold);

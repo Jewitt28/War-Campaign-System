@@ -15,7 +15,7 @@ public class WebCorsConfig {
     public CorsConfigurationSource corsConfigurationSource(WebCorsProperties properties) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(properties.getAllowedOrigins());
-        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Content-Type", "Accept", "X-Dev-User"));
         configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);

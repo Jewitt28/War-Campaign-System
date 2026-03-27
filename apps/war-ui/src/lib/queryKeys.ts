@@ -14,6 +14,7 @@ export const queryKeys = {
   resolutionSummary: (campaignId: string, turnNumber: number) => ['campaigns', campaignId, 'turns', turnNumber, 'resolution'] as const,
   battleDetail: (campaignId: string, battleId: string) => ['campaigns', campaignId, 'battles', battleId] as const,
   auditLog: (campaignId: string) => ['campaigns', campaignId, 'audit'] as const,
+  campaignInvites: (campaignId: string) => ['campaigns', campaignId, 'invites'] as const,
   playerTerritory: (campaignId: string, territoryId: string) => ['campaigns', campaignId, 'territories', territoryId] as const,
   gmTerritory: (campaignId: string, territoryId: string) => ['campaigns', campaignId, 'territories', territoryId, 'gm'] as const,
   invite: (token: string) => ['invites', token] as const,

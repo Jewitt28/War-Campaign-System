@@ -35,6 +35,18 @@ class AuthCorsIntegrationTest {
     }
 
     @Test
+    void putPreflightRequestReturnsCorsHeadersForAllowedOrigin() throws Exception {
+        mockMvc.perform(options("/api/campaigns/10000000-0000-0000-0000-000000000001/map/bridge/setup")
+                        .header("Origin", DEV_ORIGIN)
+                        .header("Access-Control-Request-Method", "PUT")
+                        .header("Access-Control-Request-Headers", "Content-Type,X-Dev-User"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", DEV_ORIGIN))
+                .andExpect(header().string("Access-Control-Allow-Methods", containsString("PUT")))
+                .andExpect(header().string("Access-Control-Allow-Headers", containsString("X-Dev-User")));
+    }
+
+    @Test
     void authMeSucceedsForAllowedOriginWithDevAuthHeader() throws Exception {
         mockMvc.perform(get("/api/auth/me")
                         .header("Origin", DEV_ORIGIN)

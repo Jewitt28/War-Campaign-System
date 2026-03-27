@@ -7,7 +7,12 @@ import type { NationUpgradesState } from '../../data/upgrades'
 import type { EconomyPool } from '../../domain/strategicEconomy'
 import type { Phase, PlatoonCondition, Platoon } from '../../domain/types'
 import { useCampaign, useCampaignMap, useCampaignPhase } from '../../features/campaigns'
-import { useCampaignMapBridge, useSaveCampaignMapSetup, useSaveCampaignNationStates } from '../../features/mapBridge'
+import {
+  useCampaignMapBridge,
+  useSaveCampaignMapSetup,
+  useSaveCampaignNationStates,
+  type CampaignMapBridge,
+} from '../../features/mapBridge'
 import { useCampaignPlatoons } from '../../features/platoons'
 import MapBoard from '../../map/MapBoard'
 import { NATION_BY_ID, type NationKey } from '../../setup/NationDefinitions'
@@ -72,6 +77,8 @@ type HydratedMapState = {
   nationDoctrineState: Partial<Record<NationKey, NationDoctrineState>>
   nationUpgradesState: Partial<Record<NationKey, NationUpgradesState>>
 }
+
+type BridgeNationState = CampaignMapBridge['nationStates'][string]
 
 function normalizeKey(value: string | null | undefined) {
   return value?.trim().toLowerCase().replace(/[\s-]+/g, '_') ?? null
@@ -241,31 +248,29 @@ export function CampaignMapPage() {
   const phase = useCampaignPhase(campaignId)
   const bridge = useCampaignMapBridge(campaignId)
   const platoons = useCampaignPlatoons(campaignId)
+  const bridgeData = bridge.data
   const saveSetup = useSaveCampaignMapSetup(campaignId)
   const saveNationStates = useSaveCampaignNationStates(campaignId)
   const [staticMapData, setStaticMapData] = useState<NormalizedData | null>(null)
   const [staticMapError, setStaticMapError] = useState<string | null>(null)
   const [sidebarTab, setSidebarTab] = useState<'overview' | 'orders' | 'command' | 'hq' | 'battles' | 'setup'>('overview')
+  const lastHydrationSignature = useRef<string | null>(null)
   const lastSavedSetupSignature = useRef<string | null>(null)
   const lastSavedNationSignature = useRef<string | null>(null)
 
-  const setupSnapshot = useCampaignStore((state) => ({
-    activeTheatres: state.activeTheatres,
-    useDefaultFactions: state.useDefaultFactions,
-    nationsEnabled: state.nationsEnabled,
-    customs: state.customs,
-    customNations: state.customNations,
-    homelandsByNation: state.homelandsByNation,
-  }))
-  const nationSnapshot = useCampaignStore((state) => ({
-    suppliesByNation: state.suppliesByNation,
-    manpowerPoolsByNation: state.manpowerPoolsByNation,
-    resourcePointsByNation: state.resourcePointsByNation,
-    economyPoolsByNation: state.economyPoolsByNation,
-    nationResearchState: state.nationResearchState,
-    nationDoctrineState: state.nationDoctrineState,
-    nationUpgradesState: state.nationUpgradesState,
-  }))
+  const activeTheatresSnapshot = useCampaignStore((state) => state.activeTheatres)
+  const useDefaultFactionsSnapshot = useCampaignStore((state) => state.useDefaultFactions)
+  const nationsEnabledSnapshot = useCampaignStore((state) => state.nationsEnabled)
+  const customFactionsSnapshot = useCampaignStore((state) => state.customs)
+  const customNationsSnapshot = useCampaignStore((state) => state.customNations)
+  const homelandsByNationSnapshot = useCampaignStore((state) => state.homelandsByNation)
+  const suppliesByNationSnapshot = useCampaignStore((state) => state.suppliesByNation)
+  const manpowerPoolsByNationSnapshot = useCampaignStore((state) => state.manpowerPoolsByNation)
+  const resourcePointsByNationSnapshot = useCampaignStore((state) => state.resourcePointsByNation)
+  const economyPoolsByNationSnapshot = useCampaignStore((state) => state.economyPoolsByNation)
+  const nationResearchStateSnapshot = useCampaignStore((state) => state.nationResearchState)
+  const nationDoctrineStateSnapshot = useCampaignStore((state) => state.nationDoctrineState)
+  const nationUpgradesStateSnapshot = useCampaignStore((state) => state.nationUpgradesState)
 
   useEffect(() => {
     let isMounted = true
@@ -306,16 +311,16 @@ export function CampaignMapPage() {
     Boolean(staticMapError)
 
   const hydratedState = useMemo<HydratedMapState | null>(() => {
-    if (!campaign.data || !mapSummary.data || !phase.data || !bridge.data || !platoons.data || !staticMapData) {
+    if (!campaign.data || !mapSummary.data || !phase.data || !bridgeData || !platoons.data || !staticMapData) {
       return null
     }
 
-    const customs: CustomFaction[] = bridge.data.customFactions.map((customFaction) => ({
+    const customs: CustomFaction[] = bridgeData.customFactions.map((customFaction) => ({
       id: customFaction.id,
       name: customFaction.name,
       color: customFaction.color ?? '#8b5cf6',
     }))
-    const customNations: CustomNation[] = bridge.data.customNations
+    const customNations: CustomNation[] = bridgeData.customNations
       .map((customNation) => {
         const nationKey = toNationKey(customNation.key)
         const defaultFaction = toFactionKey(customNation.defaultFactionKey) ?? 'neutral'
@@ -357,7 +362,7 @@ export function CampaignMapPage() {
       factionKeyById.get(
         mapSummary.data.nations.find((nation) => toNationKey(nation.key) === viewerNation)?.factionId ?? '',
       ) ??
-      defaultFactionForNation(viewerNation, customNations, bridge.data.useDefaultFactions)
+      defaultFactionForNation(viewerNation, customNations, bridgeData.useDefaultFactions)
     const viewerMode: ViewerMode = campaign.data.myMembership.role === 'GM' ? 'GM' : 'PLAYER'
 
     const territoryNameById = Object.fromEntries(staticMapData.territories.map((territory) => [territory.id, territory.name]))
@@ -372,10 +377,10 @@ export function CampaignMapPage() {
     )
     const adjacencyByTerritory = Object.fromEntries(staticMapData.territories.map((territory) => [territory.id, territory.adj]))
     const activeTheatres = {
-      WE: bridge.data.activeTheatres.WE ?? mapSummary.data.theatres.find((theatre) => theatre.key === 'WE')?.active ?? true,
-      EE: bridge.data.activeTheatres.EE ?? mapSummary.data.theatres.find((theatre) => theatre.key === 'EE')?.active ?? true,
-      NA: bridge.data.activeTheatres.NA ?? mapSummary.data.theatres.find((theatre) => theatre.key === 'NA')?.active ?? true,
-      PA: bridge.data.activeTheatres.PA ?? mapSummary.data.theatres.find((theatre) => theatre.key === 'PA')?.active ?? true,
+      WE: bridgeData.activeTheatres.WE ?? mapSummary.data.theatres.find((theatre) => theatre.key === 'WE')?.active ?? true,
+      EE: bridgeData.activeTheatres.EE ?? mapSummary.data.theatres.find((theatre) => theatre.key === 'EE')?.active ?? true,
+      NA: bridgeData.activeTheatres.NA ?? mapSummary.data.theatres.find((theatre) => theatre.key === 'NA')?.active ?? true,
+      PA: bridgeData.activeTheatres.PA ?? mapSummary.data.theatres.find((theatre) => theatre.key === 'PA')?.active ?? true,
     } satisfies Record<TheatreId, boolean>
 
     const ownerByTerritory = Object.fromEntries(
@@ -409,7 +414,7 @@ export function CampaignMapPage() {
         .map((platoon) => {
           const nationKey = toNationKey(platoon.nation?.key) as NationKey
           const factionKey =
-            toFactionKey(platoon.faction.key) ?? defaultFactionForNation(nationKey, customNations, bridge.data.useDefaultFactions)
+            toFactionKey(platoon.faction.key) ?? defaultFactionForNation(nationKey, customNations, bridgeData.useDefaultFactions)
           const mapped: Platoon = {
             id: platoon.id,
             faction: factionKey,
@@ -426,9 +431,9 @@ export function CampaignMapPage() {
         }),
     ) as Record<string, Platoon>
 
-    const nationStateEntries = Object.entries(bridge.data.nationStates)
+    const nationStateEntries = Object.entries(bridgeData.nationStates)
       .map(([nationKey, state]) => [toNationKey(nationKey), state] as const)
-      .filter((entry): entry is readonly [NationKey, typeof bridge.data.nationStates[string]] => Boolean(entry[0]))
+      .filter((entry): entry is readonly [NationKey, BridgeNationState] => Boolean(entry[0]))
 
     return {
       viewerMode,
@@ -449,13 +454,13 @@ export function CampaignMapPage() {
       customNations,
       factions: buildFactionState(customs, customNations),
       nationsEnabled: Object.fromEntries(
-        Object.entries(bridge.data.nationsEnabled)
+          Object.entries(bridgeData.nationsEnabled)
           .map(([key, enabled]) => [toNationKey(key), enabled] as const)
           .filter((entry): entry is readonly [NationKey, boolean] => Boolean(entry[0])),
       ) as Record<NationKey, boolean>,
-      useDefaultFactions: bridge.data.useDefaultFactions,
+      useDefaultFactions: bridgeData.useDefaultFactions,
       homelandsByNation: Object.fromEntries(
-        Object.entries(bridge.data.homelandsByNation)
+        Object.entries(bridgeData.homelandsByNation)
           .map(([key, territoryId]) => [toNationKey(key), territoryId] as const)
           .filter((entry): entry is readonly [NationKey, string] => Boolean(entry[0])),
       ) as Partial<Record<NationKey, string>>,
@@ -481,10 +486,15 @@ export function CampaignMapPage() {
           .map(([nationKey, state]) => [nationKey, state.upgradesState as unknown as NationUpgradesState]),
       ),
     }
-  }, [bridge, campaign.data, mapSummary.data, phase.data, platoons.data, staticMapData])
+  }, [bridgeData, campaign.data, mapSummary.data, phase.data, platoons.data, staticMapData])
+
+  const hydrationSignature = useMemo(
+    () => (hydratedState ? stableStringify(hydratedState) : null),
+    [hydratedState],
+  )
 
   useEffect(() => {
-    if (!hydratedState) {
+    if (!hydratedState || !hydrationSignature || hydrationSignature === lastHydrationSignature.current) {
       return
     }
 
@@ -559,21 +569,22 @@ export function CampaignMapPage() {
       locksByTerritory: {},
       contestsByTerritory: {},
     }))
-  }, [hydratedState])
+    lastHydrationSignature.current = hydrationSignature
+  }, [hydratedState, hydrationSignature])
 
   const setupPayload = useMemo(
     () => ({
-      useDefaultFactions: setupSnapshot.useDefaultFactions,
-      activeTheatres: setupSnapshot.activeTheatres,
-      nationsEnabled: setupSnapshot.nationsEnabled,
-      customFactions: [...setupSnapshot.customs]
+      useDefaultFactions: useDefaultFactionsSnapshot,
+      activeTheatres: activeTheatresSnapshot,
+      nationsEnabled: nationsEnabledSnapshot,
+      customFactions: [...customFactionsSnapshot]
         .sort((left, right) => left.id.localeCompare(right.id))
         .map((customFaction) => ({
           id: customFaction.id,
           name: customFaction.name,
           color: customFaction.color,
         })),
-      customNations: [...setupSnapshot.customNations]
+      customNations: [...customNationsSnapshot]
         .sort((left, right) => left.id.localeCompare(right.id))
         .map((customNation) => ({
           key: customNation.id,
@@ -582,10 +593,17 @@ export function CampaignMapPage() {
           color: customNation.color,
         })),
       homelandsByNation: Object.fromEntries(
-        Object.entries(setupSnapshot.homelandsByNation).filter((entry): entry is [string, string] => Boolean(entry[1])),
+        Object.entries(homelandsByNationSnapshot).filter((entry): entry is [string, string] => Boolean(entry[1])),
       ),
     }),
-    [setupSnapshot],
+    [
+      activeTheatresSnapshot,
+      customFactionsSnapshot,
+      customNationsSnapshot,
+      homelandsByNationSnapshot,
+      nationsEnabledSnapshot,
+      useDefaultFactionsSnapshot,
+    ],
   )
 
   const serverSetupPayload = useMemo(
@@ -642,23 +660,32 @@ export function CampaignMapPage() {
           .map((nationKey) => [
             nationKey,
             {
-              supplies: nationSnapshot.suppliesByNation[nationKey] ?? 0,
-              manpower: nationSnapshot.manpowerPoolsByNation[nationKey] ?? 0,
-              resourcePoints: nationSnapshot.resourcePointsByNation[nationKey] ?? 0,
-              economyPool: nationSnapshot.economyPoolsByNation[nationKey] ?? {
+              supplies: suppliesByNationSnapshot[nationKey] ?? 0,
+              manpower: manpowerPoolsByNationSnapshot[nationKey] ?? 0,
+              resourcePoints: resourcePointsByNationSnapshot[nationKey] ?? 0,
+              economyPool: economyPoolsByNationSnapshot[nationKey] ?? {
                 industry: 0,
                 political: 0,
                 logistics: 0,
                 intelligence: 0,
               },
-              researchState: nationSnapshot.nationResearchState[nationKey] ?? null,
-              doctrineState: nationSnapshot.nationDoctrineState[nationKey] ?? null,
-              upgradesState: nationSnapshot.nationUpgradesState[nationKey] ?? null,
+              researchState: nationResearchStateSnapshot[nationKey] ?? null,
+              doctrineState: nationDoctrineStateSnapshot[nationKey] ?? null,
+              upgradesState: nationUpgradesStateSnapshot[nationKey] ?? null,
             },
           ]),
       ),
     }),
-    [nationSnapshot, serverNationKeys],
+    [
+      economyPoolsByNationSnapshot,
+      manpowerPoolsByNationSnapshot,
+      nationDoctrineStateSnapshot,
+      nationResearchStateSnapshot,
+      nationUpgradesStateSnapshot,
+      resourcePointsByNationSnapshot,
+      serverNationKeys,
+      suppliesByNationSnapshot,
+    ],
   )
 
   const serverNationStatesPayload = useMemo(
@@ -819,19 +846,16 @@ export function CampaignMapPage() {
         .
       </Notice>
 
-      <div
-        className="map-layout"
-        style={{ gridTemplateColumns: 'minmax(0, 2.8fr) minmax(360px, .95fr)', alignItems: 'stretch' }}
-      >
-        <section className="surface-card page-card" style={{ padding: 0, minHeight: 1080, overflow: 'hidden' }}>
+      <div className="map-layout map-layout-stacked">
+        <section className="surface-card page-card" style={{ padding: 0, minHeight: 980, overflow: 'hidden' }}>
           <MapBoard />
         </section>
 
-        <aside className="surface-card page-card page-stack">
+        <section className="surface-card page-card page-stack">
           <div className="page-header">
             <div className="page-header-copy">
               <h3 className="detail-title">Map operations</h3>
-              <p className="muted">Setup, nation command, HQ, and battle tools now sit beside the playable map.</p>
+              <p className="muted">Setup, nation command, HQ, and battle tools now expand beneath the playable map instead of being constrained to a thin sidebar.</p>
             </div>
           </div>
 
@@ -872,7 +896,7 @@ export function CampaignMapPage() {
           {safeSidebarTab === 'hq' ? <CommandHub campaignId={campaignId} data={staticMapData} /> : null}
           {safeSidebarTab === 'battles' ? <CampaignMapBattlesPanel /> : null}
           {safeSidebarTab === 'setup' && campaign.data.myMembership.role === 'GM' ? <SetupPanel /> : null}
-        </aside>
+        </section>
       </div>
     </section>
   )

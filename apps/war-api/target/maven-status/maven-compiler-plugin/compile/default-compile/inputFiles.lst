@@ -66,6 +66,8 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignChatMessageResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignDetailResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignFactionResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignInviteAdminResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignLifecycleResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignMapBridgeResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignMapResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignMemberResponse.java
@@ -74,7 +76,9 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignResolutionResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignSnapshotExportResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignSummaryResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CreateCampaignInviteRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CreateCampaignPlatoonRequest.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CreateCampaignRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/GmPlatoonDetailResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/GmTerritoryResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/InviteDetailsResponse.java

@@ -4,7 +4,7 @@ const shippedSlices = [
   {
     title: 'Auth and invites',
     status: 'PR A',
-    interaction: 'Sign in on /login, open an invite link, accept it, and return into the protected app shell.',
+    interaction: 'GMs can create a campaign, generate invite links from the admin route, then players open the invite link, accept it, and land back in the protected app shell.',
     audience: 'GM and player',
   },
   {
@@ -34,7 +34,7 @@ const shippedSlices = [
   {
     title: 'Admin tools and notifications',
     status: 'PR F',
-    interaction: 'GMs can run core admin actions from the admin route, while all users can open notifications and jump straight into the relevant campaign page.',
+    interaction: 'GMs can create and revoke invite links, complete or archive campaigns, reset the local demo into a fresh campaign, and run core admin actions from the admin route.',
     audience: 'GM and player',
   },
 ]
@@ -68,7 +68,7 @@ export function UpdatesPage() {
         <div className="detail-list">
           <div className="detail-row">
             <dt>GM</dt>
-            <dd>Sign in, open campaigns, manage the lobby, inspect the map, then review downstream pages as the turn progresses.</dd>
+            <dd>Sign in, create a campaign from My Campaigns, open GM admin to create invite links, then manage lobby, map, and lifecycle actions as the turn progresses.</dd>
           </div>
           <div className="detail-row">
             <dt>Player</dt>
@@ -91,7 +91,7 @@ export function UpdatesPage() {
           </div>
           <div className="detail-row">
             <dt>GMs</dt>
-            <dd>Lobby assignment controls, battle and event review, and the new admin route reduce the amount of manual intervention needed between turns.</dd>
+            <dd>Create campaigns from My Campaigns, create or revoke invite links from GM admin, and use archive or reset controls to recover a test campaign without database work.</dd>
           </div>
           <div className="detail-row">
             <dt>Everyone</dt>

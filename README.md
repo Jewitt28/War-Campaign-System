@@ -120,11 +120,28 @@ Key architectural principles:
 - `/login` — dev-mode sign in
 - `/invite/:token` — invite lookup and acceptance
 - `/app/campaigns` — joined campaigns list
+- `/app/campaigns/:campaignId/admin` — GM invite generation, lifecycle actions, demo reset
 - `/app/campaigns/:campaignId/lobby` — roster and assignment view
 - `/app/campaigns/:campaignId/dashboard` — current phase, turn, timer, next-action view
 - `/app/campaigns/:campaignId/map` — strategic map page with territory selection and role-safe detail panel
 
 See [docs/alpha-setup-guide.md](docs/alpha-setup-guide.md) for a practical walkthrough as GM or player.
+
+#### Current GM Setup Flow
+
+1. Sign in as `gm@war.local`.
+2. Open `My Campaigns` and create a new campaign.
+3. Open the campaign's `GM admin` route.
+4. Create invite links for players or observers.
+5. Copy the generated `/invite/:token` URL and send it to the intended user.
+6. After they join, use the lobby to review assignments, then continue on the map and orders flow.
+
+For local playtest recovery, the GM admin route also exposes:
+- `Complete campaign`
+- `Archive campaign`
+- `Reset demo campaign`
+
+`Reset demo campaign` is intended for dev-mode playtests. It archives the current campaign and creates a fresh replacement campaign without manual database intervention.
 
 #### Notes on Development
 

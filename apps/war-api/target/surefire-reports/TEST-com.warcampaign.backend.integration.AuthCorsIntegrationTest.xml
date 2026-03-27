@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.warcampaign.backend.integration.AuthCorsIntegrationTest" time="23.422" tests="3" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.warcampaign.backend.integration.AuthCorsIntegrationTest" time="27.761" tests="4" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -13,10 +13,10 @@
     <property name="java.vm.specification.version" value="21"/>
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="sun.boot.library.path" value="/usr/lib/jvm/java-21-openjdk-amd64/lib"/>
-    <property name="sun.java.command" value="/home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire/surefirebooter-20260326201151090_3.jar /home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire 2026-03-26T20-11-50_956-jvmRun1 surefire-20260326201151090_1tmp surefire_0-20260326201151090_2tmp"/>
+    <property name="sun.java.command" value="/home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire/surefirebooter-20260327105008740_3.jar /home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire 2026-03-27T10-50-08_554-jvmRun1 surefire-20260327105008740_1tmp surefire_0-20260327105008740_2tmp"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="/home/davej/Projects/War-Campaign-System/apps/war-api/target/test-classes:/home/davej/Projects/War-Campaign-System/apps/war-api/target/classes:/tmp/m2/org/springframework/boot/spring-boot-starter-data-jpa/3.3.5/spring-boot-starter-data-jpa-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-aop/3.3.5/spring-boot-starter-aop-3.3.5.jar:/tmp/m2/org/aspectj/aspectjweaver/1.9.22.1/aspectjweaver-1.9.22.1.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-jdbc/3.3.5/spring-boot-starter-jdbc-3.3.5.jar:/tmp/m2/com/zaxxer/HikariCP/5.1.0/HikariCP-5.1.0.jar:/tmp/m2/org/springframework/spring-jdbc/6.1.14/spring-jdbc-6.1.14.jar:/tmp/m2/org/hibernate/orm/hibernate-core/6.5.3.Final/hibernate-core-6.5.3.Final.jar:/tmp/m2/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/tmp/m2/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/tmp/m2/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/tmp/m2/org/hibernate/common/hibernate-commons-annotations/6.0.6.Final/hibernate-commons-annotations-6.0.6.Final.jar:/tmp/m2/io/smallrye/jandex/3.1.2/jandex-3.1.2.jar:/tmp/m2/com/fasterxml/classmate/1.7.0/classmate-1.7.0.jar:/tmp/m2/net/bytebuddy/byte-buddy/1.14.19/byte-buddy-1.14.19.jar:/tmp/m2/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/tmp/m2/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/tmp/m2/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/tmp/m2/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/tmp/m2/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/tmp/m2/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/tmp/m2/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/tmp/m2/org/springframework/data/spring-data-jpa/3.3.5/spring-data-jpa-3.3.5.jar:/tmp/m2/org/springframework/data/spring-data-commons/3.3.5/spring-data-commons-3.3.5.jar:/tmp/m2/org/springframework/spring-orm/6.1.14/spring-orm-6.1.14.jar:/tmp/m2/org/springframework/spring-context/6.1.14/spring-context-6.1.14.jar:/tmp/m2/org/springframework/spring-tx/6.1.14/spring-tx-6.1.14.jar:/tmp/m2/org/springframework/spring-beans/6.1.14/spring-beans-6.1.14.jar:/tmp/m2/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/tmp/m2/org/slf4j/slf4j-api/2.0.16/slf4j-api-2.0.16.jar:/tmp/m2/org/springframework/spring-aspects/6.1.14/spring-aspects-6.1.14.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-validation/3.3.5/spring-boot-starter-validation-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-starter/3.3.5/spring-boot-starter-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot/3.3.5/spring-boot-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-autoconfigure/3.3.5/spring-boot-autoconfigure-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-logging/3.3.5/spring-boot-starter-logging-3.3.5.jar:/tmp/m2/ch/qos/logback/logback-classic/1.5.11/logback-classic-1.5.11.jar:/tmp/m2/ch/qos/logback/logback-core/1.5.11/logback-core-1.5.11.jar:/tmp/m2/org/apache/logging/log4j/log4j-to-slf4j/2.23.1/log4j-to-slf4j-2.23.1.jar:/tmp/m2/org/apache/logging/log4j/log4j-api/2.23.1/log4j-api-2.23.1.jar:/tmp/m2/org/slf4j/jul-to-slf4j/2.0.16/jul-to-slf4j-2.0.16.jar:/tmp/m2/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/tmp/m2/org/apache/tomcat/embed/tomcat-embed-el/10.1.31/tomcat-embed-el-10.1.31.jar:/tmp/m2/org/hibernate/validator/hibernate-validator/8.0.1.Final/hibernate-validator-8.0.1.Final.jar:/tmp/m2/jakarta/validation/jakarta.validation-api/3.0.2/jakarta.validation-api-3.0.2.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-web/3.3.5/spring-boot-starter-web-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-json/3.3.5/spring-boot-starter-json-3.3.5.jar:/tmp/m2/com/fasterxml/jackson/core/jackson-databind/2.17.2/jackson-databind-2.17.2.jar:/tmp/m2/com/fasterxml/jackson/core/jackson-annotations/2.17.2/jackson-annotations-2.17.2.jar:/tmp/m2/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.17.2/jackson-datatype-jdk8-2.17.2.jar:/tmp/m2/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.17.2/jackson-datatype-jsr310-2.17.2.jar:/tmp/m2/com/fasterxml/jackson/module/jackson-module-parameter-names/2.17.2/jackson-module-parameter-names-2.17.2.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-tomcat/3.3.5/spring-boot-starter-tomcat-3.3.5.jar:/tmp/m2/org/apache/tomcat/embed/tomcat-embed-core/10.1.31/tomcat-embed-core-10.1.31.jar:/tmp/m2/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.31/tomcat-embed-websocket-10.1.31.jar:/tmp/m2/org/springframework/spring-web/6.1.14/spring-web-6.1.14.jar:/tmp/m2/io/micrometer/micrometer-observation/1.13.6/micrometer-observation-1.13.6.jar:/tmp/m2/io/micrometer/micrometer-commons/1.13.6/micrometer-commons-1.13.6.jar:/tmp/m2/org/springframework/spring-webmvc/6.1.14/spring-webmvc-6.1.14.jar:/tmp/m2/org/springframework/spring-expression/6.1.14/spring-expression-6.1.14.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-security/3.3.5/spring-boot-starter-security-3.3.5.jar:/tmp/m2/org/springframework/spring-aop/6.1.14/spring-aop-6.1.14.jar:/tmp/m2/org/springframework/security/spring-security-config/6.3.4/spring-security-config-6.3.4.jar:/tmp/m2/org/springframework/security/spring-security-web/6.3.4/spring-security-web-6.3.4.jar:/tmp/m2/org/flywaydb/flyway-core/10.10.0/flyway-core-10.10.0.jar:/tmp/m2/com/fasterxml/jackson/dataformat/jackson-dataformat-toml/2.17.2/jackson-dataformat-toml-2.17.2.jar:/tmp/m2/com/fasterxml/jackson/core/jackson-core/2.17.2/jackson-core-2.17.2.jar:/tmp/m2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar:/tmp/m2/org/flywaydb/flyway-database-postgresql/10.10.0/flyway-database-postgresql-10.10.0.jar:/tmp/m2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar:/tmp/m2/org/checkerframework/checker-qual/3.42.0/checker-qual-3.42.0.jar:/tmp/m2/org/springframework/boot/spring-boot-starter-test/3.3.5/spring-boot-starter-test-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-test/3.3.5/spring-boot-test-3.3.5.jar:/tmp/m2/org/springframework/boot/spring-boot-test-autoconfigure/3.3.5/spring-boot-test-autoconfigure-3.3.5.jar:/tmp/m2/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar:/tmp/m2/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/tmp/m2/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/tmp/m2/net/minidev/json-smart/2.5.1/json-smart-2.5.1.jar:/tmp/m2/net/minidev/accessors-smart/2.5.1/accessors-smart-2.5.1.jar:/tmp/m2/org/ow2/asm/asm/9.6/asm-9.6.jar:/tmp/m2/org/assertj/assertj-core/3.25.3/assertj-core-3.25.3.jar:/tmp/m2/org/awaitility/awaitility/4.2.2/awaitility-4.2.2.jar:/tmp/m2/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/tmp/m2/org/junit/jupiter/junit-jupiter/5.10.5/junit-jupiter-5.10.5.jar:/tmp/m2/org/junit/jupiter/junit-jupiter-api/5.10.5/junit-jupiter-api-5.10.5.jar:/tmp/m2/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/tmp/m2/org/junit/platform/junit-platform-commons/1.10.5/junit-platform-commons-1.10.5.jar:/tmp/m2/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/tmp/m2/org/junit/jupiter/junit-jupiter-params/5.10.5/junit-jupiter-params-5.10.5.jar:/tmp/m2/org/junit/jupiter/junit-jupiter-engine/5.10.5/junit-jupiter-engine-5.10.5.jar:/tmp/m2/org/junit/platform/junit-platform-engine/1.10.5/junit-platform-engine-1.10.5.jar:/tmp/m2/org/mockito/mockito-core/5.11.0/mockito-core-5.11.0.jar:/tmp/m2/net/bytebuddy/byte-buddy-agent/1.14.19/byte-buddy-agent-1.14.19.jar:/tmp/m2/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/tmp/m2/org/mockito/mockito-junit-jupiter/5.11.0/mockito-junit-jupiter-5.11.0.jar:/tmp/m2/org/skyscreamer/jsonassert/1.5.3/jsonassert-1.5.3.jar:/tmp/m2/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar:/tmp/m2/org/springframework/spring-core/6.1.14/spring-core-6.1.14.jar:/tmp/m2/org/springframework/spring-jcl/6.1.14/spring-jcl-6.1.14.jar:/tmp/m2/org/springframework/spring-test/6.1.14/spring-test-6.1.14.jar:/tmp/m2/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar:/tmp/m2/org/springframework/security/spring-security-test/6.3.4/spring-security-test-6.3.4.jar:/tmp/m2/org/springframework/security/spring-security-core/6.3.4/spring-security-core-6.3.4.jar:/tmp/m2/org/springframework/security/spring-security-crypto/6.3.4/spring-security-crypto-6.3.4.jar:/tmp/m2/com/h2database/h2/2.2.224/h2-2.2.224.jar:"/>
-    <property name="test" value="AuthCorsIntegrationTest,RootEndpointIntegrationTest"/>
+    <property name="test" value="AuthCorsIntegrationTest"/>
     <property name="sun.cpu.endian" value="little"/>
     <property name="user.home" value="/home/davej"/>
     <property name="user.language" value="en"/>
@@ -31,7 +31,7 @@
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="FILE_LOG_CHARSET" value="UTF-8"/>
     <property name="java.awt.headless" value="true"/>
-    <property name="surefire.real.class.path" value="/home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire/surefirebooter-20260326201151090_3.jar"/>
+    <property name="surefire.real.class.path" value="/home/davej/Projects/War-Campaign-System/apps/war-api/target/surefire/surefirebooter-20260327105008740_3.jar"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="21.0.10+7-Ubuntu-124.04"/>
     <property name="user.name" value="davej"/>
@@ -49,7 +49,7 @@
     <property name="user.dir" value="/home/davej/Projects/War-Campaign-System/apps/war-api"/>
     <property name="os.arch" value="amd64"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
-    <property name="PID" value="59"/>
+    <property name="PID" value="58"/>
     <property name="CONSOLE_LOG_CHARSET" value="UTF-8"/>
     <property name="native.encoding" value="UTF-8"/>
     <property name="java.library.path" value="/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib"/>
@@ -61,9 +61,9 @@
     <property name="maven.repo.local" value="/tmp/m2"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="authMeSucceedsForAllowedOriginWithDevAuthHeader" classname="com.warcampaign.backend.integration.AuthCorsIntegrationTest" time="11.287">
-    <system-out><![CDATA[20:11:52.635 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.warcampaign.backend.integration.AuthCorsIntegrationTest]: AuthCorsIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-20:11:53.015 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.warcampaign.backend.WarApiApplication for test class com.warcampaign.backend.integration.AuthCorsIntegrationTest
+  <testcase name="putPreflightRequestReturnsCorsHeadersForAllowedOrigin" classname="com.warcampaign.backend.integration.AuthCorsIntegrationTest" time="11.295">
+    <system-out><![CDATA[10:50:10.688 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.warcampaign.backend.integration.AuthCorsIntegrationTest]: AuthCorsIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+10:50:11.024 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.warcampaign.backend.WarApiApplication for test class com.warcampaign.backend.integration.AuthCorsIntegrationTest
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -74,60 +74,62 @@
 
  :: Spring Boot ::                (v3.3.5)
 
-2026-03-26T20:11:53.888Z  INFO 59 --- [           main] c.w.b.i.AuthCorsIntegrationTest          : Starting AuthCorsIntegrationTest using Java 21.0.10 with PID 59 (started by davej in /home/davej/Projects/War-Campaign-System/apps/war-api)
-2026-03-26T20:11:53.894Z  INFO 59 --- [           main] c.w.b.i.AuthCorsIntegrationTest          : No active profile set, falling back to 1 default profile: "default"
-2026-03-26T20:11:53.895Z DEBUG 59 --- [           main] o.s.boot.SpringApplication               : Loading source class com.warcampaign.backend.WarApiApplication
-2026-03-26T20:11:53.947Z DEBUG 59 --- [           main] o.s.w.c.s.GenericWebApplicationContext   : Refreshing org.springframework.web.context.support.GenericWebApplicationContext@3c818ac4
-2026-03-26T20:11:55.455Z  INFO 59 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-03-26T20:11:55.480Z DEBUG 59 --- [           main] o.s.b.a.AutoConfigurationPackages        : @EnableAutoConfiguration was declared on a class in the package 'com.warcampaign.backend'. Automatic @Repository and @Entity scanning is enabled.
-2026-03-26T20:11:55.596Z  INFO 59 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 131 ms. Found 20 JPA repository interfaces.
-2026-03-26T20:11:56.773Z  INFO 59 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-03-26T20:11:57.083Z  INFO 59 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:warapi user=SA
-2026-03-26T20:11:57.085Z  INFO 59 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-03-26T20:11:57.174Z  INFO 59 --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:h2:mem:warapi (H2 2.2)
-2026-03-26T20:11:57.192Z  WARN 59 --- [           main] o.f.c.internal.database.base.Database    : Flyway upgrade recommended: H2 2.2.224 is newer than this version of Flyway and support has not been tested. The latest supported version of H2 is 2.2.220.
-2026-03-26T20:11:57.222Z  INFO 59 --- [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table "PUBLIC"."flyway_schema_history" does not exist yet
-2026-03-26T20:11:57.226Z  INFO 59 --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 9 migrations (execution time 00:00.020s)
-2026-03-26T20:11:57.238Z  INFO 59 --- [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table "PUBLIC"."flyway_schema_history" ...
-2026-03-26T20:11:57.291Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "PUBLIC": << Empty Schema >>
-2026-03-26T20:11:57.319Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "1 - create foundation schema"
-2026-03-26T20:11:57.393Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "2 - seed minimal campaign"
-2026-03-26T20:11:57.427Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "3 - expand world map foundation"
-2026-03-26T20:11:57.711Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "4 - add campaign member assignments and platoon read fields"
-2026-03-26T20:11:57.769Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "5 - add orders workflow"
-2026-03-26T20:11:57.789Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "6 - add phase audit log"
-2026-03-26T20:11:57.806Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "7 - add resolution skeleton"
-2026-03-26T20:11:57.840Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "8 - add visibility and admin tools"
-2026-03-26T20:11:57.853Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "9 - add notifications"
-2026-03-26T20:11:57.869Z  INFO 59 --- [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 9 migrations to schema "PUBLIC", now at version v9 (execution time 00:00.446s)
-2026-03-26T20:11:58.020Z  INFO 59 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2026-03-26T20:11:58.114Z  INFO 59 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.3.Final
-2026-03-26T20:11:58.169Z  INFO 59 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2026-03-26T20:11:58.622Z  INFO 59 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-03-26T20:12:01.080Z  INFO 59 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-03-26T20:12:01.126Z  INFO 59 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-03-26T20:12:01.618Z  INFO 59 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-03-26T20:12:03.142Z  WARN 59 --- [           main] .s.s.UserDetailsServiceAutoConfiguration : 
+2026-03-27T10:50:12.079Z  INFO 58 --- [           main] c.w.b.i.AuthCorsIntegrationTest          : Starting AuthCorsIntegrationTest using Java 21.0.10 with PID 58 (started by davej in /home/davej/Projects/War-Campaign-System/apps/war-api)
+2026-03-27T10:50:12.082Z  INFO 58 --- [           main] c.w.b.i.AuthCorsIntegrationTest          : No active profile set, falling back to 1 default profile: "default"
+2026-03-27T10:50:12.083Z DEBUG 58 --- [           main] o.s.boot.SpringApplication               : Loading source class com.warcampaign.backend.WarApiApplication
+2026-03-27T10:50:12.137Z DEBUG 58 --- [           main] o.s.w.c.s.GenericWebApplicationContext   : Refreshing org.springframework.web.context.support.GenericWebApplicationContext@78d39a69
+2026-03-27T10:50:14.287Z  INFO 58 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-27T10:50:14.315Z DEBUG 58 --- [           main] o.s.b.a.AutoConfigurationPackages        : @EnableAutoConfiguration was declared on a class in the package 'com.warcampaign.backend'. Automatic @Repository and @Entity scanning is enabled.
+2026-03-27T10:50:14.521Z  INFO 58 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 221 ms. Found 20 JPA repository interfaces.
+2026-03-27T10:50:16.088Z  INFO 58 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-27T10:50:16.469Z  INFO 58 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:warapi user=SA
+2026-03-27T10:50:16.472Z  INFO 58 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-27T10:50:16.595Z  INFO 58 --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:h2:mem:warapi (H2 2.2)
+2026-03-27T10:50:16.632Z  WARN 58 --- [           main] o.f.c.internal.database.base.Database    : Flyway upgrade recommended: H2 2.2.224 is newer than this version of Flyway and support has not been tested. The latest supported version of H2 is 2.2.220.
+2026-03-27T10:50:16.683Z  INFO 58 --- [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table "PUBLIC"."flyway_schema_history" does not exist yet
+2026-03-27T10:50:16.689Z  INFO 58 --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 11 migrations (execution time 00:00.036s)
+2026-03-27T10:50:16.707Z  INFO 58 --- [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table "PUBLIC"."flyway_schema_history" ...
+2026-03-27T10:50:16.788Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "PUBLIC": << Empty Schema >>
+2026-03-27T10:50:16.827Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "1 - create foundation schema"
+2026-03-27T10:50:16.922Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "2 - seed minimal campaign"
+2026-03-27T10:50:16.955Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "3 - expand world map foundation"
+2026-03-27T10:50:17.334Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "4 - add campaign member assignments and platoon read fields"
+2026-03-27T10:50:17.422Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "5 - add orders workflow"
+2026-03-27T10:50:17.448Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "6 - add phase audit log"
+2026-03-27T10:50:17.470Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "7 - add resolution skeleton"
+2026-03-27T10:50:17.507Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "8 - add visibility and admin tools"
+2026-03-27T10:50:17.524Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "9 - add notifications"
+2026-03-27T10:50:17.536Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "10 - add campaign bridge metadata"
+2026-03-27T10:50:17.573Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "PUBLIC" to version "11 - add platoon state override columns"
+2026-03-27T10:50:17.617Z  INFO 58 --- [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 11 migrations to schema "PUBLIC", now at version v11 (execution time 00:00.640s)
+2026-03-27T10:50:17.810Z  INFO 58 --- [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-03-27T10:50:17.931Z  INFO 58 --- [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.5.3.Final
+2026-03-27T10:50:18.006Z  INFO 58 --- [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-03-27T10:50:18.691Z  INFO 58 --- [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-27T10:50:21.557Z  INFO 58 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-27T10:50:21.612Z  INFO 58 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-27T10:50:22.282Z  INFO 58 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-27T10:50:24.493Z  WARN 58 --- [           main] .s.s.UserDetailsServiceAutoConfiguration : 
 
-Using generated security password: 984a9a33-4112-457c-b183-cfc3b942b96d
+Using generated security password: ec8dff7e-2f2e-409d-8fdd-d0dd2313dbf3
 
 This generated password is for development use only. Your security configuration must be updated before running your application in production.
 
-2026-03-26T20:12:03.177Z  INFO 59 --- [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2026-03-26T20:12:03.407Z DEBUG 59 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 29 mappings in 'requestMappingHandlerMapping'
-2026-03-26T20:12:03.483Z DEBUG 59 --- [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Patterns [/webjars/**, /**] in 'resourceHandlerMapping'
-2026-03-26T20:12:03.786Z DEBUG 59 --- [           main] s.w.s.m.m.a.RequestMappingHandlerAdapter : ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
-2026-03-26T20:12:03.837Z DEBUG 59 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : ControllerAdvice beans: 1 @ExceptionHandler, 1 ResponseBodyAdvice
-2026-03-26T20:12:04.158Z DEBUG 59 --- [           main] o.s.b.w.s.ServletContextInitializerBeans : Mapping filters: springSecurityFilterChain urls=[/*] order=-100, characterEncodingFilter urls=[/*] order=-2147483648, formContentFilter urls=[/*] order=-9900, requestContextFilter urls=[/*] order=-105, devAuthenticationFilter urls=[/*] order=2147483647
-2026-03-26T20:12:04.158Z DEBUG 59 --- [           main] o.s.b.w.s.ServletContextInitializerBeans : Mapping servlets: 
-2026-03-26T20:12:04.183Z DEBUG 59 --- [           main] s.b.w.s.f.OrderedCharacterEncodingFilter : Filter 'characterEncodingFilter' configured for use
-2026-03-26T20:12:04.184Z DEBUG 59 --- [           main] o.s.b.w.s.f.OrderedFormContentFilter     : Filter 'formContentFilter' configured for use
-2026-03-26T20:12:04.184Z DEBUG 59 --- [           main] o.s.b.w.s.f.OrderedRequestContextFilter  : Filter 'requestContextFilter' configured for use
-2026-03-26T20:12:04.184Z DEBUG 59 --- [           main] .DelegatingFilterProxyRegistrationBean$1 : Filter 'springSecurityFilterChain' configured for use
-2026-03-26T20:12:04.185Z  INFO 59 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-03-26T20:12:04.185Z  INFO 59 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
-2026-03-26T20:12:04.187Z  INFO 59 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
-2026-03-26T20:12:04.234Z DEBUG 59 --- [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+2026-03-27T10:50:24.548Z  INFO 58 --- [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
+2026-03-27T10:50:24.890Z DEBUG 58 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 36 mappings in 'requestMappingHandlerMapping'
+2026-03-27T10:50:25.017Z DEBUG 58 --- [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Patterns [/webjars/**, /**] in 'resourceHandlerMapping'
+2026-03-27T10:50:25.614Z DEBUG 58 --- [           main] s.w.s.m.m.a.RequestMappingHandlerAdapter : ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2026-03-27T10:50:25.686Z DEBUG 58 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : ControllerAdvice beans: 1 @ExceptionHandler, 1 ResponseBodyAdvice
+2026-03-27T10:50:26.064Z DEBUG 58 --- [           main] o.s.b.w.s.ServletContextInitializerBeans : Mapping filters: springSecurityFilterChain urls=[/*] order=-100, characterEncodingFilter urls=[/*] order=-2147483648, formContentFilter urls=[/*] order=-9900, requestContextFilter urls=[/*] order=-105, devAuthenticationFilter urls=[/*] order=2147483647
+2026-03-27T10:50:26.064Z DEBUG 58 --- [           main] o.s.b.w.s.ServletContextInitializerBeans : Mapping servlets: 
+2026-03-27T10:50:26.100Z DEBUG 58 --- [           main] s.b.w.s.f.OrderedCharacterEncodingFilter : Filter 'characterEncodingFilter' configured for use
+2026-03-27T10:50:26.101Z DEBUG 58 --- [           main] o.s.b.w.s.f.OrderedFormContentFilter     : Filter 'formContentFilter' configured for use
+2026-03-27T10:50:26.101Z DEBUG 58 --- [           main] o.s.b.w.s.f.OrderedRequestContextFilter  : Filter 'requestContextFilter' configured for use
+2026-03-27T10:50:26.101Z DEBUG 58 --- [           main] .DelegatingFilterProxyRegistrationBean$1 : Filter 'springSecurityFilterChain' configured for use
+2026-03-27T10:50:26.103Z  INFO 58 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-03-27T10:50:26.104Z  INFO 58 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-03-27T10:50:26.108Z  INFO 58 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 4 ms
+2026-03-27T10:50:26.169Z DEBUG 58 --- [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
 
 
 ============================
@@ -1322,18 +1324,21 @@ Unconditional classes:
 
 
 
-2026-03-26T20:12:04.255Z  INFO 59 --- [           main] c.w.b.i.AuthCorsIntegrationTest          : Started AuthCorsIntegrationTest in 10.938 seconds (process running for 13.066)
-2026-03-26T20:12:04.258Z DEBUG 59 --- [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state LivenessState changed to CORRECT
-2026-03-26T20:12:04.262Z DEBUG 59 --- [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state ReadinessState changed to ACCEPTING_TRAFFIC
-2026-03-26T20:12:15.449Z DEBUG 59 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
-2026-03-26T20:12:15.477Z DEBUG 59 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.AuthController#me()
-2026-03-26T20:12:15.500Z DEBUG 59 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
-2026-03-26T20:12:15.503Z DEBUG 59 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Writing [AuthMeResponse[userId=00000000-0000-0000-0000-000000000001, email=gm@war.local, displayName=GM-One]]
+2026-03-27T10:50:26.201Z  INFO 58 --- [           main] c.w.b.i.AuthCorsIntegrationTest          : Started AuthCorsIntegrationTest in 14.874 seconds (process running for 17.324)
+2026-03-27T10:50:26.206Z DEBUG 58 --- [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state LivenessState changed to CORRECT
+2026-03-27T10:50:26.211Z DEBUG 58 --- [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state ReadinessState changed to ACCEPTING_TRAFFIC
 ]]></system-out>
   </testcase>
-  <testcase name="disallowedOriginDoesNotReceiveAllowOriginHeader" classname="com.warcampaign.backend.integration.AuthCorsIntegrationTest" time="0.009">
-    <system-out><![CDATA[2026-03-26T20:12:15.573Z DEBUG 59 --- [           main] o.s.web.cors.DefaultCorsProcessor        : Reject: 'http://malicious.local' origin is not allowed
+  <testcase name="authMeSucceedsForAllowedOriginWithDevAuthHeader" classname="com.warcampaign.backend.integration.AuthCorsIntegrationTest" time="0.413">
+    <system-out><![CDATA[2026-03-27T10:50:37.768Z DEBUG 58 --- [           main] org.hibernate.SQL                        : select u1_0.id,u1_0.active,u1_0.display_name,u1_0.email from app_user u1_0 where upper(u1_0.email)=upper(?)
+2026-03-27T10:50:37.819Z DEBUG 58 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.warcampaign.backend.controller.AuthController#me()
+2026-03-27T10:50:37.853Z DEBUG 58 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json]
+2026-03-27T10:50:37.857Z DEBUG 58 --- [           main] m.m.a.RequestResponseBodyMethodProcessor : Writing [AuthMeResponse[userId=00000000-0000-0000-0000-000000000001, email=gm@war.local, displayName=GM-One]]
 ]]></system-out>
   </testcase>
-  <testcase name="preflightRequestReturnsCorsHeadersForAllowedOrigin" classname="com.warcampaign.backend.integration.AuthCorsIntegrationTest" time="0.011"/>
+  <testcase name="disallowedOriginDoesNotReceiveAllowOriginHeader" classname="com.warcampaign.backend.integration.AuthCorsIntegrationTest" time="0.012">
+    <system-out><![CDATA[2026-03-27T10:50:37.950Z DEBUG 58 --- [           main] o.s.web.cors.DefaultCorsProcessor        : Reject: 'http://malicious.local' origin is not allowed
+]]></system-out>
+  </testcase>
+  <testcase name="preflightRequestReturnsCorsHeadersForAllowedOrigin" classname="com.warcampaign.backend.integration.AuthCorsIntegrationTest" time="0.01"/>
 </testsuite>
