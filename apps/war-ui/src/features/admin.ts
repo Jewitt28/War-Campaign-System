@@ -47,6 +47,12 @@ type CampaignInviteAdminDto = {
   expiresAt: string
 }
 
+type OnboardingPolicyDto = {
+  allowCustomNationCreation: boolean
+  allowPlayerCreatedFactions: boolean
+  allowImmediateActivation: boolean
+}
+
 export type VisibilityRebuildResult = VisibilityRebuildDto
 export type SnapshotExportResult = SnapshotExportDto
 export type PhaseAdvanceResult = PhaseAdvanceDto
@@ -79,6 +85,8 @@ export type CreateCampaignInviteInput = {
 }
 
 export type CampaignLifecycleResult = CreateCampaignResult
+export type CampaignOnboardingPolicy = OnboardingPolicyDto
+export type UpdateCampaignOnboardingPolicyInput = Partial<CampaignOnboardingPolicy>
 
 function mapLifecycle(dto: CampaignLifecycleDto): CampaignLifecycleResult {
   return {
@@ -152,6 +160,16 @@ async function resetDemoCampaign(campaignId: string) {
   return mapLifecycle(response.data)
 }
 
+async function fetchCampaignOnboardingPolicy(campaignId: string) {
+  const response = await api.get<OnboardingPolicyDto>(`/api/campaigns/${campaignId}/onboarding/policy`)
+  return response.data
+}
+
+async function updateCampaignOnboardingPolicy(campaignId: string, input: UpdateCampaignOnboardingPolicyInput) {
+  const response = await api.patch<OnboardingPolicyDto>(`/api/campaigns/${campaignId}/onboarding/policy`, input)
+  return response.data
+}
+
 export function useAdvancePhase(campaignId: string) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -202,6 +220,14 @@ export function useCampaignInvites(campaignId: string) {
   return useQuery({
     queryKey: queryKeys.campaignInvites(campaignId),
     queryFn: () => listCampaignInvites(campaignId),
+    enabled: Boolean(campaignId),
+  })
+}
+
+export function useCampaignOnboardingPolicy(campaignId: string) {
+  return useQuery({
+    queryKey: queryKeys.campaignOnboardingPolicy(campaignId),
+    queryFn: () => fetchCampaignOnboardingPolicy(campaignId),
     enabled: Boolean(campaignId),
   })
 }
@@ -264,6 +290,21 @@ export function useResetDemoCampaign(campaignId: string) {
       await Promise.all([
         invalidateLifecycleQueries(queryClient, campaignId),
         queryClient.invalidateQueries({ queryKey: queryKeys.campaign(data.campaignId) }),
+      ])
+    },
+  })
+}
+
+export function useUpdateCampaignOnboardingPolicy(campaignId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: UpdateCampaignOnboardingPolicyInput) => updateCampaignOnboardingPolicy(campaignId, input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaignOnboardingPolicy(campaignId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaignOnboarding(campaignId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaign(campaignId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaigns }),
       ])
     },
   })

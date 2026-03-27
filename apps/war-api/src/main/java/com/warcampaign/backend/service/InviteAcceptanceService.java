@@ -3,6 +3,7 @@ package com.warcampaign.backend.service;
 import com.warcampaign.backend.domain.enums.InviteStatus;
 import com.warcampaign.backend.domain.model.CampaignInvite;
 import com.warcampaign.backend.domain.model.CampaignMember;
+import com.warcampaign.backend.domain.model.CampaignMemberOnboarding;
 import com.warcampaign.backend.domain.model.User;
 import com.warcampaign.backend.dto.AcceptInviteResponse;
 import com.warcampaign.backend.dto.InviteDetailsResponse;
@@ -25,15 +26,18 @@ public class InviteAcceptanceService {
     private final CampaignMemberRepository campaignMemberRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final CampaignOnboardingService campaignOnboardingService;
 
     public InviteAcceptanceService(CampaignInviteRepository campaignInviteRepository,
                                    CampaignMemberRepository campaignMemberRepository,
                                    UserRepository userRepository,
-                                   NotificationService notificationService) {
+                                   NotificationService notificationService,
+                                   CampaignOnboardingService campaignOnboardingService) {
         this.campaignInviteRepository = campaignInviteRepository;
         this.campaignMemberRepository = campaignMemberRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.campaignOnboardingService = campaignOnboardingService;
     }
 
     @Transactional(readOnly = true)
@@ -88,15 +92,33 @@ public class InviteAcceptanceService {
                 "You joined " + invite.getCampaign().getName() + ".",
                 "{\"campaignId\":\"" + invite.getCampaign().getId() + "\",\"memberId\":\"" + persisted.getId() + "\"}"
         );
+        CampaignMemberOnboarding onboarding = campaignOnboardingService.ensureInviteAcceptanceState(persisted);
 
         return new AcceptInviteResponse(
                 invite.getCampaign().getId(),
                 persisted.getId(),
                 persisted.getRole(),
-                null,
-                null,
-                invite.getStatus().name()
+                persisted.getFaction() != null ? persisted.getFaction().getFactionKey() : null,
+                persisted.getNation() != null ? persisted.getNation().getNationKey() : null,
+                invite.getStatus().name(),
+                persisted.getRole() == com.warcampaign.backend.domain.enums.CampaignRole.PLAYER
+                        && onboarding.getStatus() != com.warcampaign.backend.domain.enums.CampaignMemberOnboardingStatus.COMPLETE,
+                onboarding.getActivationStatus(),
+                buildRedirectPath(invite.getCampaign().getId(), onboarding)
         );
+    }
+
+    private String buildRedirectPath(java.util.UUID campaignId, CampaignMemberOnboarding onboarding) {
+        if (onboarding.getStatus() == com.warcampaign.backend.domain.enums.CampaignMemberOnboardingStatus.NOT_REQUIRED) {
+            return "/app/campaigns/" + campaignId;
+        }
+        if (onboarding.getStatus() != com.warcampaign.backend.domain.enums.CampaignMemberOnboardingStatus.COMPLETE) {
+            return "/app/campaigns/" + campaignId + "/onboarding";
+        }
+        if (onboarding.getActivationStatus() == com.warcampaign.backend.domain.enums.CampaignMemberActivationStatus.PENDING_NEXT_TURN) {
+            return "/app/campaigns/" + campaignId + "/waiting";
+        }
+        return "/app/campaigns/" + campaignId;
     }
 
     private CampaignInvite findInvite(String token) {

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
+import { useCampaign } from '../../features/campaigns'
 import { useCampaignPlatoon, useCampaignPlatoons } from '../../features/platoons'
 import { Notice, SkeletonCard, StateCard } from '../components'
 
 export function CampaignPlatoonsPage() {
   const { campaignId = '' } = useParams()
+  const campaign = useCampaign(campaignId)
   const platoons = useCampaignPlatoons(campaignId)
   const [selectedPlatoonId, setSelectedPlatoonId] = useState('')
   const platoonList = platoons.data ?? []
@@ -16,7 +18,7 @@ export function CampaignPlatoonsPage() {
 
   const platoonDetail = useCampaignPlatoon(campaignId, activePlatoonId, Boolean(activePlatoonId))
 
-  if (platoons.isLoading || platoonDetail.isLoading) {
+  if (campaign.isLoading || platoons.isLoading || platoonDetail.isLoading) {
     return (
       <div className="page-stack">
         <SkeletonCard lines={4} />
@@ -25,9 +27,13 @@ export function CampaignPlatoonsPage() {
     )
   }
 
-  if (platoons.isError || !platoons.data || platoonDetail.isError) {
+  if (campaign.isError || !campaign.data || platoons.isError || !platoons.data || platoonDetail.isError) {
     return <StateCard title="Platoons unavailable" description="The platoon list or selected platoon detail could not be loaded." />
   }
+
+  const pendingActivation =
+    campaign.data.myMembership.role === 'PLAYER' &&
+    campaign.data.myMembership.onboarding?.activationStatus === 'PENDING_NEXT_TURN'
 
   if (platoons.data.length === 0) {
     return <StateCard title="No visible platoons" description="This role currently has no visible platoons in the current turn read model." />
@@ -37,6 +43,13 @@ export function CampaignPlatoonsPage() {
 
   return (
     <section className="page-stack">
+      {pendingActivation ? (
+        <Notice>
+          Platoon detail is read-only until your nation activates next turn. Review visibility here and track activation on the{' '}
+          <NavLink to={`/app/campaigns/${campaignId}/waiting`}>waiting page</NavLink>.
+        </Notice>
+      ) : null}
+
       <div className="page-header">
         <div className="page-header-copy">
           <p className="eyebrow">Platoons</p>
@@ -99,6 +112,9 @@ export function CampaignPlatoonsPage() {
               <div className="button-row">
                 <NavLink className="button-secondary" to={`/app/campaigns/${campaignId}/map`}>
                   Open map
+                </NavLink>
+                <NavLink className="button-secondary" to={`/app/help?campaignId=${campaignId}#platoons`}>
+                  Platoon help
                 </NavLink>
               </div>
             </>

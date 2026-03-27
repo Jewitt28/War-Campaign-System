@@ -5,19 +5,24 @@ import com.warcampaign.backend.dto.CampaignAuditLogResponse;
 import com.warcampaign.backend.dto.CampaignInviteAdminResponse;
 import com.warcampaign.backend.dto.CampaignLifecycleResponse;
 import com.warcampaign.backend.dto.CampaignChatMessageResponse;
+import com.warcampaign.backend.dto.CampaignMemberOnboardingResponse;
 import com.warcampaign.backend.dto.CampaignMapBridgeResponse;
 import com.warcampaign.backend.dto.CampaignMapResponse;
 import com.warcampaign.backend.dto.CampaignMemberResponse;
+import com.warcampaign.backend.dto.CampaignOnboardingResponse;
 import com.warcampaign.backend.dto.CampaignPhaseResponse;
 import com.warcampaign.backend.dto.CampaignResolutionResponse;
 import com.warcampaign.backend.dto.CampaignSnapshotExportResponse;
 import com.warcampaign.backend.dto.CampaignSummaryResponse;
 import com.warcampaign.backend.dto.BattleDetailResponse;
+import com.warcampaign.backend.dto.CompleteOnboardingResponse;
 import com.warcampaign.backend.dto.CreateCampaignPlatoonRequest;
 import com.warcampaign.backend.dto.CreateCampaignInviteRequest;
 import com.warcampaign.backend.dto.CreateCampaignRequest;
+import com.warcampaign.backend.dto.CompleteOnboardingTutorialRequest;
 import com.warcampaign.backend.dto.GmTerritoryResponse;
 import com.warcampaign.backend.dto.MyOrderSubmissionResponse;
+import com.warcampaign.backend.dto.OnboardingPolicyResponse;
 import com.warcampaign.backend.dto.PostCampaignWorldChatMessageRequest;
 import com.warcampaign.backend.dto.PlayerTerritoryResponse;
 import com.warcampaign.backend.dto.PlatoonDetailResponse;
@@ -26,6 +31,10 @@ import com.warcampaign.backend.dto.RecordBattleResultRequest;
 import com.warcampaign.backend.dto.SaveOrderSubmissionRequest;
 import com.warcampaign.backend.dto.SaveCampaignMapSetupRequest;
 import com.warcampaign.backend.dto.SaveCampaignNationStatesRequest;
+import com.warcampaign.backend.dto.SelectOnboardingFactionRequest;
+import com.warcampaign.backend.dto.SelectOnboardingHomelandRequest;
+import com.warcampaign.backend.dto.SelectOnboardingNationRequest;
+import com.warcampaign.backend.dto.UpdateOnboardingPolicyRequest;
 import com.warcampaign.backend.dto.UpdateCampaignPlatoonRequest;
 import com.warcampaign.backend.dto.UpdateCampaignMemberRequest;
 import com.warcampaign.backend.dto.VisibilityRebuildResponse;
@@ -36,6 +45,7 @@ import com.warcampaign.backend.service.CampaignChatService;
 import com.warcampaign.backend.service.CampaignLobbyService;
 import com.warcampaign.backend.service.CampaignMapBridgeService;
 import com.warcampaign.backend.service.CampaignMapService;
+import com.warcampaign.backend.service.CampaignOnboardingService;
 import com.warcampaign.backend.service.CampaignOrderService;
 import com.warcampaign.backend.service.CampaignPhaseService;
 import com.warcampaign.backend.service.CampaignPlatoonService;
@@ -61,6 +71,7 @@ public class CampaignController {
     private final CampaignMapService campaignMapService;
     private final CampaignMapBridgeService campaignMapBridgeService;
     private final CampaignPlatoonService campaignPlatoonService;
+    private final CampaignOnboardingService campaignOnboardingService;
     private final CampaignOrderService campaignOrderService;
     private final CampaignPhaseService campaignPhaseService;
     private final CampaignResolutionService campaignResolutionService;
@@ -74,6 +85,7 @@ public class CampaignController {
                               CampaignMapService campaignMapService,
                               CampaignMapBridgeService campaignMapBridgeService,
                               CampaignPlatoonService campaignPlatoonService,
+                              CampaignOnboardingService campaignOnboardingService,
                               CampaignOrderService campaignOrderService,
                               CampaignPhaseService campaignPhaseService,
                               CampaignResolutionService campaignResolutionService,
@@ -86,6 +98,7 @@ public class CampaignController {
         this.campaignMapService = campaignMapService;
         this.campaignMapBridgeService = campaignMapBridgeService;
         this.campaignPlatoonService = campaignPlatoonService;
+        this.campaignOnboardingService = campaignOnboardingService;
         this.campaignOrderService = campaignOrderService;
         this.campaignPhaseService = campaignPhaseService;
         this.campaignResolutionService = campaignResolutionService;
@@ -119,6 +132,51 @@ public class CampaignController {
     @GetMapping("/{campaignId}/map/bridge")
     public CampaignMapBridgeResponse getMapBridge(@PathVariable UUID campaignId) {
         return campaignMapBridgeService.getBridge(campaignId, authenticationService.currentUser());
+    }
+
+    @GetMapping("/{campaignId}/onboarding")
+    public CampaignOnboardingResponse getOnboarding(@PathVariable UUID campaignId) {
+        return campaignOnboardingService.getOnboarding(campaignId, authenticationService.currentUser());
+    }
+
+    @GetMapping("/{campaignId}/onboarding/policy")
+    public OnboardingPolicyResponse getOnboardingPolicy(@PathVariable UUID campaignId) {
+        return campaignOnboardingService.getPolicy(campaignId, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/onboarding/faction")
+    public CampaignOnboardingResponse selectOnboardingFaction(@PathVariable UUID campaignId,
+                                                              @RequestBody(required = false) SelectOnboardingFactionRequest request) {
+        return campaignOnboardingService.selectFaction(campaignId, request, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/onboarding/nation")
+    public CampaignOnboardingResponse selectOnboardingNation(@PathVariable UUID campaignId,
+                                                             @RequestBody(required = false) SelectOnboardingNationRequest request) {
+        return campaignOnboardingService.selectNation(campaignId, request, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/onboarding/homeland")
+    public CampaignOnboardingResponse selectOnboardingHomeland(@PathVariable UUID campaignId,
+                                                               @RequestBody SelectOnboardingHomelandRequest request) {
+        return campaignOnboardingService.selectHomeland(campaignId, request, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/onboarding/complete")
+    public CompleteOnboardingResponse completeOnboarding(@PathVariable UUID campaignId) {
+        return campaignOnboardingService.completeOnboarding(campaignId, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/onboarding/tutorial/complete")
+    public CampaignMemberOnboardingResponse completeOnboardingTutorial(@PathVariable UUID campaignId,
+                                                                       @RequestBody(required = false) CompleteOnboardingTutorialRequest request) {
+        return campaignOnboardingService.completeTutorial(campaignId, request, authenticationService.currentUser());
+    }
+
+    @PatchMapping("/{campaignId}/onboarding/policy")
+    public OnboardingPolicyResponse updateOnboardingPolicy(@PathVariable UUID campaignId,
+                                                           @RequestBody UpdateOnboardingPolicyRequest request) {
+        return campaignOnboardingService.updatePolicy(campaignId, request, authenticationService.currentUser());
     }
 
     @PutMapping("/{campaignId}/map/bridge/setup")

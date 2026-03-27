@@ -47,6 +47,7 @@ export function InvitePage() {
     setAcceptedCampaignId(response.campaignId)
     await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns })
     await queryClient.invalidateQueries({ queryKey: authQueryOptions().queryKey })
+    navigate(response.redirectPath, { replace: true })
   }
 
   if (isAccepted) {

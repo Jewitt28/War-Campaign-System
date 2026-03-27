@@ -4,6 +4,26 @@ import { useCreateCampaign } from '../../features/admin'
 import { useCampaigns } from '../../features/campaigns'
 import { Notice, SkeletonCard, StateCard } from '../components'
 
+function resolveCampaignEntryPath(campaign: {
+  id: string
+  myRole: string
+  myOnboarding: {
+    onboardingStatus: string
+    activationStatus: string
+  } | null
+}) {
+  if (campaign.myRole === 'PLAYER' && campaign.myOnboarding) {
+    if (campaign.myOnboarding.onboardingStatus !== 'NOT_REQUIRED' && campaign.myOnboarding.onboardingStatus !== 'COMPLETE') {
+      return `/app/campaigns/${campaign.id}/onboarding`
+    }
+    if (campaign.myOnboarding.activationStatus === 'PENDING_NEXT_TURN') {
+      return `/app/campaigns/${campaign.id}/waiting`
+    }
+  }
+
+  return `/app/campaigns/${campaign.id}`
+}
+
 export function CampaignsPage() {
   const navigate = useNavigate()
   const campaigns = useCampaigns()
@@ -124,6 +144,13 @@ export function CampaignsPage() {
               <div className="pill-row">
                 <span className="meta-pill">{campaign.currentPhase}</span>
                 <span className="meta-pill">{campaign.myRole}</span>
+                {campaign.myOnboarding?.onboardingStatus !== 'NOT_REQUIRED' &&
+                campaign.myOnboarding?.onboardingStatus !== 'COMPLETE' ? (
+                  <span className="meta-pill">Onboarding</span>
+                ) : null}
+                {campaign.myOnboarding?.activationStatus === 'PENDING_NEXT_TURN' ? (
+                  <span className="meta-pill">Next-turn activation</span>
+                ) : null}
               </div>
               <div className="section-stack" style={{ gap: 6 }}>
                 <h3>{campaign.name}</h3>
@@ -131,7 +158,7 @@ export function CampaignsPage() {
               </div>
             </div>
             <div className="campaign-actions">
-              <NavLink className="button-link" to={`/app/campaigns/${campaign.id}`}>
+              <NavLink className="button-link" to={resolveCampaignEntryPath(campaign)}>
                 Open campaign
               </NavLink>
               {campaign.myRole === 'GM' ? (

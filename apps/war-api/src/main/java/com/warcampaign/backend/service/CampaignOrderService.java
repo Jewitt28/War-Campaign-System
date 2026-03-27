@@ -51,6 +51,7 @@ public class CampaignOrderService {
     private final PlatoonOrderRepository platoonOrderRepository;
     private final PlatoonStateRepository platoonStateRepository;
     private final TerritoryRepository territoryRepository;
+    private final CampaignOnboardingService campaignOnboardingService;
     private final ObjectMapper objectMapper;
 
     public CampaignOrderService(CampaignMemberRepository campaignMemberRepository,
@@ -59,6 +60,7 @@ public class CampaignOrderService {
                                 PlatoonOrderRepository platoonOrderRepository,
                                 PlatoonStateRepository platoonStateRepository,
                                 TerritoryRepository territoryRepository,
+                                CampaignOnboardingService campaignOnboardingService,
                                 ObjectMapper objectMapper) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.turnRepository = turnRepository;
@@ -66,6 +68,7 @@ public class CampaignOrderService {
         this.platoonOrderRepository = platoonOrderRepository;
         this.platoonStateRepository = platoonStateRepository;
         this.territoryRepository = territoryRepository;
+        this.campaignOnboardingService = campaignOnboardingService;
         this.objectMapper = objectMapper;
     }
 
@@ -167,6 +170,9 @@ public class CampaignOrderService {
 
         if (membership.getRole() != CampaignRole.PLAYER) {
             throw new ApiException("CAMPAIGN_FORBIDDEN", HttpStatus.FORBIDDEN, "Player role required for order submission");
+        }
+        if (campaignOnboardingService.isPendingActivation(membership)) {
+            throw new ApiException("CAMPAIGN_MEMBER_PENDING_ACTIVATION", HttpStatus.CONFLICT, "This player joins at the start of the next turn and cannot submit orders yet");
         }
         if (membership.getFaction() == null) {
             throw new ApiException("CAMPAIGN_FORBIDDEN", HttpStatus.FORBIDDEN, "Faction assignment required for order submission");

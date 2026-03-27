@@ -116,6 +116,9 @@ export function AppShellLayout() {
             <NavLink className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} to="/app/updates">
               Updates
             </NavLink>
+            <NavLink className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')} to="/app/help">
+              Help
+            </NavLink>
             <button className="button-secondary" onClick={() => setDrawerOpen((value) => !value)} type="button">
               Notifications {unreadCount > 0 ? `(${unreadCount})` : ''}
             </button>
@@ -177,6 +180,7 @@ function safeParse(payloadJson: string) {
 }
 
 export function CampaignMembershipRoute() {
+  const location = useLocation()
   const { campaignId = '' } = useParams()
   const campaign = useCampaign(campaignId)
 
@@ -190,6 +194,40 @@ export function CampaignMembershipRoute() {
         title="Campaign access blocked"
         description="This route is membership-gated. Join the campaign through a valid invite or return to your campaigns list."
         actions={<NavLink className="button-link" to="/app/campaigns">Back to campaigns</NavLink>}
+      />
+    )
+  }
+
+  const onboarding = campaign.data?.myMembership.onboarding
+  const isPlayer = campaign.data?.myMembership.role === 'PLAYER'
+  const isOnboardingRoute =
+    location.pathname === `/app/campaigns/${campaignId}/onboarding` ||
+    location.pathname.startsWith(`/app/campaigns/${campaignId}/onboarding/`)
+
+  if (
+    isPlayer &&
+    onboarding &&
+    onboarding.onboardingStatus !== 'NOT_REQUIRED' &&
+    onboarding.onboardingStatus !== 'COMPLETE' &&
+    !isOnboardingRoute
+  ) {
+    return <Navigate replace to={`/app/campaigns/${campaignId}/onboarding`} />
+  }
+
+  if (
+    isPlayer &&
+    onboarding &&
+    onboarding.onboardingStatus === 'COMPLETE' &&
+    isOnboardingRoute
+  ) {
+    return (
+      <Navigate
+        replace
+        to={
+          onboarding.activationStatus === 'PENDING_NEXT_TURN'
+            ? `/app/campaigns/${campaignId}/waiting`
+            : `/app/campaigns/${campaignId}`
+        }
       />
     )
   }

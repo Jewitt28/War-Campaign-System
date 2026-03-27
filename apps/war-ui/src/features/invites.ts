@@ -20,6 +20,9 @@ type AcceptInviteDto = {
   intendedFactionKey: string | null
   intendedNationKey: string | null
   status: string
+  onboardingRequired: boolean
+  activationStatus: string
+  redirectPath: string
 }
 
 export type InviteDetails = {
@@ -40,6 +43,9 @@ export type AcceptedInvite = {
   intendedFactionKey: string | null
   intendedNationKey: string | null
   status: string
+  onboardingRequired: boolean
+  activationStatus: string
+  redirectPath: string
 }
 
 function mapInvite(dto: InviteDetailsDto): InviteDetails {
@@ -63,6 +69,9 @@ function mapAcceptedInvite(dto: AcceptInviteDto): AcceptedInvite {
     intendedFactionKey: dto.intendedFactionKey,
     intendedNationKey: dto.intendedNationKey,
     status: dto.status,
+    onboardingRequired: dto.onboardingRequired,
+    activationStatus: dto.activationStatus,
+    redirectPath: dto.redirectPath,
   }
 }
 

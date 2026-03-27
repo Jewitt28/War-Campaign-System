@@ -782,6 +782,13 @@ export function CampaignMapPage() {
   }, [hydratedState])
 
   const availableSidebarTabs = useMemo(() => {
+    const pendingActivation =
+      campaign.data?.myMembership.role === 'PLAYER' &&
+      campaign.data?.myMembership.onboarding?.activationStatus === 'PENDING_NEXT_TURN'
+    if (pendingActivation) {
+      return ['overview'] as Array<'overview' | 'orders' | 'command' | 'hq' | 'battles' | 'setup'>
+    }
+
     const tabs: Array<'overview' | 'orders' | 'command' | 'hq' | 'battles' | 'setup'> = [
       'overview',
       'orders',
@@ -793,7 +800,7 @@ export function CampaignMapPage() {
       tabs.push('setup')
     }
     return tabs
-  }, [campaign.data?.myMembership.role])
+  }, [campaign.data?.myMembership.role, campaign.data?.myMembership.onboarding?.activationStatus])
 
   const safeSidebarTab = availableSidebarTabs.includes(sidebarTab) ? sidebarTab : defaultSidebarTab
 
@@ -844,6 +851,19 @@ export function CampaignMapPage() {
           Orders
         </NavLink>
         .
+      </Notice>
+
+      {campaign.data.myMembership.role === 'PLAYER' &&
+      campaign.data.myMembership.onboarding?.activationStatus === 'PENDING_NEXT_TURN' ? (
+        <Notice>
+          Your nation activates next turn. The map stays available for read-only familiarization while orders and force
+          changes remain locked, so advanced command tabs are hidden until activation.{' '}
+          <NavLink to={`/app/campaigns/${campaignId}/waiting`}>View activation timing</NavLink>.
+        </Notice>
+      ) : null}
+
+      <Notice>
+        Need help reading the strategic surface? <NavLink to={`/app/help?campaignId=${campaignId}#map`}>Open the map guide</NavLink>.
       </Notice>
 
       <div className="map-layout map-layout-stacked">

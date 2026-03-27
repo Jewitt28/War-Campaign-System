@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import { NavLink, useParams } from 'react-router-dom'
 import type { CampaignMembership } from '../../features/campaigns'
 import { useCampaign, useCampaignMap, useCampaignMembers, useUpdateCampaignMember } from '../../features/campaigns'
 import { Notice, SkeletonCard, StateCard } from '../components'
-import { useParams } from 'react-router-dom'
 
 function resolveFactionName(factionId: string | null, factionMap: Map<string, string>) {
   return factionId ? factionMap.get(factionId) ?? factionId : 'Unassigned'
@@ -143,10 +143,21 @@ export function CampaignLobbyPage() {
   const factionMap = new Map(mapSummary.data.factions.map((faction) => [faction.id, faction.name]))
   const nationMap = new Map(mapSummary.data.nations.map((nation) => [nation.id, nation.name]))
   const isGm = campaign.data.myMembership.role === 'GM'
+  const pendingActivation =
+    campaign.data.myMembership.role === 'PLAYER' &&
+    campaign.data.myMembership.onboarding?.activationStatus === 'PENDING_NEXT_TURN'
   const readinessCount = members.data.filter((member) => rosterState(member) === 'Ready').length
 
   return (
     <section className="page-stack">
+      {pendingActivation ? (
+        <Notice>
+          Your onboarding is complete, but your nation activates at the start of the next turn. See the{' '}
+          <NavLink to={`/app/campaigns/${campaignId}/waiting`}>waiting page</NavLink> or the{' '}
+          <NavLink to={`/app/help?campaignId=${campaignId}#activation`}>activation guide</NavLink>.
+        </Notice>
+      ) : null}
+
       <div className="hero-grid">
         <section className="surface-card page-card page-stack">
           <p className="eyebrow">Campaign lobby</p>
@@ -184,7 +195,11 @@ export function CampaignLobbyPage() {
           {isGm ? (
             <Notice>GM sessions can update player and observer assignments directly from the roster below.</Notice>
           ) : (
-            <Notice>Player sessions are read-only here. Assignment changes remain invisible and inaccessible outside GM contexts.</Notice>
+            <Notice>
+              Player sessions are read-only here. Assignment changes remain invisible and inaccessible outside GM contexts.
+              <span> </span>
+              <NavLink to={`/app/help?campaignId=${campaignId}#lobby`}>Lobby help</NavLink>
+            </Notice>
           )}
         </section>
       </div>

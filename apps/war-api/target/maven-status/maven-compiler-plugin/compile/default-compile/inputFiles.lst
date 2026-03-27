@@ -15,6 +15,8 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/BattleMode.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/BattleParticipantSide.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/BattleStatus.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/CampaignMemberActivationStatus.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/CampaignMemberOnboardingStatus.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/CampaignPhase.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/CampaignRole.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/enums/CampaignStatus.java
@@ -37,6 +39,7 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/CampaignAuditLog.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/CampaignInvite.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/CampaignMember.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/CampaignMemberOnboarding.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/Faction.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/Nation.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/domain/model/Notification.java
@@ -70,12 +73,16 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignLifecycleResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignMapBridgeResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignMapResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignMemberOnboardingResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignMemberResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignNationStateResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignOnboardingResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignPhaseResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignResolutionResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignSnapshotExportResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CampaignSummaryResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CompleteOnboardingResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CompleteOnboardingTutorialRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CreateCampaignInviteRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CreateCampaignPlatoonRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/CreateCampaignRequest.java
@@ -88,6 +95,9 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/MapTerritorySummaryResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/MapTheatreResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/MyOrderSubmissionResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/OnboardingHomelandOptionResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/OnboardingOptionResponse.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/OnboardingPolicyResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/OrderLineRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/PlatoonDetailResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/PlatoonMemberReferenceResponse.java
@@ -104,8 +114,12 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/SaveCampaignNationStateRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/SaveCampaignNationStatesRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/SaveOrderSubmissionRequest.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/SelectOnboardingFactionRequest.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/SelectOnboardingHomelandRequest.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/SelectOnboardingNationRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/UpdateCampaignMemberRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/UpdateCampaignPlatoonRequest.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/UpdateOnboardingPolicyRequest.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/UserNotificationResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/dto/VisibilityRebuildResponse.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/exception/ApiException.java
@@ -114,6 +128,7 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/BattleRepository.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/CampaignAuditLogRepository.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/CampaignInviteRepository.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/CampaignMemberOnboardingRepository.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/CampaignMemberRepository.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/CampaignRepository.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/repository/FactionRepository.java
@@ -142,6 +157,7 @@
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignMapBridgeService.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignMapService.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignMemberService.java
+/home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignOnboardingService.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignOrderService.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignPhaseService.java
 /home/davej/Projects/War-Campaign-System/apps/war-api/src/main/java/com/warcampaign/backend/service/CampaignPlatoonService.java

@@ -49,6 +49,9 @@ export function CampaignWorkspaceLayout() {
   const currentPhase = phase.data.currentPhase
   const currentTurn = phase.data.currentTurnNumber
   const timerCopy = formatRelativeTimer(phase.data.phaseEndsAt)
+  const onboarding = campaign.data.myMembership.onboarding
+  const pendingActivation =
+    campaign.data.myMembership.role === 'PLAYER' && onboarding?.activationStatus === 'PENDING_NEXT_TURN'
 
   return (
     <section className="page-stack">
@@ -130,8 +133,21 @@ export function CampaignWorkspaceLayout() {
               Admin
             </NavLink>
           ) : null}
+          <NavLink
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+            to={`/app/help?campaignId=${campaignId}#campaign-basics`}
+          >
+            Help
+          </NavLink>
         </nav>
       </section>
+
+      {pendingActivation ? (
+        <Notice>
+          Your faction is staged for activation at the start of the next turn. Use the{' '}
+          <NavLink to={`/app/campaigns/${campaignId}/waiting`}>waiting page</NavLink> for status and quick links.
+        </Notice>
+      ) : null}
 
       {campaign.data.myMembership.role === 'GM' ? (
         <Notice>GM controls remain role-safe. Assignment tools appear in the lobby, and GM-only admin tools stay behind their own route guard.</Notice>

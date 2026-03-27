@@ -10,6 +10,20 @@ export function CampaignIndexRedirect() {
     return <SkeletonCard lines={3} />
   }
 
+  const onboarding = campaign.data?.myMembership.onboarding
+  if (
+    campaign.data?.myMembership.role === 'PLAYER' &&
+    onboarding &&
+    onboarding.onboardingStatus !== 'NOT_REQUIRED' &&
+    onboarding.onboardingStatus !== 'COMPLETE'
+  ) {
+    return <Navigate replace to={`/app/campaigns/${campaignId}/onboarding`} />
+  }
+
+  if (campaign.data?.myMembership.role === 'PLAYER' && onboarding?.activationStatus === 'PENDING_NEXT_TURN') {
+    return <Navigate replace to={`/app/campaigns/${campaignId}/waiting`} />
+  }
+
   const target =
     campaign.data?.currentPhase === 'LOBBY'
       ? `/app/campaigns/${campaignId}/lobby`

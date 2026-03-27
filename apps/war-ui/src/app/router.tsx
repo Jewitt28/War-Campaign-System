@@ -12,12 +12,15 @@ import { CampaignDashboardPage } from '../routes/pages/CampaignDashboardPage'
 import { CampaignIndexRedirect } from '../routes/pages/CampaignIndexRedirect'
 import { CampaignLobbyPage } from '../routes/pages/CampaignLobbyPage'
 import { CampaignMapPage } from '../routes/pages/CampaignMapPage'
+import { CampaignOnboardingPage } from '../routes/pages/CampaignOnboardingPage'
 import { CampaignOrdersPage } from '../routes/pages/CampaignOrdersPage'
 import { CampaignBattlesPage } from '../routes/pages/CampaignBattlesPage'
 import { CampaignEventsPage } from '../routes/pages/CampaignEventsPage'
 import { CampaignPlatoonsPage } from '../routes/pages/CampaignPlatoonsPage'
+import { CampaignWaitingPage } from '../routes/pages/CampaignWaitingPage'
 import { CampaignWorkspaceLayout } from '../routes/pages/CampaignWorkspaceLayout'
 import { GmAdminPlaceholderPage } from '../routes/pages/GmAdminPlaceholderPage'
+import { HelpPage } from '../routes/pages/HelpPage'
 import { InvitePage } from '../routes/pages/InvitePage'
 import { LoginPage } from '../routes/pages/LoginPage'
 import { UpdatesPage } from '../routes/pages/UpdatesPage'
@@ -61,12 +64,28 @@ export const router = createBrowserRouter(
               element: <UpdatesPage />,
             },
             {
+              path: 'help',
+              element: <HelpPage />,
+            },
+            {
               path: 'campaigns/:campaignId',
               element: <CampaignMembershipRoute />,
               children: [
                 {
                   index: true,
                   element: <CampaignIndexRedirect />,
+                },
+                {
+                  path: 'onboarding',
+                  element: <CampaignOnboardingPage />,
+                },
+                {
+                  path: 'onboarding/:step',
+                  element: <CampaignOnboardingPage />,
+                },
+                {
+                  path: 'waiting',
+                  element: <CampaignWaitingPage />,
                 },
                 {
                   element: <CampaignWorkspaceLayout />,

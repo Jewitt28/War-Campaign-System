@@ -4,12 +4,14 @@ import {
   useAdvancePhase,
   useArchiveCampaign,
   useCampaignInvites,
+  useCampaignOnboardingPolicy,
   useCompleteCampaign,
   useCreateCampaignInvite,
   useExportSnapshot,
   useRebuildVisibility,
   useResetDemoCampaign,
   useRevokeCampaignInvite,
+  useUpdateCampaignOnboardingPolicy,
 } from '../../features/admin'
 import type { CampaignInvite } from '../../features/admin'
 import { useCampaign } from '../../features/campaigns'
@@ -31,10 +33,17 @@ export function GmAdminPlaceholderPage() {
   const resetDemoCampaign = useResetDemoCampaign(campaignId)
   const createInvite = useCreateCampaignInvite(campaignId)
   const revokeInvite = useRevokeCampaignInvite(campaignId)
+  const onboardingPolicy = useCampaignOnboardingPolicy(campaignId)
+  const updateOnboardingPolicy = useUpdateCampaignOnboardingPolicy(campaignId)
   const [inviteeEmail, setInviteeEmail] = useState('')
   const [intendedRole, setIntendedRole] = useState<InviteRole>('PLAYER')
   const [expiresInDays, setExpiresInDays] = useState('7')
   const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null)
+  const [policyDraft, setPolicyDraft] = useState<{
+    allowCustomNationCreation: boolean
+    allowPlayerCreatedFactions: boolean
+    allowImmediateActivation: boolean
+  } | null>(null)
 
   async function confirmAndRun(action: AdminAction) {
     if (action === 'advance') {
@@ -128,6 +137,21 @@ export function GmAdminPlaceholderPage() {
     await revokeInvite.mutateAsync(invite.inviteId)
   }
 
+  async function handleSaveOnboardingPolicy(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const currentPolicy = policyDraft ?? onboardingPolicy.data
+    if (!currentPolicy) {
+      return
+    }
+
+    const updated = await updateOnboardingPolicy.mutateAsync({
+      allowCustomNationCreation: currentPolicy.allowCustomNationCreation,
+      allowPlayerCreatedFactions: currentPolicy.allowPlayerCreatedFactions,
+      allowImmediateActivation: currentPolicy.allowImmediateActivation,
+    })
+    setPolicyDraft(updated)
+  }
+
   if (campaign.isLoading) {
     return (
       <div className="page-stack">
@@ -155,6 +179,7 @@ export function GmAdminPlaceholderPage() {
     resetDemoCampaign.data ??
     archiveCampaign.data ??
     completeCampaign.data
+  const currentPolicy = policyDraft ?? onboardingPolicy.data
 
   return (
     <section className="page-stack">
@@ -237,6 +262,87 @@ export function GmAdminPlaceholderPage() {
         {completeCampaign.error ? <Notice tone="error">{completeCampaign.error.message}</Notice> : null}
         {archiveCampaign.error ? <Notice tone="error">{archiveCampaign.error.message}</Notice> : null}
         {resetDemoCampaign.error ? <Notice tone="error">{resetDemoCampaign.error.message}</Notice> : null}
+      </section>
+
+      <section className="surface-card page-card page-stack">
+        <div className="page-header">
+          <div className="page-header-copy">
+            <h2 className="detail-title">Player onboarding policy</h2>
+            <p className="muted">
+              Control whether players may create custom factions or nations during onboarding, and whether mid-campaign joins activate immediately.
+            </p>
+          </div>
+        </div>
+
+        {onboardingPolicy.isLoading ? (
+          <SkeletonCard lines={3} />
+        ) : onboardingPolicy.isError ? (
+          <Notice tone="error">{onboardingPolicy.error.message}</Notice>
+        ) : (
+          <form className="field-grid" onSubmit={(event) => void handleSaveOnboardingPolicy(event)}>
+            <label className="field-label" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <input
+                checked={currentPolicy?.allowPlayerCreatedFactions ?? false}
+                onChange={(event) =>
+                  setPolicyDraft({
+                    ...(currentPolicy ?? {
+                      allowCustomNationCreation: false,
+                      allowPlayerCreatedFactions: false,
+                      allowImmediateActivation: false,
+                    }),
+                    allowPlayerCreatedFactions: event.target.checked,
+                  })
+                }
+                type="checkbox"
+              />
+              Allow player-created factions during onboarding
+            </label>
+            <label className="field-label" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <input
+                checked={currentPolicy?.allowCustomNationCreation ?? false}
+                onChange={(event) =>
+                  setPolicyDraft({
+                    ...(currentPolicy ?? {
+                      allowCustomNationCreation: false,
+                      allowPlayerCreatedFactions: false,
+                      allowImmediateActivation: false,
+                    }),
+                    allowCustomNationCreation: event.target.checked,
+                  })
+                }
+                type="checkbox"
+              />
+              Allow custom nation creation during onboarding
+            </label>
+            <label className="field-label" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <input
+                checked={currentPolicy?.allowImmediateActivation ?? false}
+                onChange={(event) =>
+                  setPolicyDraft({
+                    ...(currentPolicy ?? {
+                      allowCustomNationCreation: false,
+                      allowPlayerCreatedFactions: false,
+                      allowImmediateActivation: false,
+                    }),
+                    allowImmediateActivation: event.target.checked,
+                  })
+                }
+                type="checkbox"
+              />
+              Allow immediate activation for mid-campaign joins
+            </label>
+            <div className="button-row">
+              <button className="button-link" disabled={updateOnboardingPolicy.isPending} type="submit">
+                {updateOnboardingPolicy.isPending ? 'Saving onboarding policy...' : 'Save onboarding policy'}
+              </button>
+            </div>
+            <Notice>
+              Default behavior is read-only next-turn activation. Enable immediate activation only if you want late joiners to enter the current turn immediately.
+            </Notice>
+            {updateOnboardingPolicy.isError ? <Notice tone="error">{updateOnboardingPolicy.error.message}</Notice> : null}
+            {updateOnboardingPolicy.isSuccess ? <Notice tone="success">Onboarding policy updated.</Notice> : null}
+          </form>
+        )}
       </section>
 
       <section className="surface-card page-card page-stack">

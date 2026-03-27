@@ -77,6 +77,7 @@ public class CampaignAdminService {
     private final CampaignMapService campaignMapService;
     private final CampaignPlatoonService campaignPlatoonService;
     private final CampaignResolutionService campaignResolutionService;
+    private final CampaignOnboardingService campaignOnboardingService;
     private final boolean devAuthEnabled;
 
     public CampaignAdminService(CampaignMemberRepository campaignMemberRepository,
@@ -96,6 +97,7 @@ public class CampaignAdminService {
                                 CampaignMapService campaignMapService,
                                 CampaignPlatoonService campaignPlatoonService,
                                 CampaignResolutionService campaignResolutionService,
+                                CampaignOnboardingService campaignOnboardingService,
                                 @Value("${app.security.dev-auth.enabled:false}") boolean devAuthEnabled) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.campaignAuditLogRepository = campaignAuditLogRepository;
@@ -114,6 +116,7 @@ public class CampaignAdminService {
         this.campaignMapService = campaignMapService;
         this.campaignPlatoonService = campaignPlatoonService;
         this.campaignResolutionService = campaignResolutionService;
+        this.campaignOnboardingService = campaignOnboardingService;
         this.devAuthEnabled = devAuthEnabled;
     }
 
@@ -266,7 +269,7 @@ public class CampaignAdminService {
         campaign.setGmControlsEnabled(true);
         campaign.setFogOfWarEnabled(true);
         campaign.setTimersEnabled(false);
-        campaign.setMetadataJson("{\"useDefaultFactions\":true}");
+        campaign.setMetadataJson(campaignOnboardingService.applyDefaultOnboardingPolicy("{\"useDefaultFactions\":true}"));
         Campaign savedCampaign = campaignRepository.save(campaign);
 
         CampaignMember gmMembership = new CampaignMember();

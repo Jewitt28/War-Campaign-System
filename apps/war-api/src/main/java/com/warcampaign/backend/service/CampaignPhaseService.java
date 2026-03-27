@@ -48,6 +48,7 @@ public class CampaignPhaseService {
     private final OrderSubmissionRepository orderSubmissionRepository;
     private final CampaignAuditLogRepository campaignAuditLogRepository;
     private final NotificationService notificationService;
+    private final CampaignOnboardingService campaignOnboardingService;
     private final ObjectMapper objectMapper;
 
     public CampaignPhaseService(CampaignMemberRepository campaignMemberRepository,
@@ -56,6 +57,7 @@ public class CampaignPhaseService {
                                 OrderSubmissionRepository orderSubmissionRepository,
                                 CampaignAuditLogRepository campaignAuditLogRepository,
                                 NotificationService notificationService,
+                                CampaignOnboardingService campaignOnboardingService,
                                 ObjectMapper objectMapper) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.campaignRepository = campaignRepository;
@@ -63,6 +65,7 @@ public class CampaignPhaseService {
         this.orderSubmissionRepository = orderSubmissionRepository;
         this.campaignAuditLogRepository = campaignAuditLogRepository;
         this.notificationService = notificationService;
+        this.campaignOnboardingService = campaignOnboardingService;
         this.objectMapper = objectMapper;
     }
 
@@ -141,6 +144,7 @@ public class CampaignPhaseService {
             nextTurn.setStartsAt(now);
             turnRepository.save(nextTurn);
             campaign.setCurrentTurnNumber(nextTurnNumber);
+            campaignOnboardingService.activatePendingMembersForTurn(campaign, nextTurn);
         } else {
             turnRepository.save(currentTurn);
         }

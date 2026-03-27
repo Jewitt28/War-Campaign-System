@@ -1,17 +1,21 @@
 package com.warcampaign.backend.integration;
 
 import com.warcampaign.backend.domain.enums.CampaignPhase;
+import com.warcampaign.backend.domain.enums.CampaignMemberActivationStatus;
+import com.warcampaign.backend.domain.enums.CampaignMemberOnboardingStatus;
 import com.warcampaign.backend.domain.enums.CampaignRole;
 import com.warcampaign.backend.domain.enums.InviteStatus;
 import com.warcampaign.backend.domain.model.Campaign;
 import com.warcampaign.backend.domain.model.CampaignInvite;
 import com.warcampaign.backend.domain.model.CampaignMember;
+import com.warcampaign.backend.domain.model.CampaignMemberOnboarding;
 import com.warcampaign.backend.domain.model.User;
 import com.warcampaign.backend.repository.CampaignInviteRepository;
 import com.warcampaign.backend.repository.CampaignAuditLogRepository;
 import com.warcampaign.backend.repository.BattleParticipantRepository;
 import com.warcampaign.backend.repository.BattleRepository;
 import com.warcampaign.backend.repository.CampaignMemberRepository;
+import com.warcampaign.backend.repository.CampaignMemberOnboardingRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
 import com.warcampaign.backend.repository.NationRepository;
@@ -71,6 +75,9 @@ class InviteAcceptanceIntegrationTest {
     private CampaignMemberRepository memberRepository;
 
     @Autowired
+    private CampaignMemberOnboardingRepository onboardingRepository;
+
+    @Autowired
     private PlatoonOrderRepository platoonOrderRepository;
 
     @Autowired
@@ -124,6 +131,7 @@ class InviteAcceptanceIntegrationTest {
         platoonStateRepository.deleteAll();
         territoryStateRepository.deleteAll();
         platoonRepository.deleteAll();
+        onboardingRepository.deleteAll();
         memberRepository.deleteAll();
         inviteRepository.deleteAll();
         nationRepository.deleteAll();
@@ -149,14 +157,17 @@ class InviteAcceptanceIntegrationTest {
 
     @Test
     void acceptsValidInviteAndCreatesMembership() throws Exception {
-        createInvite("valid-token", "player1@war.local", InviteStatus.PENDING, Instant.now().plusSeconds(3600));
+        createInvite("valid-token", "player1@war.local", CampaignRole.PLAYER, InviteStatus.PENDING, Instant.now().plusSeconds(3600));
 
         mockMvc.perform(post("/api/invites/valid-token/accept")
                         .header("X-Dev-User", "player1@war.local")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACCEPTED"))
-                .andExpect(jsonPath("$.role").value("PLAYER"));
+                .andExpect(jsonPath("$.role").value("PLAYER"))
+                .andExpect(jsonPath("$.onboardingRequired").value(true))
+                .andExpect(jsonPath("$.activationStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.redirectPath").value("/app/campaigns/" + campaign.getId() + "/onboarding"));
 
         CampaignInvite invite = inviteRepository.findByInviteToken("valid-token").orElseThrow();
         assertThat(invite.getStatus()).isEqualTo(InviteStatus.ACCEPTED);
@@ -164,11 +175,33 @@ class InviteAcceptanceIntegrationTest {
         User player = userRepository.findByEmailIgnoreCase("player1@war.local").orElseThrow();
         CampaignMember member = memberRepository.findByCampaignAndUser(campaign, player).orElseThrow();
         assertThat(member.getRole()).isEqualTo(CampaignRole.PLAYER);
+        CampaignMemberOnboarding onboarding = onboardingRepository.findByMembershipId(member.getId()).orElseThrow();
+        assertThat(onboarding.getStatus()).isEqualTo(CampaignMemberOnboardingStatus.REQUIRED);
+        assertThat(onboarding.getActivationStatus()).isEqualTo(CampaignMemberActivationStatus.ACTIVE);
+    }
+
+    @Test
+    void observerInviteSkipsBlockingOnboarding() throws Exception {
+        createInvite("observer-token", "observer@war.local", CampaignRole.OBSERVER, InviteStatus.PENDING, Instant.now().plusSeconds(3600));
+
+        mockMvc.perform(post("/api/invites/observer-token/accept")
+                        .header("X-Dev-User", "observer@war.local")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("OBSERVER"))
+                .andExpect(jsonPath("$.onboardingRequired").value(false))
+                .andExpect(jsonPath("$.activationStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.redirectPath").value("/app/campaigns/" + campaign.getId()));
+
+        User observer = userRepository.findByEmailIgnoreCase("observer@war.local").orElseThrow();
+        CampaignMember member = memberRepository.findByCampaignAndUser(campaign, observer).orElseThrow();
+        CampaignMemberOnboarding onboarding = onboardingRepository.findByMembershipId(member.getId()).orElseThrow();
+        assertThat(onboarding.getStatus()).isEqualTo(CampaignMemberOnboardingStatus.NOT_REQUIRED);
     }
 
     @Test
     void rejectsExpiredInvite() throws Exception {
-        createInvite("expired-token", "player2@war.local", InviteStatus.PENDING, Instant.now().minusSeconds(5));
+        createInvite("expired-token", "player2@war.local", CampaignRole.PLAYER, InviteStatus.PENDING, Instant.now().minusSeconds(5));
 
         mockMvc.perform(post("/api/invites/expired-token/accept")
                         .header("X-Dev-User", "player2@war.local"))
@@ -178,7 +211,7 @@ class InviteAcceptanceIntegrationTest {
 
     @Test
     void rejectsRevokedInvite() throws Exception {
-        createInvite("revoked-token", "player3@war.local", InviteStatus.REVOKED, Instant.now().plusSeconds(3600));
+        createInvite("revoked-token", "player3@war.local", CampaignRole.PLAYER, InviteStatus.REVOKED, Instant.now().plusSeconds(3600));
 
         mockMvc.perform(post("/api/invites/revoked-token/accept")
                         .header("X-Dev-User", "player3@war.local"))
@@ -188,7 +221,7 @@ class InviteAcceptanceIntegrationTest {
 
     @Test
     void preventsDuplicateAcceptance() throws Exception {
-        createInvite("duplicate-token", "player4@war.local", InviteStatus.PENDING, Instant.now().plusSeconds(3600));
+        createInvite("duplicate-token", "player4@war.local", CampaignRole.PLAYER, InviteStatus.PENDING, Instant.now().plusSeconds(3600));
 
         mockMvc.perform(post("/api/invites/duplicate-token/accept")
                         .header("X-Dev-User", "player4@war.local"))
@@ -202,7 +235,7 @@ class InviteAcceptanceIntegrationTest {
 
     @Test
     void keepsAcceptedStatusWhenAcceptedInviteIsExpired() throws Exception {
-        createInvite("accepted-expired-token", "player5@war.local", InviteStatus.ACCEPTED, Instant.now().minusSeconds(5));
+        createInvite("accepted-expired-token", "player5@war.local", CampaignRole.PLAYER, InviteStatus.ACCEPTED, Instant.now().minusSeconds(5));
 
         mockMvc.perform(post("/api/invites/accepted-expired-token/accept")
                         .header("X-Dev-User", "player5@war.local"))
@@ -215,7 +248,7 @@ class InviteAcceptanceIntegrationTest {
 
     @Test
     void keepsRevokedStatusWhenRevokedInviteIsExpired() throws Exception {
-        createInvite("revoked-expired-token", "player6@war.local", InviteStatus.REVOKED, Instant.now().minusSeconds(5));
+        createInvite("revoked-expired-token", "player6@war.local", CampaignRole.PLAYER, InviteStatus.REVOKED, Instant.now().minusSeconds(5));
 
         mockMvc.perform(post("/api/invites/revoked-expired-token/accept")
                         .header("X-Dev-User", "player6@war.local"))
@@ -226,14 +259,14 @@ class InviteAcceptanceIntegrationTest {
         assertThat(invite.getStatus()).isEqualTo(InviteStatus.REVOKED);
     }
 
-    private void createInvite(String token, String email, InviteStatus status, Instant expiresAt) {
+    private void createInvite(String token, String email, CampaignRole role, InviteStatus status, Instant expiresAt) {
         User gm = campaign.getCreatedBy();
         CampaignInvite invite = new CampaignInvite();
         invite.setCampaign(campaign);
         invite.setInvitedBy(gm);
         invite.setInviteeEmail(email);
         invite.setInviteToken(token);
-        invite.setIntendedRole(CampaignRole.PLAYER);
+        invite.setIntendedRole(role);
         invite.setStatus(status);
         invite.setExpiresAt(expiresAt);
         inviteRepository.save(invite);

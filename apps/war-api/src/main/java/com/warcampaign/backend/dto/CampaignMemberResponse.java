@@ -10,5 +10,6 @@ public record CampaignMemberResponse(UUID id,
                                      String displayName,
                                      CampaignRole role,
                                      UUID factionId,
-                                     UUID nationId) {
+                                     UUID nationId,
+                                     CampaignMemberOnboardingResponse onboarding) {
 }

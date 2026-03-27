@@ -9,5 +9,6 @@ public record CampaignSummaryResponse(UUID id,
                                       String name,
                                       CampaignPhase currentPhase,
                                       CampaignRole myRole,
-                                      long memberCount) {
+                                      long memberCount,
+                                      CampaignMemberOnboardingResponse myOnboarding) {
 }

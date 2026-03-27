@@ -56,6 +56,7 @@ public class CampaignPlatoonService {
     private final TerritoryRepository territoryRepository;
     private final FactionRepository factionRepository;
     private final NationRepository nationRepository;
+    private final CampaignOnboardingService campaignOnboardingService;
     private final ObjectMapper objectMapper;
 
     public CampaignPlatoonService(CampaignMemberRepository campaignMemberRepository,
@@ -65,6 +66,7 @@ public class CampaignPlatoonService {
                                   TerritoryRepository territoryRepository,
                                   FactionRepository factionRepository,
                                   NationRepository nationRepository,
+                                  CampaignOnboardingService campaignOnboardingService,
                                   ObjectMapper objectMapper) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.platoonRepository = platoonRepository;
@@ -73,6 +75,7 @@ public class CampaignPlatoonService {
         this.territoryRepository = territoryRepository;
         this.factionRepository = factionRepository;
         this.nationRepository = nationRepository;
+        this.campaignOnboardingService = campaignOnboardingService;
         this.objectMapper = objectMapper;
     }
 
@@ -250,6 +253,9 @@ public class CampaignPlatoonService {
     private void requirePlatoonWriteAccess(CampaignMember membership) {
         if (membership.getRole() == CampaignRole.OBSERVER) {
             throw new ApiException("CAMPAIGN_FORBIDDEN", HttpStatus.FORBIDDEN, "Observer role cannot manage platoons");
+        }
+        if (membership.getRole() == CampaignRole.PLAYER && campaignOnboardingService.isPendingActivation(membership)) {
+            throw new ApiException("CAMPAIGN_MEMBER_PENDING_ACTIVATION", HttpStatus.CONFLICT, "This player joins at the start of the next turn and cannot manage platoons yet");
         }
         if (membership.getRole() == CampaignRole.PLAYER && membership.getFaction() == null) {
             throw new ApiException("CAMPAIGN_FORBIDDEN", HttpStatus.FORBIDDEN, "Faction assignment required for platoon management");

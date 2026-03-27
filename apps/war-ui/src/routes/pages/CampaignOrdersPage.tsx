@@ -63,9 +63,16 @@ export function CampaignOrdersPage() {
   const campaign = useCampaign(campaignId)
   const phase = useCampaignPhase(campaignId)
   const mapSummary = useCampaignMap(campaignId)
-  const platoons = useCampaignPlatoons(campaignId)
   const turnNumber = phase.data?.currentTurnNumber ?? 0
-  const orders = useMyOrders(campaignId, turnNumber, Boolean(turnNumber))
+  const pendingActivation =
+    campaign.data?.myMembership.role === 'PLAYER' &&
+    campaign.data?.myMembership.onboarding?.activationStatus === 'PENDING_NEXT_TURN'
+  const canLoadOrders =
+    Boolean(turnNumber) &&
+    campaign.data?.myMembership.role === 'PLAYER' &&
+    !pendingActivation
+  const platoons = useCampaignPlatoons(campaignId, Boolean(canLoadOrders))
+  const orders = useMyOrders(campaignId, turnNumber, Boolean(canLoadOrders))
   const saveOrders = useSaveMyOrders(campaignId, turnNumber)
   const lockOrders = useLockMyOrders(campaignId, turnNumber)
   const [draftOrders, setDraftOrders] = useState<EditableOrder[] | null>(null)
@@ -87,7 +94,12 @@ export function CampaignOrdersPage() {
     }))
   }, [platoons.data])
 
-  if (campaign.isLoading || phase.isLoading || mapSummary.isLoading || platoons.isLoading || orders.isLoading) {
+  if (
+    campaign.isLoading ||
+    phase.isLoading ||
+    mapSummary.isLoading ||
+    (canLoadOrders && (platoons.isLoading || orders.isLoading))
+  ) {
     return (
       <div className="page-stack">
         <SkeletonCard lines={4} />
@@ -100,13 +112,9 @@ export function CampaignOrdersPage() {
     campaign.isError ||
     phase.isError ||
     mapSummary.isError ||
-    platoons.isError ||
-    orders.isError ||
     !campaign.data ||
     !phase.data ||
-    !mapSummary.data ||
-    !platoons.data ||
-    !orders.data
+    !mapSummary.data
   ) {
     return (
       <StateCard
@@ -123,6 +131,34 @@ export function CampaignOrdersPage() {
         title="Player role required"
         description="Orders are only available to player memberships. GM and observer sessions remain outside the submission flow."
         actions={<NavLink className="button-link" to={`/app/campaigns/${campaignId}/dashboard`}>Back to dashboard</NavLink>}
+      />
+    )
+  }
+
+  if (pendingActivation) {
+    return (
+      <StateCard
+        title="Orders unlock next turn"
+        description="Your nation is staged for activation, so order drafting stays disabled until the next turn begins."
+        actions={
+          <>
+            <NavLink className="button-link" to={`/app/campaigns/${campaignId}/waiting`}>
+              Open waiting status
+            </NavLink>
+            <NavLink className="button-secondary" to={`/app/help?campaignId=${campaignId}#orders`}>
+              Orders help
+            </NavLink>
+          </>
+        }
+      />
+    )
+  }
+
+  if (platoons.isError || orders.isError || !platoons.data || !orders.data) {
+    return (
+      <StateCard
+        title="Orders unavailable"
+        description="The orders workflow could not be assembled from the current campaign data."
       />
     )
   }
@@ -213,6 +249,10 @@ export function CampaignOrdersPage() {
       ) : (
         <Notice tone="error">This submission is currently read-only because the campaign is outside the active operations edit window.</Notice>
       )}
+
+      <Notice>
+        Need a refresher on drafting and locking submissions? <NavLink to={`/app/help?campaignId=${campaignId}#orders`}>Open the orders guide</NavLink>.
+      </Notice>
 
       <div className="hero-grid">
         <section className="surface-card page-card page-stack">

@@ -8,6 +8,7 @@ type CampaignSummaryDto = {
   currentPhase: string
   myRole: string
   memberCount: number
+  myOnboarding: CampaignMemberOnboardingDto | null
 }
 
 type CampaignMemberDto = {
@@ -18,6 +19,15 @@ type CampaignMemberDto = {
   role: string
   factionId: string | null
   nationId: string | null
+  onboarding: CampaignMemberOnboardingDto | null
+}
+
+type CampaignMemberOnboardingDto = {
+  onboardingStatus: string
+  activationStatus: string
+  activationTurnNumber: number | null
+  tutorialCompletedAt: string | null
+  tutorialVersion: string | null
 }
 
 type CampaignDetailDto = {
@@ -103,6 +113,7 @@ export type CampaignSummary = {
   currentPhase: string
   myRole: string
   memberCount: number
+  myOnboarding: CampaignMemberOnboarding | null
 }
 
 export type CampaignMembership = {
@@ -113,6 +124,15 @@ export type CampaignMembership = {
   role: string
   factionId: string | null
   nationId: string | null
+  onboarding: CampaignMemberOnboarding | null
+}
+
+export type CampaignMemberOnboarding = {
+  onboardingStatus: string
+  activationStatus: string
+  activationTurnNumber: number | null
+  tutorialCompletedAt: Date | null
+  tutorialVersion: string | null
 }
 
 export type CampaignDetail = {
@@ -186,6 +206,20 @@ export type CampaignMapTerritory = {
   supplyStatus: string | null
 }
 
+function mapOnboarding(dto: CampaignMemberOnboardingDto | null | undefined): CampaignMemberOnboarding | null {
+  if (!dto) {
+    return null
+  }
+
+  return {
+    onboardingStatus: dto.onboardingStatus,
+    activationStatus: dto.activationStatus,
+    activationTurnNumber: dto.activationTurnNumber,
+    tutorialCompletedAt: dto.tutorialCompletedAt ? new Date(dto.tutorialCompletedAt) : null,
+    tutorialVersion: dto.tutorialVersion,
+  }
+}
+
 function mapMembership(dto: CampaignMemberDto): CampaignMembership {
   return {
     id: dto.id,
@@ -195,6 +229,7 @@ function mapMembership(dto: CampaignMemberDto): CampaignMembership {
     role: dto.role,
     factionId: dto.factionId,
     nationId: dto.nationId,
+    onboarding: mapOnboarding(dto.onboarding),
   }
 }
 
@@ -250,6 +285,7 @@ function mapCampaignSummary(dto: CampaignSummaryDto): CampaignSummary {
     currentPhase: dto.currentPhase,
     myRole: dto.myRole,
     memberCount: dto.memberCount,
+    myOnboarding: mapOnboarding(dto.myOnboarding),
   }
 }
 

@@ -80,6 +80,7 @@ public class CampaignMapBridgeService {
     private final TheatreRepository theatreRepository;
     private final FactionRepository factionRepository;
     private final NationRepository nationRepository;
+    private final CampaignOnboardingService campaignOnboardingService;
     private final ObjectMapper objectMapper;
 
     public CampaignMapBridgeService(CampaignMemberRepository campaignMemberRepository,
@@ -87,12 +88,14 @@ public class CampaignMapBridgeService {
                                     TheatreRepository theatreRepository,
                                     FactionRepository factionRepository,
                                     NationRepository nationRepository,
+                                    CampaignOnboardingService campaignOnboardingService,
                                     ObjectMapper objectMapper) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.campaignAuditLogRepository = campaignAuditLogRepository;
         this.theatreRepository = theatreRepository;
         this.factionRepository = factionRepository;
         this.nationRepository = nationRepository;
+        this.campaignOnboardingService = campaignOnboardingService;
         this.objectMapper = objectMapper;
     }
 
@@ -431,6 +434,9 @@ public class CampaignMapBridgeService {
     private void validateNationStateWriteAccess(CampaignMember membership, Nation nation) {
         if (membership.getRole() == CampaignRole.GM) {
             return;
+        }
+        if (campaignOnboardingService.isPendingActivation(membership)) {
+            throw new ApiException("CAMPAIGN_MEMBER_PENDING_ACTIVATION", HttpStatus.CONFLICT, "This player joins at the start of the next turn and cannot update nation state yet");
         }
         if (membership.getRole() != CampaignRole.PLAYER
                 || membership.getNation() == null

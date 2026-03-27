@@ -29,13 +29,16 @@ public class CampaignLobbyService {
     private final CampaignMemberRepository campaignMemberRepository;
     private final FactionRepository factionRepository;
     private final NationRepository nationRepository;
+    private final CampaignOnboardingService campaignOnboardingService;
 
     public CampaignLobbyService(CampaignMemberRepository campaignMemberRepository,
                                 FactionRepository factionRepository,
-                                NationRepository nationRepository) {
+                                NationRepository nationRepository,
+                                CampaignOnboardingService campaignOnboardingService) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.factionRepository = factionRepository;
         this.nationRepository = nationRepository;
+        this.campaignOnboardingService = campaignOnboardingService;
     }
 
     @Transactional(readOnly = true)
@@ -144,7 +147,8 @@ public class CampaignLobbyService {
                 campaign.getName(),
                 campaign.getCurrentPhase(),
                 membership.getRole(),
-                memberCount
+                memberCount,
+                campaignOnboardingService.getMemberOnboardingSummary(membership)
         );
     }
 
@@ -156,7 +160,8 @@ public class CampaignLobbyService {
                 membership.getUser().getDisplayName(),
                 membership.getRole(),
                 membership.getFaction() != null ? membership.getFaction().getId() : null,
-                membership.getNation() != null ? membership.getNation().getId() : null
+                membership.getNation() != null ? membership.getNation().getId() : null,
+                campaignOnboardingService.getMemberOnboardingSummary(membership)
         );
     }
 

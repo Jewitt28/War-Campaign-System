@@ -1,6 +1,8 @@
 package com.warcampaign.backend.integration;
 
 import com.warcampaign.backend.domain.enums.CampaignPhase;
+import com.warcampaign.backend.domain.enums.CampaignMemberActivationStatus;
+import com.warcampaign.backend.domain.enums.CampaignMemberOnboardingStatus;
 import com.warcampaign.backend.domain.enums.CampaignRole;
 import com.warcampaign.backend.domain.enums.CampaignStatus;
 import com.warcampaign.backend.domain.enums.FactionType;
@@ -9,6 +11,7 @@ import com.warcampaign.backend.domain.enums.PlatoonReadinessStatus;
 import com.warcampaign.backend.domain.model.Campaign;
 import com.warcampaign.backend.domain.model.CampaignAuditLog;
 import com.warcampaign.backend.domain.model.CampaignMember;
+import com.warcampaign.backend.domain.model.CampaignMemberOnboarding;
 import com.warcampaign.backend.domain.model.Faction;
 import com.warcampaign.backend.domain.model.Nation;
 import com.warcampaign.backend.domain.model.OrderSubmission;
@@ -16,6 +19,7 @@ import com.warcampaign.backend.domain.model.Platoon;
 import com.warcampaign.backend.domain.model.PlatoonState;
 import com.warcampaign.backend.domain.model.Theatre;
 import com.warcampaign.backend.domain.model.Territory;
+import com.warcampaign.backend.domain.model.TerritoryState;
 import com.warcampaign.backend.domain.model.Turn;
 import com.warcampaign.backend.domain.model.User;
 import com.warcampaign.backend.repository.CampaignAuditLogRepository;
@@ -23,6 +27,7 @@ import com.warcampaign.backend.repository.CampaignInviteRepository;
 import com.warcampaign.backend.repository.BattleParticipantRepository;
 import com.warcampaign.backend.repository.BattleRepository;
 import com.warcampaign.backend.repository.CampaignMemberRepository;
+import com.warcampaign.backend.repository.CampaignMemberOnboardingRepository;
 import com.warcampaign.backend.repository.CampaignRepository;
 import com.warcampaign.backend.repository.FactionRepository;
 import com.warcampaign.backend.repository.NationRepository;
@@ -80,6 +85,9 @@ class CampaignPhaseIntegrationTest {
 
     @Autowired
     private CampaignMemberRepository campaignMemberRepository;
+
+    @Autowired
+    private CampaignMemberOnboardingRepository campaignMemberOnboardingRepository;
 
     @Autowired
     private CampaignInviteRepository campaignInviteRepository;
@@ -142,6 +150,7 @@ class CampaignPhaseIntegrationTest {
         platoonStateRepository.deleteAll();
         territoryStateRepository.deleteAll();
         platoonRepository.deleteAll();
+        campaignMemberOnboardingRepository.deleteAll();
         campaignInviteRepository.deleteAll();
         campaignMemberRepository.deleteAll();
         nationRepository.deleteAll();
@@ -226,6 +235,92 @@ class CampaignPhaseIntegrationTest {
                 .andExpect(jsonPath("$.currentTurnNumber").value(2));
 
         assertThat(turnRepository.findByCampaignIdAndTurnNumber(campaign.getId(), 2)).isPresent();
+    }
+
+    @Test
+    void interturnAdvanceActivatesPendingOnboardingMember() throws Exception {
+        User joiningUser = saveUser("late-joiner@war.local", "late");
+        Faction allies = factionRepository.findAllByCampaignIdOrderByNameAsc(campaign.getId()).stream()
+                .filter(faction -> faction.getFactionKey().equals("allies"))
+                .findFirst()
+                .orElseThrow();
+        Nation canada = saveNation(campaign, allies, "ca", "Canada");
+        CampaignMember joiningMembership = saveMembership(campaign, joiningUser, CampaignRole.PLAYER, allies, canada);
+
+        CampaignMemberOnboarding onboarding = new CampaignMemberOnboarding();
+        onboarding.setMembership(joiningMembership);
+        onboarding.setStatus(CampaignMemberOnboardingStatus.COMPLETE);
+        onboarding.setActivationStatus(CampaignMemberActivationStatus.PENDING_NEXT_TURN);
+        onboarding.setActivationTurnNumber(2);
+        onboarding.setSelectedFaction(allies);
+        onboarding.setSelectedNation(canada);
+        onboarding.setSelectedHomelandTerritory(target);
+        campaignMemberOnboardingRepository.save(onboarding);
+
+        campaign.setCurrentPhase(CampaignPhase.INTERTURN);
+        campaign.setCurrentTurnNumber(1);
+        campaignRepository.save(campaign);
+
+        mockMvc.perform(post("/api/campaigns/{campaignId}/phase/advance", campaign.getId())
+                        .header("X-Dev-User", "gm@war.local"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentPhase").value("STRATEGIC"))
+                .andExpect(jsonPath("$.currentTurnNumber").value(2));
+
+        TerritoryState homelandState = territoryStateRepository
+                .findByTerritoryIdAndCampaignIdAndTurnNumber(target.getId(), campaign.getId(), 2)
+                .orElseThrow();
+        assertThat(homelandState.getControllerNation()).isNotNull();
+        assertThat(homelandState.getControllerNation().getId()).isEqualTo(canada.getId());
+
+        Platoon starterPlatoon = platoonRepository.findByCampaignIdAndPlatoonKey(
+                campaign.getId(),
+                "starter-home-guard-" + joiningMembership.getId().toString().replace("-", "")
+        ).orElseThrow();
+        assertThat(starterPlatoon.getName()).isEqualTo("Canada Home Guard");
+        assertThat(starterPlatoon.getAssignedMember().getId()).isEqualTo(joiningMembership.getId());
+
+        CampaignMemberOnboarding savedOnboarding = campaignMemberOnboardingRepository.findByMembershipId(joiningMembership.getId()).orElseThrow();
+        assertThat(savedOnboarding.getActivationStatus()).isEqualTo(CampaignMemberActivationStatus.ACTIVE);
+        assertThat(savedOnboarding.getActivationTurnNumber()).isNull();
+    }
+
+    @Test
+    void pendingActivationPlayerCannotSubmitOrders() throws Exception {
+        CampaignMemberOnboarding onboarding = new CampaignMemberOnboarding();
+        onboarding.setMembership(playerMembership);
+        onboarding.setStatus(CampaignMemberOnboardingStatus.COMPLETE);
+        onboarding.setActivationStatus(CampaignMemberActivationStatus.PENDING_NEXT_TURN);
+        onboarding.setActivationTurnNumber(2);
+        onboarding.setSelectedFaction(playerMembership.getFaction());
+        onboarding.setSelectedNation(playerMembership.getNation());
+        onboarding.setSelectedHomelandTerritory(origin);
+        campaignMemberOnboardingRepository.save(onboarding);
+
+        campaign.setCurrentPhase(CampaignPhase.OPERATIONS);
+        campaignRepository.save(campaign);
+
+        Turn turn = turnRepository.findByCampaignIdAndTurnNumber(campaign.getId(), 1).orElseThrow();
+        turn.setPhase(CampaignPhase.OPERATIONS);
+        turnRepository.save(turn);
+
+        mockMvc.perform(put("/api/campaigns/{campaignId}/turns/{turnNumber}/orders/me", campaign.getId(), 1)
+                        .header("X-Dev-User", "player@war.local")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "orders": [
+                                    {
+                                      "platoonId": "%s",
+                                      "orderType": "MOVE",
+                                      "sourceTerritoryId": "%s",
+                                      "targetTerritoryId": "%s"
+                                    }
+                                  ]
+                                }
+                                """.formatted(platoon.getId(), origin.getId(), target.getId())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CAMPAIGN_MEMBER_PENDING_ACTIVATION"));
     }
 
     @Test

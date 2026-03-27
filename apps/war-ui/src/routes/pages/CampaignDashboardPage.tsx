@@ -38,9 +38,28 @@ export function CampaignDashboardPage() {
   }
 
   const isGm = campaign.data.myMembership.role === 'GM'
+  const onboarding = campaign.data.myMembership.onboarding
+  const pendingActivation = !isGm && onboarding?.activationStatus === 'PENDING_NEXT_TURN'
 
   return (
     <section className="page-stack">
+      {pendingActivation ? (
+        <StateCard
+          title="Activation scheduled for next turn"
+          description="Your nation and starter package are staged. You can review the campaign in read-only mode until the next turn begins."
+          actions={
+            <>
+              <NavLink className="button-link" to={`/app/campaigns/${campaignId}/waiting`}>
+                Open waiting status
+              </NavLink>
+              <NavLink className="button-secondary" to="/app/help#activation">
+                Read activation help
+              </NavLink>
+            </>
+          }
+        />
+      ) : null}
+
       <div className="hero-grid">
         <section className="surface-card page-card page-stack">
           <p className="eyebrow">Campaign dashboard</p>
@@ -67,20 +86,35 @@ export function CampaignDashboardPage() {
 
         <section className="surface-card surface-card-strong page-card page-stack">
           <p className="eyebrow">Next action</p>
-          <h2 className="detail-title">{isGm ? 'Manage readiness and advance the loop' : 'Review status and prepare your move'}</h2>
+          <h2 className="detail-title">
+            {isGm
+              ? 'Manage readiness and advance the loop'
+              : pendingActivation
+                ? 'Review the board while activation is pending'
+                : 'Review status and prepare your move'}
+          </h2>
           <p className="muted">
             {isGm
               ? 'Check assignments in the lobby, review map state, and advance the campaign when the table is ready.'
-              : 'Use the lobby to verify your assignment, then move into map and orders pages as they come online.'}
+              : pendingActivation
+                ? 'Use the waiting page for activation timing, then review the lobby, dashboard, and map in read-only mode.'
+                : 'Use the lobby to verify your assignment, then move into map and orders pages as they come online.'}
           </p>
           <div className="button-row">
+            {pendingActivation ? (
+              <NavLink className="button-link" to={`/app/campaigns/${campaignId}/waiting`}>
+                Open waiting page
+              </NavLink>
+            ) : null}
             <NavLink className="button-link" to={`/app/campaigns/${campaignId}/lobby`}>
               Open lobby
             </NavLink>
             <NavLink className="button-secondary" to={`/app/campaigns/${campaignId}/map`}>
               Open map
             </NavLink>
-            <span className="nav-link-disabled">Orders coming in PR D</span>
+            <NavLink className="button-secondary" to={`/app/help?campaignId=${campaignId}#dashboard`}>
+              Dashboard help
+            </NavLink>
           </div>
         </section>
       </div>
