@@ -9,7 +9,7 @@ FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 RUN addgroup --system war && adduser --system --ingroup war war
 COPY --from=build /app/target/*.jar app.jar
-RUN chown war:war app.jar
+RUN chown -R war:war /app
 USER war
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
