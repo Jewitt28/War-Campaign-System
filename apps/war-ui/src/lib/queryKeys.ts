@@ -20,4 +20,5 @@ export const queryKeys = {
   playerTerritory: (campaignId: string, territoryId: string) => ['campaigns', campaignId, 'territories', territoryId] as const,
   gmTerritory: (campaignId: string, territoryId: string) => ['campaigns', campaignId, 'territories', territoryId, 'gm'] as const,
   invite: (token: string) => ['invites', token] as const,
+  spSetupNations: (campaignId: string) => ['campaigns', campaignId, 'sp-setup'] as const,
 }

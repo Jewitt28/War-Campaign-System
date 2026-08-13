@@ -28,6 +28,12 @@ public class CampaignMember extends BaseEntity {
     @JoinColumn(name = "nation_id")
     private Nation nation;
 
+    @Column(name = "cpu_controlled", nullable = false)
+    private boolean cpuControlled = false;
+
+    @Column(name = "cpu_strategy", nullable = false, length = 20)
+    private String cpuStrategy = "BALANCED";
+
     public Campaign getCampaign() {
         return campaign;
     }
@@ -66,5 +72,21 @@ public class CampaignMember extends BaseEntity {
 
     public void setNation(Nation nation) {
         this.nation = nation;
+    }
+
+    public boolean isCpuControlled() {
+        return cpuControlled;
+    }
+
+    public void setCpuControlled(boolean cpuControlled) {
+        this.cpuControlled = cpuControlled;
+    }
+
+    public String getCpuStrategy() {
+        return cpuStrategy;
+    }
+
+    public void setCpuStrategy(String cpuStrategy) {
+        this.cpuStrategy = cpuStrategy;
     }
 }

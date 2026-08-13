@@ -11,8 +11,8 @@ public class Platoon extends BaseEntity {
     @JoinColumn(name = "campaign_id", nullable = false)
     private Campaign campaign;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "faction_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "faction_id")
     private Faction faction;
 
     @ManyToOne(fetch = FetchType.LAZY)

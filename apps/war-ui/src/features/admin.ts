@@ -58,6 +58,7 @@ export type SnapshotExportResult = SnapshotExportDto
 export type PhaseAdvanceResult = PhaseAdvanceDto
 export type CreateCampaignInput = {
   name: string
+  singlePlayer?: boolean
 }
 
 export type CreateCampaignResult = {
@@ -290,6 +291,86 @@ export function useResetDemoCampaign(campaignId: string) {
       await Promise.all([
         invalidateLifecycleQueries(queryClient, campaignId),
         queryClient.invalidateQueries({ queryKey: queryKeys.campaign(data.campaignId) }),
+      ])
+    },
+  })
+}
+
+export type SpNation = {
+  id: string
+  nationKey: string
+  name: string
+  factionKey: string | null
+  factionName: string | null
+  color: string | null
+  suggestedHomelandKey: string | null
+}
+
+export type SpSetupData = {
+  nations: SpNation[]
+  territories: { key: string; name: string }[]
+}
+
+export type SpSetupNationChoice = {
+  nationKey: string
+  assignment: 'HUMAN' | 'CPU' | 'INACTIVE'
+  cpuStrategy?: 'AGGRESSIVE' | 'DEFENSIVE' | 'BALANCED'
+  homelandTerritoryKey?: string | null
+}
+
+export type SpSetupResult = {
+  campaignId: string
+  humanNationKey: string
+  cpuNationCount: number
+  redirectPath: string
+}
+
+async function getSpSetupData(campaignId: string): Promise<SpSetupData> {
+  const response = await api.get<SpSetupData>(`/api/campaigns/${campaignId}/sp-setup`)
+  return response.data
+}
+
+async function completeSpSetup(campaignId: string, nations: SpSetupNationChoice[]): Promise<SpSetupResult> {
+  const response = await api.post<SpSetupResult>(`/api/campaigns/${campaignId}/sp-setup`, { nations })
+  return response.data
+}
+
+async function createSpCustomNation(
+  campaignId: string,
+  input: { name: string; factionKey: string | null; color: string | null },
+): Promise<SpNation> {
+  const response = await api.post<SpNation>(`/api/campaigns/${campaignId}/sp-setup/nations`, input)
+  return response.data
+}
+
+export function useGetSpSetupData(campaignId: string) {
+  return useQuery({
+    queryKey: queryKeys.spSetupNations(campaignId),
+    queryFn: () => getSpSetupData(campaignId),
+    enabled: Boolean(campaignId),
+  })
+}
+
+export function useCreateSpCustomNation(campaignId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { name: string; factionKey: string | null; color: string | null }) =>
+      createSpCustomNation(campaignId, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.spSetupNations(campaignId) })
+    },
+  })
+}
+
+export function useCompleteSpSetup(campaignId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (nations: SpSetupNationChoice[]) => completeSpSetup(campaignId, nations),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaign(campaignId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.campaignPhase(campaignId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.spSetupNations(campaignId) }),
       ])
     },
   })

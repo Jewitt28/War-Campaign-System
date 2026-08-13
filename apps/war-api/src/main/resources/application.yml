@@ -22,6 +22,7 @@ app:
     dev-auth:
       enabled: ${WAR_DEV_AUTH_ENABLED:false}
   web:
+    base-url: ${WAR_BASE_URL:http://localhost:5173}
     cors:
       allowed-origins:
         - ${WAR_ALLOWED_ORIGIN:http://localhost:5173}
@@ -34,3 +35,4 @@ app:
     phase-reminder-window: ${WAR_JOBS_PHASE_REMINDER_WINDOW:PT30M}
     invite-reminder-window: ${WAR_JOBS_INVITE_REMINDER_WINDOW:PT24H}
     snapshot-directory: ${WAR_JOBS_SNAPSHOT_DIRECTORY:target/campaign-snapshots}
+    ai-gm-delay: ${WAR_JOBS_AI_GM_DELAY:PT20S}

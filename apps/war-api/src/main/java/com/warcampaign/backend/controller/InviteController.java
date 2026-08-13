@@ -1,5 +1,6 @@
 package com.warcampaign.backend.controller;
 
+import com.warcampaign.backend.dto.AcceptInviteRequest;
 import com.warcampaign.backend.dto.AcceptInviteResponse;
 import com.warcampaign.backend.dto.InviteDetailsResponse;
 import com.warcampaign.backend.service.AuthenticationService;
@@ -7,6 +8,7 @@ import com.warcampaign.backend.service.InviteAcceptanceService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,7 +31,8 @@ public class InviteController {
     }
 
     @PostMapping("/{token}/accept")
-    public AcceptInviteResponse acceptInvite(@PathVariable String token) {
-        return inviteAcceptanceService.acceptInvite(token, authenticationService.currentUser());
+    public AcceptInviteResponse acceptInvite(@PathVariable String token,
+                                             @RequestBody(required = false) AcceptInviteRequest request) {
+        return inviteAcceptanceService.acceptInvite(token, authenticationService.currentUser(), request);
     }
 }

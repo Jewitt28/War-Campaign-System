@@ -84,7 +84,7 @@ public class CampaignOrderService {
                         campaignId,
                         turn.getTurnNumber(),
                         membership.getId(),
-                        membership.getFaction().getId(),
+                        membership.getFaction() != null ? membership.getFaction().getId() : null,
                         OrderSubmissionStatus.DRAFT,
                         null,
                         null,
@@ -168,13 +168,15 @@ public class CampaignOrderService {
         CampaignMember membership = campaignMemberRepository.findByCampaignIdAndUserIdWithCampaign(campaignId, userId)
                 .orElseThrow(() -> new ApiException("CAMPAIGN_NOT_FOUND", HttpStatus.NOT_FOUND, "Campaign not found"));
 
-        if (membership.getRole() != CampaignRole.PLAYER) {
+        // In single-player campaigns (aiGm=true) the GM is also the player, so allow them to submit orders
+        boolean isSinglePlayerGm = membership.getRole() == CampaignRole.GM && isSinglePlayerCampaign(membership.getCampaign());
+        if (membership.getRole() != CampaignRole.PLAYER && !isSinglePlayerGm) {
             throw new ApiException("CAMPAIGN_FORBIDDEN", HttpStatus.FORBIDDEN, "Player role required for order submission");
         }
         if (campaignOnboardingService.isPendingActivation(membership)) {
             throw new ApiException("CAMPAIGN_MEMBER_PENDING_ACTIVATION", HttpStatus.CONFLICT, "This player joins at the start of the next turn and cannot submit orders yet");
         }
-        if (membership.getFaction() == null) {
+        if (membership.getFaction() == null && !isSinglePlayerGm) {
             throw new ApiException("CAMPAIGN_FORBIDDEN", HttpStatus.FORBIDDEN, "Faction assignment required for order submission");
         }
         return membership;
@@ -276,6 +278,9 @@ public class CampaignOrderService {
         if (platoon.isHiddenFromPlayers()) {
             return false;
         }
+        if (platoon.getFaction() == null || membership.getFaction() == null) {
+            return false;
+        }
         if (!platoon.getFaction().getId().equals(membership.getFaction().getId())) {
             return false;
         }
@@ -373,6 +378,16 @@ public class CampaignOrderService {
             return objectMapper.writeValueAsString(errors);
         } catch (JsonProcessingException exception) {
             throw new ApiException("ORDER_SERIALIZATION_ERROR", HttpStatus.INTERNAL_SERVER_ERROR, "Unable to serialize validation errors");
+        }
+    }
+
+    private boolean isSinglePlayerCampaign(Campaign campaign) {
+        if (campaign.getMetadataJson() == null) return false;
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(campaign.getMetadataJson());
+            return root.path("aiGm").asBoolean(false) || root.path("singlePlayer").asBoolean(false);
+        } catch (Exception e) {
+            return false;
         }
     }
 

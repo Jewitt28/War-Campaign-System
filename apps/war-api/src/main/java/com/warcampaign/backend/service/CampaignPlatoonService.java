@@ -272,7 +272,7 @@ public class CampaignPlatoonService {
         if (resolveHiddenFromPlayers(state, state.getPlatoon().isHiddenFromPlayers())) {
             return false;
         }
-        if (!state.getPlatoon().getFaction().getId().equals(membership.getFaction().getId())) {
+        if (state.getPlatoon().getFaction() == null || !state.getPlatoon().getFaction().getId().equals(membership.getFaction().getId())) {
             return false;
         }
         if (membership.getNation() == null || state.getPlatoon().getNation() == null) {
@@ -288,7 +288,7 @@ public class CampaignPlatoonService {
         if (membership.getRole() != CampaignRole.PLAYER || membership.getFaction() == null) {
             return false;
         }
-        if (!platoon.getFaction().getId().equals(membership.getFaction().getId())) {
+        if (platoon.getFaction() == null || !platoon.getFaction().getId().equals(membership.getFaction().getId())) {
             return false;
         }
         return membership.getNation() == null
@@ -369,6 +369,9 @@ public class CampaignPlatoonService {
     }
 
     private MapFactionReferenceResponse toFactionReference(Faction faction) {
+        if (faction == null) {
+            return null;
+        }
         return new MapFactionReferenceResponse(faction.getId(), faction.getFactionKey(), faction.getName());
     }
 

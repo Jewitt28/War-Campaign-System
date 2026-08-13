@@ -64,6 +64,7 @@ public class CampaignVisibilityService {
                 .collect(Collectors.groupingBy(state -> state.getTerritory().getId()));
 
         visibilityStateRepository.deleteAllByCampaignIdAndTurnNumber(campaign.getId(), turnNumber);
+        visibilityStateRepository.flush();
 
         int rowCount = 0;
         for (Faction viewerFaction : factions) {
@@ -148,7 +149,7 @@ public class CampaignVisibilityService {
         }
         boolean hasViewerPlatoonPresent = platoonStates.stream()
                 .map(PlatoonState::getPlatoon)
-                .anyMatch(platoon -> platoon.getFaction().getId().equals(viewerFaction.getId()));
+                .anyMatch(platoon -> platoon.getFaction() != null && platoon.getFaction().getId().equals(viewerFaction.getId()));
         if (hasViewerPlatoonPresent) {
             return VisibilityLevel.OBSERVED;
         }
@@ -157,7 +158,7 @@ public class CampaignVisibilityService {
 
     private String buildVisibleForceSummary(Faction viewerFaction, List<PlatoonState> platoonStates) {
         long friendlyCount = platoonStates.stream()
-                .filter(state -> state.getPlatoon().getFaction().getId().equals(viewerFaction.getId()))
+                .filter(state -> state.getPlatoon().getFaction() != null && state.getPlatoon().getFaction().getId().equals(viewerFaction.getId()))
                 .count();
         if (friendlyCount > 0) {
             return "Friendly presence: %d platoon(s)".formatted(friendlyCount);

@@ -2,6 +2,13 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
 
+type FactionInviteInfoDto = {
+  factionId: string
+  factionKey: string
+  factionName: string
+  invitedByDisplayName: string
+}
+
 type InviteDetailsDto = {
   campaignId: string
   campaignName: string
@@ -11,6 +18,7 @@ type InviteDetailsDto = {
   expired: boolean
   intendedFactionKey: string | null
   intendedNationKey: string | null
+  factionInvite: FactionInviteInfoDto | null
 }
 
 type AcceptInviteDto = {
@@ -25,6 +33,13 @@ type AcceptInviteDto = {
   redirectPath: string
 }
 
+export type FactionInviteInfo = {
+  factionId: string
+  factionKey: string
+  factionName: string
+  invitedByDisplayName: string
+}
+
 export type InviteDetails = {
   campaignId: string
   campaignName: string
@@ -34,6 +49,7 @@ export type InviteDetails = {
   expired: boolean
   intendedFactionKey: string | null
   intendedNationKey: string | null
+  factionInvite: FactionInviteInfo | null
 }
 
 export type AcceptedInvite = {
@@ -58,6 +74,7 @@ function mapInvite(dto: InviteDetailsDto): InviteDetails {
     expired: dto.expired,
     intendedFactionKey: dto.intendedFactionKey,
     intendedNationKey: dto.intendedNationKey,
+    factionInvite: dto.factionInvite ?? null,
   }
 }
 
@@ -80,10 +97,27 @@ async function fetchInvite(token: string) {
   return mapInvite(response.data)
 }
 
-async function acceptInvite(token: string) {
-  const response = await api.post<AcceptInviteDto>(`/api/invites/${token}/accept`)
+async function acceptInvite(token: string, acceptFactionInvite: boolean) {
+  const response = await api.post<AcceptInviteDto>(`/api/invites/${token}/accept`, { acceptFactionInvite })
   return mapAcceptedInvite(response.data)
 }
+
+type CreatePlayerInviteDto = {
+  inviteId: string
+  token: string
+  url: string
+  factionName: string | null
+}
+
+async function createPlayerInvite(campaignId: string, includeFactionInvite: boolean) {
+  const response = await api.post<CreatePlayerInviteDto>(
+    `/api/campaigns/${campaignId}/invites/player`,
+    { includeFactionInvite },
+  )
+  return response.data
+}
+
+export type CreatePlayerInviteResult = CreatePlayerInviteDto
 
 export function useInvite(token: string) {
   return useQuery({
@@ -95,6 +129,12 @@ export function useInvite(token: string) {
 
 export function useAcceptInvite(token: string) {
   return useMutation({
-    mutationFn: () => acceptInvite(token),
+    mutationFn: (acceptFactionInvite: boolean) => acceptInvite(token, acceptFactionInvite),
+  })
+}
+
+export function useCreatePlayerInvite(campaignId: string) {
+  return useMutation({
+    mutationFn: (includeFactionInvite: boolean) => createPlayerInvite(campaignId, includeFactionInvite),
   })
 }

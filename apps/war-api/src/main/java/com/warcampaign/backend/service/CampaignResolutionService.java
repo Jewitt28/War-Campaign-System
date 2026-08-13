@@ -279,6 +279,7 @@ public class CampaignResolutionService {
 
         Faction controllingFaction = territoryState != null ? territoryState.getControllingFaction() : null;
         for (Map.Entry<UUID, List<PlatoonOrder>> entry : attackEntries) {
+            if (entry.getValue().isEmpty()) continue;
             Faction attackerFaction = entry.getValue().getFirst().getOrderSubmission().getFaction();
             if (controllingFaction != null && !controllingFaction.getId().equals(attackerFaction.getId())) {
                 return new BattleDraft(attackerFaction, controllingFaction, entry.getValue(), List.of());

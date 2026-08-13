@@ -27,6 +27,9 @@ public class Nation extends BaseEntity {
     @Column(name = "is_npc", nullable = false)
     private boolean npc;
 
+    @Column(name = "color", length = 20)
+    private String color;
+
     @Column(name = "metadata_json", columnDefinition = "TEXT")
     private String metadataJson;
 
@@ -76,6 +79,14 @@ public class Nation extends BaseEntity {
 
     public void setNpc(boolean npc) {
         this.npc = npc;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 
     public String getMetadataJson() {

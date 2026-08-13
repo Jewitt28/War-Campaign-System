@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: war_campaign
+      POSTGRES_USER: ${WAR_DB_USERNAME:-war}
+      POSTGRES_PASSWORD: ${WAR_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - war_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WAR_DB_USERNAME:-war} -d war_campaign"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./apps/war-api
+    environment:
+      WAR_DB_URL: jdbc:postgresql://db:5432/war_campaign
+      WAR_DB_USERNAME: ${WAR_DB_USERNAME:-war}
+      WAR_DB_PASSWORD: ${WAR_DB_PASSWORD}
+      WAR_ALLOWED_ORIGIN: https://war.srv1546661.hstgr.cloud
+      WAR_DEV_AUTH_ENABLED: "true"
+      WAR_JOBS_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: ./apps/war-ui
+      args:
+        VITE_API_BASE_URL: https://war.srv1546661.hstgr.cloud
+    ports:
+      - "127.0.0.1:8081:80"
+    restart: unless-stopped
+
+volumes:
+  war_db_data:

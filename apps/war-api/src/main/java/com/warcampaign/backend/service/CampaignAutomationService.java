@@ -3,8 +3,12 @@ package com.warcampaign.backend.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.warcampaign.backend.config.JobsProperties;
+import com.warcampaign.backend.domain.enums.CampaignPhase;
 import com.warcampaign.backend.domain.enums.CampaignRole;
 import com.warcampaign.backend.domain.enums.CampaignStatus;
+import com.warcampaign.backend.domain.enums.OrderSubmissionStatus;
+import com.warcampaign.backend.domain.model.OrderSubmission;
+import com.warcampaign.backend.repository.OrderSubmissionRepository;
 import com.warcampaign.backend.domain.enums.InviteStatus;
 import com.warcampaign.backend.domain.model.Campaign;
 import com.warcampaign.backend.domain.model.CampaignInvite;
@@ -28,6 +32,8 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class CampaignAutomationService {
@@ -42,6 +48,7 @@ public class CampaignAutomationService {
     private final CampaignInviteRepository campaignInviteRepository;
     private final CampaignMemberRepository campaignMemberRepository;
     private final UserRepository userRepository;
+    private final OrderSubmissionRepository orderSubmissionRepository;
     private final NotificationService notificationService;
     private final JobsProperties jobsProperties;
     private final ObjectMapper objectMapper;
@@ -53,6 +60,7 @@ public class CampaignAutomationService {
                                      CampaignInviteRepository campaignInviteRepository,
                                      CampaignMemberRepository campaignMemberRepository,
                                      UserRepository userRepository,
+                                     OrderSubmissionRepository orderSubmissionRepository,
                                      NotificationService notificationService,
                                      JobsProperties jobsProperties,
                                      ObjectMapper objectMapper) {
@@ -63,6 +71,7 @@ public class CampaignAutomationService {
         this.campaignInviteRepository = campaignInviteRepository;
         this.campaignMemberRepository = campaignMemberRepository;
         this.userRepository = userRepository;
+        this.orderSubmissionRepository = orderSubmissionRepository;
         this.notificationService = notificationService;
         this.jobsProperties = jobsProperties;
         this.objectMapper = objectMapper;
@@ -71,6 +80,70 @@ public class CampaignAutomationService {
     @Transactional
     public int advanceExpiredCampaigns() {
         return campaignPhaseService.advanceExpiredCampaigns();
+    }
+
+    /**
+     * Checks all ACTIVE campaigns with aiGm=true. If all human players have locked their
+     * OPERATIONS orders, the campaign phase is automatically advanced.
+     */
+    @Transactional
+    public int checkAiGmCampaigns() {
+        List<Campaign> activeCampaigns = campaignRepository.findAllByCampaignStatusIn(
+                List.of(CampaignStatus.ACTIVE));
+        int advancedCount = 0;
+
+        for (Campaign campaign : activeCampaigns) {
+            if (!isAiGmEnabled(campaign)) continue;
+
+            try {
+                if (campaign.getCurrentPhase() == CampaignPhase.STRATEGIC) {
+                    // Strategic has no player gate — advance to Operations immediately
+                    campaignPhaseService.advancePhaseAsSystem(campaign.getId());
+                    advancedCount++;
+                } else if (campaign.getCurrentPhase() == CampaignPhase.OPERATIONS) {
+                    if (allHumanPlayersLocked(campaign)) {
+                        campaignPhaseService.advancePhaseAsSystem(campaign.getId());
+                        advancedCount++;
+                    }
+                }
+            } catch (Exception e) {
+                // Log and continue — don't let one campaign failure block others
+            }
+        }
+        return advancedCount;
+    }
+
+    private boolean isAiGmEnabled(Campaign campaign) {
+        if (campaign.getMetadataJson() == null) return false;
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(campaign.getMetadataJson());
+            return root.path("aiGm").asBoolean(false);
+        } catch (JsonProcessingException e) {
+            return false;
+        }
+    }
+
+    private boolean allHumanPlayersLocked(Campaign campaign) {
+        List<CampaignMember> allMembers = campaignMemberRepository.findAllByCampaignIdWithUser(campaign.getId());
+        // In single-player (aiGm) campaigns the GM is also the human player — include GM in the check
+        boolean spMode = isAiGmEnabled(campaign);
+        List<CampaignMember> humanPlayers = allMembers.stream()
+                .filter(m -> !m.isCpuControlled()
+                        && (m.getRole() == CampaignRole.PLAYER || (spMode && m.getRole() == CampaignRole.GM)))
+                .toList();
+
+        if (humanPlayers.isEmpty()) return false;
+
+        List<OrderSubmission> submissions = orderSubmissionRepository
+                .findAllByCampaignIdAndTurnNumberOrderBySubmittedAtAsc(
+                        campaign.getId(), campaign.getCurrentTurnNumber());
+
+        Set<java.util.UUID> lockedMemberIds = submissions.stream()
+                .filter(s -> s.getStatus() == OrderSubmissionStatus.LOCKED)
+                .map(s -> s.getSubmittedByMember().getId())
+                .collect(Collectors.toSet());
+
+        return humanPlayers.stream().allMatch(m -> lockedMemberIds.contains(m.getId()));
     }
 
     @Transactional
@@ -110,6 +183,9 @@ public class CampaignAutomationService {
         int notificationCount = 0;
 
         for (CampaignInvite invite : campaignInviteRepository.findAllByStatusAndExpiresAtBetween(InviteStatus.PENDING, now, threshold)) {
+            if (invite.isOpenInvite() || invite.getInviteeEmail() == null) {
+                continue;
+            }
             User recipient = userRepository.findByEmailIgnoreCase(invite.getInviteeEmail()).orElse(null);
             if (recipient == null) {
                 continue;
@@ -146,12 +222,15 @@ public class CampaignAutomationService {
         return expiredCount;
     }
 
-    @Transactional
     public int rebuildVisibilityForActiveCampaigns() {
         int rebuiltCount = 0;
         for (Campaign campaign : campaignRepository.findAllByFogOfWarEnabledTrueAndCampaignStatusIn(VISIBILITY_CAMPAIGN_STATUSES)) {
-            campaignVisibilityService.rebuildVisibility(campaign);
-            rebuiltCount++;
+            try {
+                campaignVisibilityService.rebuildVisibility(campaign);
+                rebuiltCount++;
+            } catch (Exception e) {
+                // Log and continue — don't let one campaign failure block others
+            }
         }
         return rebuiltCount;
     }

@@ -13,5 +13,6 @@ public record InviteDetailsResponse(UUID campaignId,
                                     Instant expiresAt,
                                     boolean expired,
                                     String intendedFactionKey,
-                                    String intendedNationKey) {
+                                    String intendedNationKey,
+                                    FactionInviteInfo factionInvite) {
 }

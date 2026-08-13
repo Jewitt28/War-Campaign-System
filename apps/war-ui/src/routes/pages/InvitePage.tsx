@@ -2,9 +2,88 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { NavLink, useNavigate, useParams } from 'react-router-dom'
 import { authQueryOptions, useAuth } from '../../features/auth'
-import { useAcceptInvite, useInvite } from '../../features/invites'
+import { type FactionInviteInfo, useAcceptInvite, useInvite } from '../../features/invites'
 import { queryKeys } from '../../lib/queryKeys'
 import { DetailList, Notice, SkeletonCard, StateCard } from '../components'
+
+type AuthenticatedAcceptSectionProps = {
+  acceptInviteIsPending: boolean
+  currentUser: { displayName?: string; email?: string } | null | undefined
+  factionChoice: boolean | null
+  factionInvite: FactionInviteInfo | null
+  onAccept: (acceptFaction: boolean) => void
+  onFactionChoice: (choice: boolean | null) => void
+}
+
+function AuthenticatedAcceptSection({
+  acceptInviteIsPending,
+  currentUser,
+  factionChoice,
+  factionInvite,
+  onAccept,
+  onFactionChoice,
+}: AuthenticatedAcceptSectionProps) {
+  // If there's a faction invite and the user hasn't chosen yet, show the prompt
+  if (factionInvite && factionChoice === null) {
+    return (
+      <>
+        <p className="eyebrow">Faction invite</p>
+        <h2 className="detail-title">
+          {factionInvite.invitedByDisplayName} invited you to join the {factionInvite.factionName}
+        </h2>
+        <p className="muted">
+          You can join as part of the <strong>{factionInvite.factionName}</strong> alongside{' '}
+          {factionInvite.invitedByDisplayName}, or join independently as an unaligned player.
+        </p>
+        <div className="button-row">
+          <button className="button-link" onClick={() => onFactionChoice(true)} type="button">
+            Join the {factionInvite.factionName}
+          </button>
+          <button className="button-secondary" onClick={() => onFactionChoice(false)} type="button">
+            Join independently (unaligned)
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  const acceptFaction = factionChoice ?? false
+
+  return (
+    <>
+      <p className="eyebrow">Authenticated session</p>
+      <h2 className="detail-title">Accept as {currentUser?.displayName ?? 'Unknown user'}</h2>
+      <p className="muted">
+        {factionInvite && acceptFaction
+          ? `Joining as part of the ${factionInvite.factionName}. `
+          : factionInvite
+            ? 'Joining as an unaligned player. '
+            : ''}
+        Signed in as {currentUser?.email ?? 'unknown email'}.
+      </p>
+      {factionInvite ? (
+        <p className="muted">
+          <button className="button-link-inline" onClick={() => onFactionChoice(null)} type="button">
+            Change faction choice
+          </button>
+        </p>
+      ) : null}
+      <div className="button-row">
+        <button
+          className="button-link"
+          disabled={acceptInviteIsPending}
+          onClick={() => onAccept(acceptFaction)}
+          type="button"
+        >
+          {acceptInviteIsPending ? 'Accepting invite...' : 'Accept invite'}
+        </button>
+        <NavLink className="button-secondary" to="/app/campaigns">
+          View campaigns instead
+        </NavLink>
+      </div>
+    </>
+  )
+}
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat(undefined, {
@@ -21,6 +100,8 @@ export function InvitePage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [acceptedCampaignId, setAcceptedCampaignId] = useState<string | null>(null)
+  // null = undecided (show prompt when faction invite present), true/false = decided
+  const [factionChoice, setFactionChoice] = useState<boolean | null>(null)
 
   if (invite.isLoading || auth.isLoading) {
     return <SkeletonCard lines={5} />
@@ -42,8 +123,8 @@ export function InvitePage() {
   const isUnauthenticated = !auth.data
   const currentUser = auth.data
 
-  async function handleAccept() {
-    const response = await acceptInvite.mutateAsync()
+  async function handleAccept(acceptFaction: boolean) {
+    const response = await acceptInvite.mutateAsync(acceptFaction)
     setAcceptedCampaignId(response.campaignId)
     await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns })
     await queryClient.invalidateQueries({ queryKey: authQueryOptions().queryKey })
@@ -148,22 +229,14 @@ export function InvitePage() {
             </div>
           </>
         ) : (
-          <>
-            <p className="eyebrow">Authenticated session</p>
-            <h2 className="detail-title">Accept as {currentUser?.displayName ?? 'Unknown user'}</h2>
-            <p className="muted">
-              Signed in as {currentUser?.email ?? 'unknown email'}. Accepting this invite creates or confirms your
-              campaign membership.
-            </p>
-            <div className="button-row">
-              <button className="button-link" disabled={acceptInvite.isPending} onClick={handleAccept} type="button">
-                {acceptInvite.isPending ? 'Accepting invite...' : 'Accept invite'}
-              </button>
-              <NavLink className="button-secondary" to="/app/campaigns">
-                View campaigns instead
-              </NavLink>
-            </div>
-          </>
+          <AuthenticatedAcceptSection
+            acceptInviteIsPending={acceptInvite.isPending}
+            currentUser={currentUser}
+            factionChoice={factionChoice}
+            factionInvite={details.factionInvite}
+            onAccept={handleAccept}
+            onFactionChoice={setFactionChoice}
+          />
         )}
       </section>
     </div>

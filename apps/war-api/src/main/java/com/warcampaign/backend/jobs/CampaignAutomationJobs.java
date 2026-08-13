@@ -24,6 +24,11 @@ public class CampaignAutomationJobs {
         campaignAutomationService.advanceExpiredCampaigns();
     }
 
+    @Scheduled(fixedDelayString = "${app.jobs.ai-gm-delay:PT20S}")
+    public void checkAiGmPhaseAdvancement() {
+        campaignAutomationService.checkAiGmCampaigns();
+    }
+
     @Scheduled(fixedDelayString = "${app.jobs.reminder-delay:PT15M}")
     public void dispatchReminders() {
         campaignAutomationService.sendPhaseEndingSoonReminders();

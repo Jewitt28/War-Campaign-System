@@ -29,6 +29,7 @@ export function CampaignsPage() {
   const campaigns = useCampaigns()
   const createCampaign = useCreateCampaign()
   const [campaignName, setCampaignName] = useState('')
+  const [singlePlayer, setSinglePlayer] = useState(false)
 
   async function handleCreateCampaign(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -37,9 +38,14 @@ export function CampaignsPage() {
       return
     }
 
-    const createdCampaign = await createCampaign.mutateAsync({ name: trimmedName })
+    const createdCampaign = await createCampaign.mutateAsync({ name: trimmedName, singlePlayer })
     setCampaignName('')
-    navigate(`/app/campaigns/${createdCampaign.campaignId}/admin`)
+    setSinglePlayer(false)
+    if (singlePlayer) {
+      navigate(`/app/campaigns/${createdCampaign.campaignId}/sp-setup`)
+    } else {
+      navigate(`/app/campaigns/${createdCampaign.campaignId}`)
+    }
   }
 
   if (campaigns.isLoading) {
@@ -70,7 +76,9 @@ export function CampaignsPage() {
             createError={createCampaign.error?.message ?? null}
             isPending={createCampaign.isPending}
             onCampaignNameChange={setCampaignName}
+            onSinglePlayerChange={setSinglePlayer}
             onSubmit={handleCreateCampaign}
+            singlePlayer={singlePlayer}
           />
         </section>
       </div>
@@ -95,7 +103,9 @@ export function CampaignsPage() {
             createError={createCampaign.error?.message ?? null}
             isPending={createCampaign.isPending}
             onCampaignNameChange={setCampaignName}
+            onSinglePlayerChange={setSinglePlayer}
             onSubmit={handleCreateCampaign}
+            singlePlayer={singlePlayer}
           />
         </section>
         <StateCard
@@ -133,7 +143,9 @@ export function CampaignsPage() {
           createError={createCampaign.error?.message ?? null}
           isPending={createCampaign.isPending}
           onCampaignNameChange={setCampaignName}
+          onSinglePlayerChange={setSinglePlayer}
           onSubmit={handleCreateCampaign}
+          singlePlayer={singlePlayer}
         />
       </section>
 
@@ -178,7 +190,9 @@ type CampaignCreateFormProps = {
   campaignName: string
   createError: string | null
   isPending: boolean
+  singlePlayer: boolean
   onCampaignNameChange: (value: string) => void
+  onSinglePlayerChange: (value: boolean) => void
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
 }
 
@@ -186,7 +200,9 @@ function CampaignCreateForm({
   campaignName,
   createError,
   isPending,
+  singlePlayer,
   onCampaignNameChange,
+  onSinglePlayerChange,
   onSubmit,
 }: CampaignCreateFormProps) {
   return (
@@ -202,6 +218,20 @@ function CampaignCreateForm({
           value={campaignName}
         />
       </label>
+      <label className="field-label field-label-inline">
+        <input
+          checked={singlePlayer}
+          onChange={(event) => onSinglePlayerChange(event.target.checked)}
+          type="checkbox"
+        />
+        Single player (AI GM, CPU opponent)
+      </label>
+      {singlePlayer ? (
+        <p className="muted">
+          Pick your nation and configure CPU opponents in the next step. The AI GM will advance phases automatically
+          when your orders are locked.
+        </p>
+      ) : null}
       <div className="button-row">
         <button className="button-link" disabled={isPending || !campaignName.trim()} type="submit">
           {isPending ? 'Creating campaign...' : 'Create campaign'}

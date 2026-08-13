@@ -27,4 +27,6 @@ public interface TerritoryStateRepository extends JpaRepository<TerritoryState, 
               and ts.turn.turnNumber = :turnNumber
             """)
     Optional<TerritoryState> findByTerritoryIdAndCampaignIdAndTurnNumber(UUID territoryId, UUID campaignId, int turnNumber);
+
+    Optional<TerritoryState> findByTurnIdAndTerritoryId(UUID turnId, UUID territoryId);
 }

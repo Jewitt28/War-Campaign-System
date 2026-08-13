@@ -20,6 +20,7 @@ import { CampaignPlatoonsPage } from '../routes/pages/CampaignPlatoonsPage'
 import { CampaignWaitingPage } from '../routes/pages/CampaignWaitingPage'
 import { CampaignWorkspaceLayout } from '../routes/pages/CampaignWorkspaceLayout'
 import { GmAdminPlaceholderPage } from '../routes/pages/GmAdminPlaceholderPage'
+import { SinglePlayerSetupPage } from '../routes/pages/SinglePlayerSetupPage'
 import { HelpPage } from '../routes/pages/HelpPage'
 import { InvitePage } from '../routes/pages/InvitePage'
 import { LoginPage } from '../routes/pages/LoginPage'
@@ -117,6 +118,16 @@ export const router = createBrowserRouter(
                     {
                       path: 'events',
                       element: <CampaignEventsPage />,
+                    },
+                  ],
+                },
+                {
+                  path: 'sp-setup',
+                  element: <GmOnlyRoute />,
+                  children: [
+                    {
+                      index: true,
+                      element: <SinglePlayerSetupPage />,
                     },
                   ],
                 },

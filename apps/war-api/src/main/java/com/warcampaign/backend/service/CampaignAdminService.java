@@ -1,5 +1,7 @@
 package com.warcampaign.backend.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.warcampaign.backend.domain.enums.CampaignPhase;
 import com.warcampaign.backend.domain.enums.CampaignRole;
 import com.warcampaign.backend.domain.enums.CampaignStatus;
@@ -47,12 +49,15 @@ import com.warcampaign.backend.repository.TurnRepository;
 import com.warcampaign.backend.repository.UserRepository;
 import com.warcampaign.backend.security.AuthenticatedUser;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -78,6 +83,7 @@ public class CampaignAdminService {
     private final CampaignPlatoonService campaignPlatoonService;
     private final CampaignResolutionService campaignResolutionService;
     private final CampaignOnboardingService campaignOnboardingService;
+    private final ObjectMapper objectMapper;
     private final boolean devAuthEnabled;
 
     public CampaignAdminService(CampaignMemberRepository campaignMemberRepository,
@@ -98,6 +104,7 @@ public class CampaignAdminService {
                                 CampaignPlatoonService campaignPlatoonService,
                                 CampaignResolutionService campaignResolutionService,
                                 CampaignOnboardingService campaignOnboardingService,
+                                ObjectMapper objectMapper,
                                 @Value("${app.security.dev-auth.enabled:false}") boolean devAuthEnabled) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.campaignAuditLogRepository = campaignAuditLogRepository;
@@ -117,6 +124,7 @@ public class CampaignAdminService {
         this.campaignPlatoonService = campaignPlatoonService;
         this.campaignResolutionService = campaignResolutionService;
         this.campaignOnboardingService = campaignOnboardingService;
+        this.objectMapper = objectMapper;
         this.devAuthEnabled = devAuthEnabled;
     }
 
@@ -131,7 +139,24 @@ public class CampaignAdminService {
                 .orElseThrow(() -> new ApiException("USER_NOT_FOUND", HttpStatus.UNAUTHORIZED, "Authenticated user not found"));
 
         Campaign campaign = seedTemplateCampaign(name, creator);
+        if (Boolean.TRUE.equals(request.singlePlayer())) {
+            applySinglePlayerSetup(campaign, creator);
+        }
         return toLifecycleResponse(campaign);
+    }
+
+    private void applySinglePlayerSetup(Campaign campaign, User creator) {
+        // Flag this campaign as single player — the actual nation/CPU setup is done via the SP setup page
+        String meta = campaign.getMetadataJson() != null ? campaign.getMetadataJson() : "{}";
+        meta = meta.trim();
+        if (meta.endsWith("}")) {
+            String inner = meta.substring(1, meta.length() - 1).trim();
+            meta = inner.isEmpty()
+                    ? "{\"singlePlayer\":true}"
+                    : "{" + inner + ",\"singlePlayer\":true}";
+        }
+        campaign.setMetadataJson(meta);
+        campaignRepository.save(campaign);
     }
 
     @Transactional(readOnly = true)
@@ -256,6 +281,28 @@ public class CampaignAdminService {
         return membership;
     }
 
+    // Nation definitions matching NationDefinitions.ts — key, name, defaultFactionKey
+    private static final List<String[]> NATION_DEFS = List.of(
+            new String[]{"great_britain", "Great Britain", "allies"},
+            new String[]{"france", "France", "allies"},
+            new String[]{"belgium", "Belgium", "allies"},
+            new String[]{"netherlands", "The Netherlands", "allies"},
+            new String[]{"norway", "Norway", "allies"},
+            new String[]{"germany", "Germany", "axis"},
+            new String[]{"italy", "Italy", "axis"},
+            new String[]{"poland", "Poland", "allies"},
+            new String[]{"polish_ppa", "Polish People's Army", "ussr"},
+            new String[]{"soviet_union", "Soviet Union", "ussr"},
+            new String[]{"finland", "Finland", "axis"},
+            new String[]{"romania", "Romania", "axis"},
+            new String[]{"bulgaria", "Bulgaria", "axis"},
+            new String[]{"hungary", "Hungary", "axis"},
+            new String[]{"greece", "Greece", "allies"},
+            new String[]{"united_states", "United States", "allies"},
+            new String[]{"imperial_japan", "Imperial Japan", "axis"},
+            new String[]{"partisans", "Partisans", null}
+    );
+
     private Campaign seedTemplateCampaign(String name, User creator) {
         Campaign campaign = new Campaign();
         campaign.setName(name);
@@ -276,22 +323,51 @@ public class CampaignAdminService {
         gmMembership.setCampaign(savedCampaign);
         gmMembership.setUser(creator);
         gmMembership.setRole(CampaignRole.GM);
-        CampaignMember savedGmMembership = campaignMemberRepository.save(gmMembership);
+        campaignMemberRepository.save(gmMembership);
 
-        Theatre westernEurope = saveTheatre(savedCampaign, "WE", "Western Europe", 1);
-        saveTheatre(savedCampaign, "EE", "Eastern Europe", 2);
-        saveTheatre(savedCampaign, "NA", "North Africa", 3);
-        saveTheatre(savedCampaign, "PA", "Pacific", 4);
+        // Seed theatres and territories from JSON data file
+        java.util.Map<String, Theatre> theatreMap = new java.util.HashMap<>();
+        java.util.Map<String, Territory> territoryMap = new java.util.HashMap<>();
+        try {
+            ClassPathResource resource = new ClassPathResource("data/theatres_seed.json");
+            JsonNode root = objectMapper.readTree(resource.getInputStream());
+            int displayOrder = 1;
+            for (JsonNode theatreNode : root) {
+                String theatreId = theatreNode.get("theatreId").asText();
+                String theatreTitle = theatreNode.get("title").asText();
+                Theatre theatre = saveTheatre(savedCampaign, theatreId, theatreTitle, displayOrder++);
+                theatreMap.put(theatreId, theatre);
+                for (JsonNode terrNode : theatreNode.get("territories")) {
+                    String terrId = terrNode.get("id").asText();
+                    String terrName = terrNode.get("name").asText();
+                    Territory territory = saveTerritory(savedCampaign, theatre, terrId, terrName);
+                    territoryMap.put(terrId, territory);
+                }
+            }
+        } catch (IOException e) {
+            throw new ApiException("TEMPLATE_SEED_ERROR", HttpStatus.INTERNAL_SERVER_ERROR, "Failed to load map template data");
+        }
 
+        // Seed factions
         Faction allies = saveFaction(savedCampaign, "allies", "Allied Forces", "#2244aa");
         Faction axis = saveFaction(savedCampaign, "axis", "Axis Forces", "#772222");
+        Faction ussr = saveFaction(savedCampaign, "ussr", "Soviet Union", "#882222");
 
-        Nation greatBritain = saveNation(savedCampaign, allies, "great_britain", "Great Britain");
-        Nation germany = saveNation(savedCampaign, axis, "germany", "Germany");
+        java.util.Map<String, Faction> factionMap = new java.util.HashMap<>();
+        factionMap.put("allies", allies);
+        factionMap.put("axis", axis);
+        factionMap.put("ussr", ussr);
 
-        Territory normandy = saveTerritory(savedCampaign, westernEurope, "normandy", "Normandy");
-        Territory calais = saveTerritory(savedCampaign, westernEurope, "calais", "Calais");
+        // Seed all 18 nations
+        for (String[] nationDef : NATION_DEFS) {
+            String key = nationDef[0];
+            String nationName = nationDef[1];
+            String factionKey = nationDef[2];
+            Faction faction = factionKey != null ? factionMap.get(factionKey) : null;
+            saveNation(savedCampaign, faction, key, nationName);
+        }
 
+        // Seed Turn 1 and neutral territory states for all territories
         Turn currentTurn = new Turn();
         currentTurn.setCampaign(savedCampaign);
         currentTurn.setTurnNumber(1);
@@ -299,11 +375,9 @@ public class CampaignAdminService {
         currentTurn.setStartsAt(Instant.now());
         Turn savedTurn = turnRepository.save(currentTurn);
 
-        saveTerritoryState(savedTurn, normandy, allies, greatBritain);
-        saveTerritoryState(savedTurn, calais, axis, germany);
-
-        savePlatoon(savedCampaign, savedGmMembership, allies, greatBritain, normandy, savedTurn, "allies-1", "Allied 1st Platoon");
-        savePlatoon(savedCampaign, null, axis, germany, calais, savedTurn, "axis-1", "Axis 1st Platoon");
+        for (Territory territory : territoryMap.values()) {
+            saveNeutralTerritoryState(savedTurn, territory);
+        }
 
         return savedCampaign;
     }
@@ -357,16 +431,16 @@ public class CampaignAdminService {
         return territoryRepository.save(territory);
     }
 
-    private void saveTerritoryState(Turn turn, Territory territory, Faction faction, Nation nation) {
+    private void saveNeutralTerritoryState(Turn turn, Territory territory) {
         TerritoryState territoryState = new TerritoryState();
         territoryState.setTurn(turn);
         territoryState.setTerritory(territory);
-        territoryState.setControllingFaction(faction);
-        territoryState.setControllerNation(nation);
-        territoryState.setStrategicStatus(TerritoryStrategicStatus.CONTROLLED);
+        territoryState.setControllingFaction(null);
+        territoryState.setControllerNation(null);
+        territoryState.setStrategicStatus(TerritoryStrategicStatus.NEUTRAL);
         territoryState.setFortLevel(0);
         territoryState.setPartisanRisk(0);
-        territoryState.setSupplyStatus("SUPPLIED");
+        territoryState.setSupplyStatus("UNSUPPLIED");
         territoryStateRepository.save(territoryState);
     }
 

@@ -1,0 +1,5 @@
+apps/war-api/target/
+apps/war-ui/node_modules/
+apps/war-ui/dist/
+*.log
+.env

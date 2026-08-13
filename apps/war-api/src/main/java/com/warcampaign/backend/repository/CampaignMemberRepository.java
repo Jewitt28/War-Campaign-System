@@ -34,6 +34,10 @@ public interface CampaignMemberRepository extends JpaRepository<CampaignMember, 
 
     Optional<CampaignMember> findByIdAndCampaignId(UUID memberId, UUID campaignId);
 
+    @EntityGraph(attributePaths = {"user", "faction", "nation"})
+    @Query("select cm from CampaignMember cm where cm.campaign.id = :campaignId and cm.cpuControlled = true")
+    List<CampaignMember> findAllCpuMembersByCampaignId(UUID campaignId);
+
     long countByCampaignId(UUID campaignId);
 
     @Query("""

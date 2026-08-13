@@ -18,7 +18,7 @@ public class CampaignInvite extends BaseEntity {
     @JoinColumn(name = "invited_by_user_id", nullable = false)
     private User invitedBy;
 
-    @Column(nullable = false, length = 320)
+    @Column(length = 320)
     private String inviteeEmail;
 
     @Column(nullable = false, unique = true, length = 100)
@@ -34,6 +34,17 @@ public class CampaignInvite extends BaseEntity {
 
     @Column(nullable = false)
     private Instant expiresAt;
+
+    @Column(name = "open_invite", nullable = false)
+    private boolean openInvite = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_member_id")
+    private CampaignMember createdByMember;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "faction_invite_id")
+    private Faction factionInvite;
 
     public Campaign getCampaign() {
         return campaign;
@@ -89,5 +100,29 @@ public class CampaignInvite extends BaseEntity {
 
     public void setExpiresAt(Instant expiresAt) {
         this.expiresAt = expiresAt;
+    }
+
+    public boolean isOpenInvite() {
+        return openInvite;
+    }
+
+    public void setOpenInvite(boolean openInvite) {
+        this.openInvite = openInvite;
+    }
+
+    public CampaignMember getCreatedByMember() {
+        return createdByMember;
+    }
+
+    public void setCreatedByMember(CampaignMember createdByMember) {
+        this.createdByMember = createdByMember;
+    }
+
+    public Faction getFactionInvite() {
+        return factionInvite;
+    }
+
+    public void setFactionInvite(Faction factionInvite) {
+        this.factionInvite = factionInvite;
     }
 }

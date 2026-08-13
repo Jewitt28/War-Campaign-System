@@ -2,6 +2,11 @@ package com.warcampaign.backend.controller;
 
 import com.warcampaign.backend.dto.CampaignDetailResponse;
 import com.warcampaign.backend.dto.CampaignAuditLogResponse;
+import com.warcampaign.backend.dto.CreateSpCustomNationRequest;
+import com.warcampaign.backend.dto.SpNationSummaryResponse;
+import com.warcampaign.backend.dto.SpSetupDataResponse;
+import com.warcampaign.backend.dto.SpSetupRequest;
+import com.warcampaign.backend.dto.SpSetupResponse;
 import com.warcampaign.backend.dto.CampaignInviteAdminResponse;
 import com.warcampaign.backend.dto.CampaignLifecycleResponse;
 import com.warcampaign.backend.dto.CampaignChatMessageResponse;
@@ -40,7 +45,9 @@ import com.warcampaign.backend.dto.UpdateCampaignMemberRequest;
 import com.warcampaign.backend.dto.VisibilityRebuildResponse;
 import com.warcampaign.backend.service.AuthenticationService;
 import com.warcampaign.backend.service.CampaignAdminService;
+import com.warcampaign.backend.service.SinglePlayerSetupService;
 import com.warcampaign.backend.service.CampaignBattleService;
+import com.warcampaign.backend.service.InviteAcceptanceService;
 import com.warcampaign.backend.service.CampaignChatService;
 import com.warcampaign.backend.service.CampaignLobbyService;
 import com.warcampaign.backend.service.CampaignMapBridgeService;
@@ -69,6 +76,7 @@ public class CampaignController {
 
     private final CampaignLobbyService campaignLobbyService;
     private final CampaignMapService campaignMapService;
+    private final SinglePlayerSetupService singlePlayerSetupService;
     private final CampaignMapBridgeService campaignMapBridgeService;
     private final CampaignPlatoonService campaignPlatoonService;
     private final CampaignOnboardingService campaignOnboardingService;
@@ -79,6 +87,7 @@ public class CampaignController {
     private final CampaignVisibilityService campaignVisibilityService;
     private final CampaignAdminService campaignAdminService;
     private final CampaignChatService campaignChatService;
+    private final InviteAcceptanceService inviteAcceptanceService;
     private final AuthenticationService authenticationService;
 
     public CampaignController(CampaignLobbyService campaignLobbyService,
@@ -93,9 +102,12 @@ public class CampaignController {
                               CampaignVisibilityService campaignVisibilityService,
                               CampaignAdminService campaignAdminService,
                               CampaignChatService campaignChatService,
-                              AuthenticationService authenticationService) {
+                              InviteAcceptanceService inviteAcceptanceService,
+                              AuthenticationService authenticationService,
+                              SinglePlayerSetupService singlePlayerSetupService) {
         this.campaignLobbyService = campaignLobbyService;
         this.campaignMapService = campaignMapService;
+        this.singlePlayerSetupService = singlePlayerSetupService;
         this.campaignMapBridgeService = campaignMapBridgeService;
         this.campaignPlatoonService = campaignPlatoonService;
         this.campaignOnboardingService = campaignOnboardingService;
@@ -106,6 +118,7 @@ public class CampaignController {
         this.campaignVisibilityService = campaignVisibilityService;
         this.campaignAdminService = campaignAdminService;
         this.campaignChatService = campaignChatService;
+        this.inviteAcceptanceService = inviteAcceptanceService;
         this.authenticationService = authenticationService;
     }
 
@@ -295,6 +308,13 @@ public class CampaignController {
         return campaignAdminService.revokeInvite(campaignId, inviteId, authenticationService.currentUser());
     }
 
+    @PostMapping("/{campaignId}/invites/player")
+    public com.warcampaign.backend.dto.CreatePlayerInviteResponse createPlayerInvite(
+            @PathVariable UUID campaignId,
+            @RequestBody(required = false) com.warcampaign.backend.dto.CreatePlayerInviteRequest request) {
+        return inviteAcceptanceService.createPlayerInvite(campaignId, request, authenticationService.currentUser());
+    }
+
     @GetMapping("/{campaignId}/world-chat")
     public List<CampaignChatMessageResponse> getWorldChat(@PathVariable UUID campaignId) {
         return campaignChatService.listWorldMessages(campaignId, authenticationService.currentUser());
@@ -329,6 +349,23 @@ public class CampaignController {
     @PostMapping("/{campaignId}/snapshots/export")
     public CampaignSnapshotExportResponse exportSnapshot(@PathVariable UUID campaignId) {
         return campaignAdminService.exportSnapshot(campaignId, authenticationService.currentUser());
+    }
+
+    @GetMapping("/{campaignId}/sp-setup")
+    public SpSetupDataResponse getSpSetupData(@PathVariable UUID campaignId) {
+        return singlePlayerSetupService.getSetupData(campaignId, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/sp-setup")
+    public SpSetupResponse completeSpSetup(@PathVariable UUID campaignId,
+                                           @RequestBody SpSetupRequest request) {
+        return singlePlayerSetupService.completeSinglePlayerSetup(campaignId, request, authenticationService.currentUser());
+    }
+
+    @PostMapping("/{campaignId}/sp-setup/nations")
+    public SpNationSummaryResponse createSpCustomNation(@PathVariable UUID campaignId,
+                                                        @RequestBody CreateSpCustomNationRequest request) {
+        return singlePlayerSetupService.createCustomNation(campaignId, request, authenticationService.currentUser());
     }
 
     @GetMapping("/{campaignId}/members")

@@ -116,16 +116,18 @@ public class CampaignMapService {
     }
 
     private List<MapTerritorySummaryResponse> resolveMapTerritories(Campaign campaign, CampaignMember membership, int turnNumber) {
-        if (membership.getRole() == CampaignRole.GM || membership.getFaction() == null) {
-            return territoryStateRepository.findAllByCampaignIdAndTurnNumber(campaign.getId(), turnNumber).stream()
-                    .sorted(Comparator.comparing(state -> state.getTerritory().getName()))
-                    .map(this::toTerritorySummaryResponse)
+        // Anyone with a faction assigned sees through fog of war (handles SP GMs playing as a nation)
+        // No faction = full visibility (multi-player GMs, unaligned members)
+        if (membership.getFaction() != null) {
+            return campaignVisibilityService.ensureVisibility(campaign, membership.getFaction()).stream()
+                    .filter(visibilityState -> visibilityState.getVisibilityLevel() != VisibilityLevel.UNKNOWN)
+                    .map(this::toVisibleTerritorySummaryResponse)
                     .toList();
         }
 
-        return campaignVisibilityService.ensureVisibility(campaign, membership.getFaction()).stream()
-                .filter(visibilityState -> visibilityState.getVisibilityLevel() != VisibilityLevel.UNKNOWN)
-                .map(this::toVisibleTerritorySummaryResponse)
+        return territoryStateRepository.findAllByCampaignIdAndTurnNumber(campaign.getId(), turnNumber).stream()
+                .sorted(Comparator.comparing(state -> state.getTerritory().getName()))
+                .map(this::toTerritorySummaryResponse)
                 .toList();
     }
 

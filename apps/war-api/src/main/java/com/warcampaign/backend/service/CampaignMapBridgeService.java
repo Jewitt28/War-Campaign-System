@@ -408,11 +408,16 @@ public class CampaignMapBridgeService {
         if (defaultFactionKey == null) {
             defaultFactionKey = nation.getFaction() != null ? nation.getFaction().getFactionKey() : "neutral";
         }
+        // Prefer metadata color, fall back to the dedicated nation.color column (set by SP setup)
+        String color = readText(metadata, "color");
+        if (color == null) {
+            color = nation.getColor();
+        }
         return new CampaignBridgeCustomNationResponse(
                 nation.getNationKey(),
                 nation.getName(),
                 defaultFactionKey,
-                readText(metadata, "color")
+                color
         );
     }
 

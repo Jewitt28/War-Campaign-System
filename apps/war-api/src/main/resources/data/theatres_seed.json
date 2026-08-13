@@ -1,0 +1,266 @@
+[
+  {
+    "theatreId": "WE",
+    "title": "W. Europe",
+    "territories": [
+      {
+        "id": "WE-01",
+        "name": "Northern Britain"
+      },
+      {
+        "id": "WE-02",
+        "name": "Southern Britain (London & Ports)"
+      },
+      {
+        "id": "WE-03",
+        "name": "Ireland"
+      },
+      {
+        "id": "WE-04",
+        "name": "Channel Coast & Normandy"
+      },
+      {
+        "id": "WE-05",
+        "name": "Paris Basin"
+      },
+      {
+        "id": "WE-06",
+        "name": "Southern France"
+      },
+      {
+        "id": "WE-07",
+        "name": "Benelux"
+      },
+      {
+        "id": "WE-08",
+        "name": "Ruhr & Rhineland (Industry Hub)"
+      },
+      {
+        "id": "WE-09",
+        "name": "Central Germany (Berlin Axis)"
+      },
+      {
+        "id": "WE-10",
+        "name": "Northern Italy (Po Valley)"
+      },
+      {
+        "id": "WE-11",
+        "name": "Southern Italy & Sicily"
+      },
+      {
+        "id": "WE-12",
+        "name": "Alpine Front"
+      },
+      {
+        "id": "WE-13",
+        "name": "Denmark"
+      },
+      {
+        "id": "WE-14",
+        "name": "Southern Spain & Gibraltar"
+      },
+      {
+        "id": "WE-15",
+        "name": "Norway"
+      }
+    ]
+  },
+  {
+    "theatreId": "EE",
+    "title": "E. Europe",
+    "territories": [
+      {
+        "id": "EE-01",
+        "name": "Finland & Karelia (Winter Front)"
+      },
+      {
+        "id": "EE-02",
+        "name": "Baltic States"
+      },
+      {
+        "id": "EE-03",
+        "name": "Belarus (Minsk Axis)"
+      },
+      {
+        "id": "EE-04",
+        "name": "Smolensk Corridor"
+      },
+      {
+        "id": "EE-05",
+        "name": "Moscow Region"
+      },
+      {
+        "id": "EE-06",
+        "name": "Leningrad Region"
+      },
+      {
+        "id": "EE-07",
+        "name": "West Poland"
+      },
+      {
+        "id": "EE-08",
+        "name": "East Poland"
+      },
+      {
+        "id": "EE-09",
+        "name": "Ukraine North (Kyiv/Dnieper River)"
+      },
+      {
+        "id": "EE-10",
+        "name": "Donbas (East Industry)"
+      },
+      {
+        "id": "EE-11",
+        "name": "Crimea"
+      },
+      {
+        "id": "EE-12",
+        "name": "Stalingrad / Lower Volga"
+      },
+      {
+        "id": "EE-13",
+        "name": "Caucasus & Baku"
+      },
+      {
+        "id": "EE-14",
+        "name": "Romania & Bulgaria"
+      },
+      {
+        "id": "EE-15",
+        "name": "Hungary / Slovakia / Balkans Gate"
+      }
+    ]
+  },
+  {
+    "theatreId": "NA",
+    "title": "N. Africa",
+    "territories": [
+      {
+        "id": "NA-01",
+        "name": "Casablanca, Morocco"
+      },
+      {
+        "id": "NA-02",
+        "name": "Oran / Western Algeria"
+      },
+      {
+        "id": "NA-03",
+        "name": "Algiers"
+      },
+      {
+        "id": "NA-04",
+        "name": "Tunisia West"
+      },
+      {
+        "id": "NA-05",
+        "name": "Tunis (Hub)"
+      },
+      {
+        "id": "NA-06",
+        "name": "Tripoli"
+      },
+      {
+        "id": "NA-07",
+        "name": "Fezzan (Deep Desert)"
+      },
+      {
+        "id": "NA-08",
+        "name": "El Agheila (Pivot)"
+      },
+      {
+        "id": "NA-09",
+        "name": "Sirte / Central Libya"
+      },
+      {
+        "id": "NA-10",
+        "name": "Benghazi"
+      },
+      {
+        "id": "NA-11",
+        "name": "Tobruk Hinterland"
+      },
+      {
+        "id": "NA-12",
+        "name": "Tobruk"
+      },
+      {
+        "id": "NA-13",
+        "name": "Siwa Oasis"
+      },
+      {
+        "id": "NA-14",
+        "name": "El Alamein"
+      },
+      {
+        "id": "NA-15",
+        "name": "Cairo & Suez"
+      }
+    ]
+  },
+  {
+    "theatreId": "PA",
+    "title": "Pacific",
+    "territories": [
+      {
+        "id": "PA-01",
+        "name": "Japan North"
+      },
+      {
+        "id": "PA-02",
+        "name": "Japan South (Hub)"
+      },
+      {
+        "id": "PA-03",
+        "name": "Okinawa Approach"
+      },
+      {
+        "id": "PA-04",
+        "name": "Taiwan"
+      },
+      {
+        "id": "PA-05",
+        "name": "Philippines North"
+      },
+      {
+        "id": "PA-06",
+        "name": "Philippines South"
+      },
+      {
+        "id": "PA-07",
+        "name": "Malaya & Singapore"
+      },
+      {
+        "id": "PA-08",
+        "name": "Indochina / Thailand"
+      },
+      {
+        "id": "PA-09",
+        "name": "Dutch East Indies (Java)"
+      },
+      {
+        "id": "PA-10",
+        "name": "Dutch East Indies (Borneo / Sumatra)"
+      },
+      {
+        "id": "PA-11",
+        "name": "West Papua"
+      },
+      {
+        "id": "PA-12",
+        "name": "East Papua New Guinea"
+      },
+      {
+        "id": "PA-13",
+        "name": "Solomons Corridor"
+      },
+      {
+        "id": "PA-14",
+        "name": "Central Pacific Islands"
+      },
+      {
+        "id": "PA-15",
+        "name": "North Australia (Rear Hub)"
+      }
+    ]
+  }
+]

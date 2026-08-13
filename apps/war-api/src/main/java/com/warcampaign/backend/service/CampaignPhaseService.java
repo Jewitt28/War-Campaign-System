@@ -49,6 +49,7 @@ public class CampaignPhaseService {
     private final CampaignAuditLogRepository campaignAuditLogRepository;
     private final NotificationService notificationService;
     private final CampaignOnboardingService campaignOnboardingService;
+    private final CpuPlayerService cpuPlayerService;
     private final ObjectMapper objectMapper;
 
     public CampaignPhaseService(CampaignMemberRepository campaignMemberRepository,
@@ -58,6 +59,7 @@ public class CampaignPhaseService {
                                 CampaignAuditLogRepository campaignAuditLogRepository,
                                 NotificationService notificationService,
                                 CampaignOnboardingService campaignOnboardingService,
+                                CpuPlayerService cpuPlayerService,
                                 ObjectMapper objectMapper) {
         this.campaignMemberRepository = campaignMemberRepository;
         this.campaignRepository = campaignRepository;
@@ -66,6 +68,7 @@ public class CampaignPhaseService {
         this.campaignAuditLogRepository = campaignAuditLogRepository;
         this.notificationService = notificationService;
         this.campaignOnboardingService = campaignOnboardingService;
+        this.cpuPlayerService = cpuPlayerService;
         this.objectMapper = objectMapper;
     }
 
@@ -93,6 +96,23 @@ public class CampaignPhaseService {
         CampaignMember membership = campaignMemberRepository.findByCampaignIdAndUserIdWithCampaign(campaignId, authenticatedUser.id())
                 .orElseThrow(() -> new ApiException("CAMPAIGN_NOT_FOUND", HttpStatus.NOT_FOUND, "Campaign not found"));
         return toResponse(membership.getCampaign());
+    }
+
+    /**
+     * Advances a campaign's phase without requiring a GM user — used by the AI GM scheduler.
+     */
+    @Transactional
+    public void advancePhaseAsSystem(UUID campaignId) {
+        Campaign campaign = campaignRepository.findById(campaignId)
+                .orElseThrow(() -> new ApiException("CAMPAIGN_NOT_FOUND", HttpStatus.NOT_FOUND, "Campaign not found"));
+        CampaignPhase previousPhase = campaign.getCurrentPhase();
+        CampaignPhase nextPhase = NEXT_PHASES.get(previousPhase);
+        if (nextPhase == null) return;
+        TransitionSnapshot beforeSnapshot = snapshot(campaign);
+        applyPhaseTransition(campaign, previousPhase, nextPhase);
+        Campaign savedCampaign = campaignRepository.save(campaign);
+        writeSystemAuditLog(savedCampaign, beforeSnapshot, snapshot(savedCampaign));
+        notifyPhaseTransition(savedCampaign, previousPhase, nextPhase);
     }
 
     @Transactional
@@ -130,6 +150,10 @@ public class CampaignPhaseService {
 
         if (previousPhase == CampaignPhase.OPERATIONS) {
             autoLockValidatedSubmissions(campaign);
+        }
+
+        if (nextPhase == CampaignPhase.OPERATIONS) {
+            cpuPlayerService.generateOrdersForAllCpuMembers(campaign.getId(), campaign.getCurrentTurnNumber());
         }
 
         currentTurn.setPhase(nextPhase);

@@ -1,4 +1,4 @@
 package com.warcampaign.backend.dto;
 
-public record CreateCampaignRequest(String name) {
+public record CreateCampaignRequest(String name, Boolean singlePlayer) {
 }
