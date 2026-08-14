@@ -131,7 +131,11 @@ public class SinglePlayerSetupService {
 
         List<SpSetupDataResponse.TerritoryOptionDto> territories =
                 territoryRepository.findAllByCampaignIdOrderByNameAsc(campaignId).stream()
-                        .map(t -> new SpSetupDataResponse.TerritoryOptionDto(t.getTerritoryKey(), t.getName()))
+                        .map(t -> new SpSetupDataResponse.TerritoryOptionDto(
+                                t.getTerritoryKey(),
+                                t.getName(),
+                                t.getTheatre().getTheatreKey(),
+                                t.getTheatre().getName()))
                         .toList();
 
         return new SpSetupDataResponse(nations, territories);

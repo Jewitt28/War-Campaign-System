@@ -6,5 +6,5 @@ public record SpSetupDataResponse(
         List<SpNationSummaryResponse> nations,
         List<TerritoryOptionDto> territories
 ) {
-    public record TerritoryOptionDto(String key, String name) {}
+    public record TerritoryOptionDto(String key, String name, String theatreKey, String theatreName) {}
 }

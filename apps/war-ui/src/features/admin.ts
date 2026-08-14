@@ -308,7 +308,7 @@ export type SpNation = {
 
 export type SpSetupData = {
   nations: SpNation[]
-  territories: { key: string; name: string }[]
+  territories: { key: string; name: string; theatreKey: string; theatreName: string }[]
 }
 
 export type SpSetupNationChoice = {

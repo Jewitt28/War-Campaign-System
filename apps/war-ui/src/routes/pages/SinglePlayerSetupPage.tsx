@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useGetSpSetupData, useCompleteSpSetup, useCreateSpCustomNation } from '../../features/admin'
-import type { SpNation, SpSetupNationChoice } from '../../features/admin'
+import type { SpNation, SpSetupData, SpSetupNationChoice } from '../../features/admin'
 import { ColourSwatchPicker, Notice, SkeletonCard, StateCard } from '../components'
 import { OnboardingWalkthrough } from './onboarding/OnboardingWalkthrough'
 import { DEFAULT_WALKTHROUGH_STEPS } from './onboarding/walkthroughSteps'
@@ -26,6 +26,18 @@ const FACTION_OPTIONS = [
   { key: 'axis', label: 'Axis Powers' },
   { key: 'ussr', label: 'Soviet Bloc' },
 ]
+
+type SpTerritory = SpSetupData['territories'][number]
+
+function groupTerritoriesByTheatre(territories: SpTerritory[]): [string, SpTerritory[]][] {
+  const groups = new Map<string, SpTerritory[]>()
+  for (const territory of territories) {
+    const list = groups.get(territory.theatreName) ?? []
+    list.push(territory)
+    groups.set(territory.theatreName, list)
+  }
+  return Array.from(groups.entries())
+}
 
 function groupByFaction(nations: SpNation[]): [string | null, SpNation[]][] {
   const groups = new Map<string | null, SpNation[]>()
@@ -440,7 +452,7 @@ export function SinglePlayerSetupPage() {
 type NationRowProps = {
   nation: SpNation
   state: NationState
-  territories: { key: string; name: string }[]
+  territories: SpTerritory[]
   onAssignmentChange: (a: NationAssignment) => void
   onStrategyChange: (s: CpuStrategy) => void
   onHomelandChange: (key: string) => void
@@ -510,8 +522,12 @@ function NationRow({ nation, state, territories, onAssignmentChange, onStrategyC
           onChange={(e) => onHomelandChange(e.target.value)}
         >
           <option value="">— No homeland —</option>
-          {territories.map((t) => (
-            <option key={t.key} value={t.key}>{t.name}</option>
+          {groupTerritoriesByTheatre(territories).map(([theatreName, theatreTerritories]) => (
+            <optgroup key={theatreName} label={theatreName}>
+              {theatreTerritories.map((t) => (
+                <option key={t.key} value={t.key}>{t.name}</option>
+              ))}
+            </optgroup>
           ))}
         </select>
       ) : null}
