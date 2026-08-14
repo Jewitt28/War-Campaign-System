@@ -14,7 +14,7 @@ import {
   type OnboardingHomelandOption,
   type OnboardingNationOption,
 } from '../../features/onboarding'
-import { Notice, SkeletonCard, StateCard } from '../components'
+import { ColourSwatchPicker, Notice, SkeletonCard, StateCard } from '../components'
 import { OnboardingWalkthrough } from './onboarding/OnboardingWalkthrough'
 
 type StepName = 'FACTION' | 'NATION' | 'HOMELAND' | 'CONFIRM' | 'WAITING' | 'DONE'
@@ -248,10 +248,7 @@ export function CampaignOnboardingPage() {
                 Custom faction name
                 <input className="field-input" onChange={(event) => setCustomFactionName(event.target.value)} value={customFactionName} />
               </label>
-              <label className="field-label">
-                Custom faction color
-                <input className="field-input" onChange={(event) => setCustomFactionColor(event.target.value)} value={customFactionColor} />
-              </label>
+              <ColourSwatchPicker label="Custom faction color" value={customFactionColor} onChange={setCustomFactionColor} />
               <button className="button-link" disabled={!customFactionName.trim() || selectFaction.isPending} type="submit">
                 {selectFaction.isPending ? 'Saving faction...' : 'Create faction'}
               </button>
@@ -287,10 +284,7 @@ export function CampaignOnboardingPage() {
                 Custom nation name
                 <input className="field-input" onChange={(event) => setCustomNationName(event.target.value)} value={customNationName} />
               </label>
-              <label className="field-label">
-                Custom nation color
-                <input className="field-input" onChange={(event) => setCustomNationColor(event.target.value)} value={customNationColor} />
-              </label>
+              <ColourSwatchPicker label="Custom nation color" value={customNationColor} onChange={setCustomNationColor} />
               <button className="button-link" disabled={!customNationName.trim() || selectNation.isPending} type="submit">
                 {selectNation.isPending ? 'Saving nation...' : 'Create nation'}
               </button>

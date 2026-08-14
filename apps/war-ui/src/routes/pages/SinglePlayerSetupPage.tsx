@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useGetSpSetupData, useCompleteSpSetup, useCreateSpCustomNation } from '../../features/admin'
 import type { SpNation, SpSetupNationChoice } from '../../features/admin'
-import { Notice, SkeletonCard, StateCard } from '../components'
+import { ColourSwatchPicker, Notice, SkeletonCard, StateCard } from '../components'
 
 type NationAssignment = 'HUMAN' | 'CPU' | 'INACTIVE'
 type CpuStrategy = 'AGGRESSIVE' | 'DEFENSIVE' | 'BALANCED'
@@ -23,12 +23,6 @@ const FACTION_OPTIONS = [
   { key: 'allies', label: 'Allied Forces' },
   { key: 'axis', label: 'Axis Powers' },
   { key: 'ussr', label: 'Soviet Bloc' },
-]
-
-const COLOUR_SWATCHES = [
-  '#e63946', '#f4a261', '#e9c46a', '#2a9d8f',
-  '#457b9d', '#6a4c93', '#a8dadc', '#8ecae6',
-  '#52b788', '#c77dff', '#f77f00', '#b5838d',
 ]
 
 function groupByFaction(nations: SpNation[]): [string | null, SpNation[]][] {
@@ -287,40 +281,7 @@ export function SinglePlayerSetupPage() {
                 </select>
               </label>
             </div>
-            <div>
-              <p className="field-label" style={{ marginBottom: 8 }}>Nation colour (optional)</p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                {COLOUR_SWATCHES.map((hex) => (
-                  <button
-                    key={hex}
-                    type="button"
-                    onClick={() => setCustomNationColour(customNationColour === hex ? '' : hex)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      background: hex,
-                      border: customNationColour === hex ? '3px solid white' : '2px solid transparent',
-                      outline: customNationColour === hex ? '2px solid ' + hex : 'none',
-                      cursor: 'pointer',
-                      padding: 0,
-                      flexShrink: 0,
-                    }}
-                    aria-label={hex}
-                  />
-                ))}
-                {customNationColour ? (
-                  <button
-                    type="button"
-                    className="button-secondary"
-                    style={{ fontSize: '0.75rem', padding: '2px 10px' }}
-                    onClick={() => setCustomNationColour('')}
-                  >
-                    Clear
-                  </button>
-                ) : null}
-              </div>
-            </div>
+            <ColourSwatchPicker label="Nation colour (optional)" value={customNationColour} onChange={setCustomNationColour} />
             <div className="button-row">
               <button
                 className="button-link"

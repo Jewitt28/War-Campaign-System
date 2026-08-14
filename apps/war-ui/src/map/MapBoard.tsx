@@ -10,6 +10,7 @@ import { getEffectiveVisibility as getRulesVisibility } from "../data/visibility
 import { visibilityOrder, type VisibilityLevel } from "../data/visibility";
 import {
   useCampaignStore,
+  type CustomFaction,
   type CustomNation,
   type FactionKey,
   type OwnerKey,
@@ -32,18 +33,27 @@ type ViewBox = { x: number; y: number; w: number; h: number };
 type HoverState = { tid: string; x: number; y: number } | null;
 
 const baseFactionColors: Record<"allies" | "axis" | "ussr", string> = {
-  allies: "#2563eb",
-  axis: "#dc2626",
-  ussr: "#f97316",
+  allies: "#2f5d8c",
+  axis: "#9c2b1f",
+  ussr: "#b5651d",
 };
-const neutralFactionColor = "#6b7280";
+// Fill for territories nobody controls.
+const UNOWNED_FILL = "#c4bca8";
+// Fill/ring fallback for nations with no allies/axis/ussr/custom faction ("Unaligned").
+const NEUTRAL_TONE = "#7b7361";
+const neutralFactionColor = NEUTRAL_TONE;
+const CREAM_INSET = "#e8e2d4";
+const INK_RING = "#1c1a15";
+const RING_WIDTH = 1.6;
+const INSET_WIDTH = 1.6;
+const SELECTED_HALO_WIDTH = 2;
 
 // ✅ borders ALWAYS visible (strategy/planning)
 const BORDER_STROKE = "rgba(255,255,255,.55)";
 const BORDER_WIDTH = "1.25";
 
 function getOwnerFill(owner: OwnerKey, customNations: CustomNation[]) {
-  if (owner === "neutral") return neutralFactionColor;
+  if (owner === "neutral") return UNOWNED_FILL;
   if (owner === "contested") return "#a855f7";
   const customNation = owner.startsWith("custom:")
     ? customNations.find((n) => n.id === owner)
@@ -77,6 +87,147 @@ function getNationAccent(nation: string, customNations: CustomNation[]) {
     return baseFactionColors[defaultFaction as keyof typeof baseFactionColors];
   }
   return neutralFactionColor;
+}
+
+// Ring colour = the OWNING NATION'S FACTION colour (never the nation's own
+// custom colour) so fill (nation) and ring (faction) can never collide by
+// construction. Returns null when the territory shouldn't show a ring at all
+// (unowned). Contested territories are handled separately (ink ring).
+function getFactionRingColor(
+  owner: OwnerKey,
+  customNations: CustomNation[],
+  customs: CustomFaction[],
+): string | null {
+  if (owner === "neutral" || owner === "contested") return null;
+  const defaultFaction = getDefaultFactionForNation(owner, customNations);
+  if (defaultFaction && defaultFaction in baseFactionColors) {
+    return baseFactionColors[defaultFaction as keyof typeof baseFactionColors];
+  }
+  if (defaultFaction?.startsWith("custom:")) {
+    const id = defaultFaction.slice("custom:".length);
+    const customFaction = customs.find((c) => c.id === id);
+    if (customFaction?.color) return customFaction.color;
+  }
+  // "neutral" defaultFaction, or unresolved -> Unaligned nation.
+  return NEUTRAL_TONE;
+}
+
+// Creates (or reuses) a 45deg two-colour diagonal stripe pattern for a
+// contested territory, keyed by the two claimants' fill colours.
+function ensureContestedPattern(
+  svg: SVGSVGElement,
+  colorA: string,
+  colorB: string,
+): string {
+  const safe = (c: string) => c.replace(/[^a-zA-Z0-9]/g, "");
+  const patternId = `contested-${safe(colorA)}-${safe(colorB)}`;
+  let defs = svg.querySelector<SVGDefsElement>("defs");
+  if (!defs) {
+    defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    svg.insertBefore(defs, svg.firstChild);
+  }
+  if (!defs.querySelector(`#${CSS.escape(patternId)}`)) {
+    const pattern = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "pattern",
+    );
+    pattern.setAttribute("id", patternId);
+    pattern.setAttribute("width", "8");
+    pattern.setAttribute("height", "8");
+    pattern.setAttribute("patternUnits", "userSpaceOnUse");
+    pattern.setAttribute("patternTransform", "rotate(45)");
+
+    const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    bg.setAttribute("width", "8");
+    bg.setAttribute("height", "8");
+    bg.setAttribute("fill", colorA);
+    pattern.appendChild(bg);
+
+    const stripe = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "rect",
+    );
+    stripe.setAttribute("width", "4");
+    stripe.setAttribute("height", "8");
+    stripe.setAttribute("fill", colorB);
+    pattern.appendChild(stripe);
+
+    defs.appendChild(pattern);
+  }
+  return `url(#${patternId})`;
+}
+
+function ensureLayerGroup(svg: SVGSVGElement, id: string): SVGGElement {
+  let layer = svg.querySelector<SVGGElement>(`#${CSS.escape(id)}`);
+  if (!layer) {
+    layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    layer.setAttribute("id", id);
+    layer.style.pointerEvents = "none";
+    svg.appendChild(layer);
+  }
+  return layer;
+}
+
+// Draws the fill/ring/cream-inset "onion" for one territory shape into an
+// overlay group, bottom to top: (optional) ink selection halo, ring colour,
+// cream inset. The nation's own fill (drawn on the base <path> beneath this
+// overlay) shows through the untouched interior.
+//
+// Uses independent <path> elements with the *geometry copied* from the base
+// shape, not <use href="#id">: a <use> clones the referenced element's own
+// inline style along with its geometry, and that cloned inline stroke (the
+// base border applyFogStyles already set) wins over anything set on the
+// <use> itself, since a shadow instance's own explicit style can't be
+// overridden by its referencing ancestor. Copying just `d` sidesteps that.
+function drawOwnershipRing(
+  layer: SVGGElement,
+  shapeId: string,
+  pathD: string,
+  opts: { ringColor: string; dashed?: boolean; selected?: boolean },
+) {
+  const addRing = (stroke: string, width: number, dashed?: boolean) => {
+    const ring = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    ring.setAttribute("d", pathD);
+    ring.setAttribute("fill", "none");
+    ring.setAttribute("stroke", stroke);
+    ring.setAttribute("stroke-width", String(width));
+    ring.setAttribute("data-ring-for", shapeId);
+    ring.setAttribute("vector-effect", "non-scaling-stroke");
+    if (dashed) ring.setAttribute("stroke-dasharray", "3 2");
+    layer.appendChild(ring);
+  };
+
+  if (opts.selected) {
+    addRing(INK_RING, 2 * (INSET_WIDTH + RING_WIDTH + SELECTED_HALO_WIDTH));
+  }
+  addRing(opts.ringColor, 2 * (INSET_WIDTH + RING_WIDTH), opts.dashed);
+  addRing(CREAM_INSET, 2 * INSET_WIDTH);
+}
+
+// Selected-state addition: a 2px ink halo drawn just outside whatever ring
+// drawOwnershipRing already laid down for this shape. Inserted *before* that
+// shape's existing ring/inset elements (rather than appended) so it paints
+// underneath them and only its outer excess is visible, per the onion
+// layering the ring/inset themselves rely on.
+function drawSelectionHalo(layer: SVGGElement, shapeId: string, pathD: string) {
+  const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  halo.setAttribute("d", pathD);
+  halo.setAttribute("fill", "none");
+  halo.setAttribute("stroke", INK_RING);
+  halo.setAttribute(
+    "stroke-width",
+    String(2 * (INSET_WIDTH + RING_WIDTH + SELECTED_HALO_WIDTH)),
+  );
+  halo.setAttribute("vector-effect", "non-scaling-stroke");
+
+  const existingRing = layer.querySelector(
+    `[data-ring-for="${CSS.escape(shapeId)}"]`,
+  );
+  if (existingRing) {
+    layer.insertBefore(halo, existingRing);
+  } else {
+    layer.appendChild(halo);
+  }
 }
 
 function isGMEffective(mode: "SETUP" | "PLAY", viewerMode: "PLAYER" | "GM") {
@@ -483,6 +634,8 @@ export default function MapBoard() {
       clearSelectionStyles(svg);
 
       const homelandId = homelandsByNation?.[viewerNation] ?? null;
+      const ringLayer = ensureLayerGroup(svg, "ownership-rings");
+      ringLayer.innerHTML = "";
 
       allowedShapeIds.forEach((shapeId) => {
         const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(shapeId)}`);
@@ -500,6 +653,8 @@ export default function MapBoard() {
         const level = getEffectiveVisibility(territory.id);
         const canInteract = gmEffective || level !== "NONE";
         const owner = ownerByTerritory[territory.id] ?? "neutral";
+        const contest =
+          owner === "contested" ? contestsByTerritory[territory.id] : null;
 
         // ✅ borders always visible
         p.style.stroke = BORDER_STROKE;
@@ -509,23 +664,46 @@ export default function MapBoard() {
         p.style.cursor = canInteract ? "pointer" : "default";
         p.style.pointerEvents = canInteract ? "auto" : "none";
 
+        const resolvedFill = contest
+          ? ensureContestedPattern(
+              svg,
+              getOwnerFill(contest.attackerFaction, customNations),
+              getOwnerFill(contest.defenderFaction, customNations),
+            )
+          : getOwnerFill(owner, customNations);
+
         // v1 fog fills
         if (level === "NONE") {
           p.style.fillOpacity = "0.78";
           p.style.fill = "#000";
         } else if (level === "KNOWN") {
           p.style.fillOpacity = "0.45";
-          p.style.fill =
-            owner === "contested" ? getOwnerFill(owner, customNations) : "#111";
+          p.style.fill = owner === "contested" ? resolvedFill : "#111";
         } else if (level === "SCOUTED") {
           p.style.fillOpacity = "0.65";
           p.style.fill =
-            owner === "contested"
-              ? getOwnerFill(owner, customNations)
-              : p.dataset.baseFill!;
+            owner === "contested" ? resolvedFill : p.dataset.baseFill!;
         } else {
           p.style.fillOpacity = "0.9";
-          p.style.fill = getOwnerFill(owner, customNations);
+          p.style.fill = resolvedFill;
+        }
+
+        // Ownership ring (fill/faction/inset "onion") — only once ownership
+        // itself is revealed: contested territories are always shown at
+        // KNOWN+, individual owners only once FULL. Unowned tiles stay flat
+        // (no ring), matching the design's "ringless means uncontrolled".
+        const pathD = p.getAttribute("d") ?? "";
+        if (owner === "contested" && contest && level !== "NONE") {
+          drawOwnershipRing(ringLayer, shapeId, pathD, { ringColor: INK_RING });
+        } else if (
+          owner !== "neutral" &&
+          owner !== "contested" &&
+          level === "FULL"
+        ) {
+          const ringColor = getFactionRingColor(owner, customNations, customs);
+          if (ringColor) {
+            drawOwnershipRing(ringLayer, shapeId, pathD, { ringColor });
+          }
         }
 
         // homeland ring (still visible even if fogged)
@@ -545,7 +723,9 @@ export default function MapBoard() {
       shapeToTerritory,
       getEffectiveVisibility,
       ownerByTerritory,
+      contestsByTerritory,
       customNations,
+      customs,
       homelandsByNation,
       viewerNation,
       gmEffective,
@@ -579,12 +759,25 @@ export default function MapBoard() {
         p.style.strokeWidth = "2";
         (p.style as any).vectorEffect = "non-scaling-stroke";
       });
+
+      // Ink halo outside the ownership ring — only meaningful for owned
+      // territories, unowned tiles stay ringless even when selected.
+      const owner = ownerByTerritory[territory.id] ?? "neutral";
+      if (owner !== "neutral") {
+        const ringLayer = ensureLayerGroup(svg, "ownership-rings");
+        territory.shapeRefs.forEach((id) => {
+          const p = svg.querySelector<SVGPathElement>(`#${CSS.escape(id)}`);
+          if (!p) return;
+          drawSelectionHalo(ringLayer, id, p.getAttribute("d") ?? "");
+        });
+      }
     },
     [
       getEffectiveVisibility,
       gmEffective,
       regionTerritoriesById,
       territoriesById,
+      ownerByTerritory,
     ],
   );
   const orderTargetTerritories = useMemo(() => {
@@ -681,16 +874,10 @@ export default function MapBoard() {
     },
     [applyFogStyles, applyOrderTargets, highlightTerritory, territoriesById],
   );
-  const ensureOverlayLayer = useCallback((svg: SVGSVGElement, id: string) => {
-    let layer = svg.querySelector<SVGGElement>(`#${CSS.escape(id)}`);
-    if (!layer) {
-      layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      layer.setAttribute("id", id);
-      layer.style.pointerEvents = "none";
-      svg.appendChild(layer);
-    }
-    return layer;
-  }, []);
+  const ensureOverlayLayer = useCallback(
+    (svg: SVGSVGElement, id: string) => ensureLayerGroup(svg, id),
+    [],
+  );
 
   const centroidCacheRef = useRef<Map<string, { x: number; y: number }>>(
     new Map(),
@@ -1294,8 +1481,44 @@ export default function MapBoard() {
               </div>
 
               {redact.showOwner && (
-                <div style={{ opacity: 0.9 }}>
-                  <b>Owner:</b> {nationLabel(owner, customNations)}
+                <div
+                  style={{
+                    opacity: 0.9,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <b>Owner:</b>
+                  {owner !== "neutral" && owner !== "contested" && (
+                    <span style={{ display: "inline-flex", gap: 3 }}>
+                      <span
+                        title="Nation colour"
+                        style={{
+                          width: 9,
+                          height: 9,
+                          borderRadius: 2,
+                          background: getOwnerFill(owner, customNations),
+                          border: "1px solid rgba(255,255,255,.35)",
+                          display: "inline-block",
+                        }}
+                      />
+                      <span
+                        title="Faction colour"
+                        style={{
+                          width: 9,
+                          height: 9,
+                          borderRadius: "50%",
+                          border: `2px solid ${
+                            getFactionRingColor(owner, customNations, customs) ??
+                            "rgba(255,255,255,.35)"
+                          }`,
+                          display: "inline-block",
+                        }}
+                      />
+                    </span>
+                  )}
+                  {nationLabel(owner, customNations)}
                 </div>
               )}
 

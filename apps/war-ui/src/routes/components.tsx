@@ -87,3 +87,54 @@ export function NavAction({ to, children }: NavActionProps) {
     </NavLink>
   )
 }
+
+export const COLOUR_SWATCHES = [
+  '#e63946', '#f4a261', '#e9c46a', '#2a9d8f',
+  '#457b9d', '#6a4c93', '#a8dadc', '#8ecae6',
+  '#52b788', '#c77dff', '#f77f00', '#b5838d',
+]
+
+type ColourSwatchPickerProps = {
+  value: string
+  onChange: (value: string) => void
+  label?: string
+}
+
+export function ColourSwatchPicker({ value, onChange, label }: ColourSwatchPickerProps) {
+  return (
+    <div>
+      {label ? <p className="field-label" style={{ marginBottom: 8 }}>{label}</p> : null}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {COLOUR_SWATCHES.map((hex) => (
+          <button
+            key={hex}
+            type="button"
+            onClick={() => onChange(value === hex ? '' : hex)}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              background: hex,
+              border: value === hex ? '3px solid white' : '2px solid transparent',
+              outline: value === hex ? '2px solid ' + hex : 'none',
+              cursor: 'pointer',
+              padding: 0,
+              flexShrink: 0,
+            }}
+            aria-label={hex}
+          />
+        ))}
+        {value ? (
+          <button
+            type="button"
+            className="button-secondary"
+            style={{ fontSize: '0.75rem', padding: '2px 10px' }}
+            onClick={() => onChange('')}
+          >
+            Clear
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
