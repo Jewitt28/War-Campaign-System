@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useGetSpSetupData, useCompleteSpSetup, useCreateSpCustomNation } from '../../features/admin'
 import type { SpNation, SpSetupNationChoice } from '../../features/admin'
 import { ColourSwatchPicker, Notice, SkeletonCard, StateCard } from '../components'
+import { OnboardingWalkthrough } from './onboarding/OnboardingWalkthrough'
+import { DEFAULT_WALKTHROUGH_STEPS } from './onboarding/walkthroughSteps'
 
 type NationAssignment = 'HUMAN' | 'CPU' | 'INACTIVE'
 type CpuStrategy = 'AGGRESSIVE' | 'DEFENSIVE' | 'BALANCED'
@@ -50,6 +52,9 @@ export function SinglePlayerSetupPage() {
   const [assignments, setAssignments] = useState<Record<string, NationState>>({})
   const [groupByFactionEnabled, setGroupByFactionEnabled] = useState(true)
   const [setupResult, setSetupResult] = useState<{ humanNationName: string; cpuCount: number; redirectPath: string } | null>(null)
+  const [step, setStep] = useState<'ASSIGN' | 'CONFIRM'>('ASSIGN')
+  const [tutorialOpen, setTutorialOpen] = useState(false)
+  const [tutorialStep, setTutorialStep] = useState(0)
 
   // Custom nation form state
   const [customNationName, setCustomNationName] = useState('')
@@ -95,10 +100,13 @@ export function SinglePlayerSetupPage() {
 
   const humanCount = Object.values(assignments).filter((s) => s.assignment === 'HUMAN').length
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleReview(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (humanCount !== 1) return
+    setStep('CONFIRM')
+  }
 
+  async function handleConfirmStart() {
     const nations: SpSetupNationChoice[] = (setupData.data?.nations ?? []).map((n) => {
       const state = getState(n.nationKey)
       return {
@@ -116,6 +124,8 @@ export function SinglePlayerSetupPage() {
       cpuCount: result.cpuNationCount,
       redirectPath: result.redirectPath,
     })
+    setTutorialOpen(true)
+    setTutorialStep(0)
   }
 
   async function handleCreateCustomNation(event: React.FormEvent<HTMLFormElement>) {
@@ -170,6 +180,17 @@ export function SinglePlayerSetupPage() {
             </button>
           </div>
         </section>
+
+        <OnboardingWalkthrough
+          currentStep={tutorialStep}
+          open={tutorialOpen}
+          onClose={() => setTutorialOpen(false)}
+          onFinish={() => setTutorialOpen(false)}
+          onNext={() => setTutorialStep((value) => Math.min(value + 1, DEFAULT_WALKTHROUGH_STEPS.length - 1))}
+          onPrevious={() => setTutorialStep((value) => Math.max(value - 1, 0))}
+          onSkip={() => setTutorialOpen(false)}
+          steps={DEFAULT_WALKTHROUGH_STEPS}
+        />
       </section>
     )
   }
@@ -196,24 +217,31 @@ export function SinglePlayerSetupPage() {
   const territories = setupData.data.territories
   const grouped = groupByFaction(nations)
 
+  const humanNation = nations.find((n) => getState(n.nationKey).assignment === 'HUMAN')
+  const activeNations = nations.filter((n) => getState(n.nationKey).assignment !== 'INACTIVE')
+  const cpuNations = nations.filter((n) => getState(n.nationKey).assignment === 'CPU')
+  const inactiveCount = nations.length - activeNations.length
+  const opposingActiveCount = activeNations.filter((n) => n.factionKey !== humanNation?.factionKey).length
+
   return (
     <section className="page-stack">
       {/* Step breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'var(--muted, #94a3b8)', marginBottom: 4 }}>
         <span style={{ opacity: 0.5 }}>1. Create campaign</span>
         <span>→</span>
-        <span style={{ color: 'var(--text, #fff)', fontWeight: 600 }}>2. Nation setup</span>
+        <span style={{ color: step === 'ASSIGN' ? 'var(--text, #fff)' : undefined, opacity: step === 'ASSIGN' ? 1 : 0.5, fontWeight: step === 'ASSIGN' ? 600 : undefined }}>2. Nation setup</span>
         <span>→</span>
-        <span style={{ opacity: 0.5 }}>3. Start game</span>
+        <span style={{ color: step === 'CONFIRM' ? 'var(--text, #fff)' : undefined, opacity: step === 'CONFIRM' ? 1 : 0.5, fontWeight: step === 'CONFIRM' ? 600 : undefined }}>3. Review &amp; start</span>
       </div>
 
       <div className="page-header">
         <div className="page-header-copy">
           <p className="eyebrow">Single player setup</p>
-          <h1 className="page-title">Assign nations</h1>
+          <h1 className="page-title">{step === 'ASSIGN' ? 'Assign nations' : 'Review setup'}</h1>
           <p className="muted">
-            Choose one nation to play as. Assign the rest as CPU opponents or leave them inactive.
-            CPU nations will have orders auto-generated each turn.
+            {step === 'ASSIGN'
+              ? 'Choose one nation to play as. Assign the rest as CPU opponents or leave them inactive. CPU nations will have orders auto-generated each turn.'
+              : 'Check your assignments before starting. You can still go back and change anything.'}
           </p>
         </div>
         <div className="pill-row">
@@ -225,6 +253,49 @@ export function SinglePlayerSetupPage() {
         </div>
       </div>
 
+      {step === 'CONFIRM' ? (
+        <section className="surface-card surface-card-strong page-card page-stack">
+          <p className="eyebrow">Summary</p>
+          <h2 className="detail-title">You will play as {humanNation?.name ?? 'Unknown nation'}</h2>
+          <div className="detail-list">
+            <div className="detail-row">
+              <dt>Your faction</dt>
+              <dd>{humanNation?.factionName ?? 'Unaligned'}</dd>
+            </div>
+            <div className="detail-row">
+              <dt>CPU opponents</dt>
+              <dd>
+                {cpuNations.length === 0
+                  ? 'None'
+                  : cpuNations.map((n) => `${n.name} (${n.factionName ?? 'Unaligned'})`).join(', ')}
+              </dd>
+            </div>
+            <div className="detail-row">
+              <dt>Inactive nations</dt>
+              <dd>{inactiveCount}</dd>
+            </div>
+          </div>
+          {cpuNations.length === 0 ? (
+            <Notice>No CPU opponents assigned — this will be a sandbox campaign with no AI resistance.</Notice>
+          ) : opposingActiveCount === 0 ? (
+            <Notice>All active nations share your faction — nobody is set up to oppose you.</Notice>
+          ) : null}
+          {completeSetup.isError ? (
+            <Notice tone="error">{completeSetup.error.message}</Notice>
+          ) : null}
+          <div className="button-row">
+            <button className="button-secondary" disabled={completeSetup.isPending} onClick={() => setStep('ASSIGN')} type="button">
+              Back
+            </button>
+            <button className="button-link" disabled={completeSetup.isPending} onClick={() => void handleConfirmStart()} type="button">
+              {completeSetup.isPending ? 'Starting campaign...' : 'Start single player campaign'}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {step === 'ASSIGN' ? (
+      <>
       {/* Options row */}
       <section className="surface-card page-card page-stack">
         <div className="page-header-copy">
@@ -301,7 +372,7 @@ export function SinglePlayerSetupPage() {
         ) : null}
       </section>
 
-      <form onSubmit={(event) => void handleSubmit(event)} className="page-stack">
+      <form onSubmit={handleReview} className="page-stack">
         {groupByFactionEnabled ? (
           grouped.map(([factionKey, factionNations]) => (
             <section key={factionKey ?? 'unaligned'} className="surface-card page-card page-stack">
@@ -346,24 +417,22 @@ export function SinglePlayerSetupPage() {
           </section>
         )}
 
-        {completeSetup.isError ? (
-          <Notice tone="error">{completeSetup.error.message}</Notice>
-        ) : null}
-
         {humanCount !== 1 ? (
-          <Notice>Assign exactly one nation to "Play as me" before starting.</Notice>
+          <Notice>Assign exactly one nation to "Play as me" before continuing.</Notice>
         ) : null}
 
         <div className="button-row">
           <button
             className="button-link"
-            disabled={humanCount !== 1 || completeSetup.isPending}
+            disabled={humanCount !== 1}
             type="submit"
           >
-            {completeSetup.isPending ? 'Starting campaign...' : 'Start single player campaign'}
+            Review setup →
           </button>
         </div>
       </form>
+      </>
+      ) : null}
     </section>
   )
 }

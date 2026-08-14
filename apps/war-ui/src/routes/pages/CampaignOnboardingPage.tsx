@@ -16,6 +16,7 @@ import {
 } from '../../features/onboarding'
 import { ColourSwatchPicker, Notice, SkeletonCard, StateCard } from '../components'
 import { OnboardingWalkthrough } from './onboarding/OnboardingWalkthrough'
+import { DEFAULT_WALKTHROUGH_STEPS } from './onboarding/walkthroughSteps'
 
 type StepName = 'FACTION' | 'NATION' | 'HOMELAND' | 'CONFIRM' | 'WAITING' | 'DONE'
 
@@ -448,28 +449,7 @@ export function CampaignOnboardingPage() {
         onNext={() => setTutorialStep((value) => Math.min(value + 1, 4))}
         onPrevious={() => setTutorialStep((value) => Math.max(value - 1, 0))}
         onSkip={() => void finishTutorial()}
-        steps={[
-          {
-            title: 'Dashboard',
-            body: 'The dashboard shows the current phase, turn, and the next action you should take.',
-          },
-          {
-            title: 'Lobby',
-            body: 'The lobby is where your role, faction, and nation assignment are shown before play begins.',
-          },
-          {
-            title: 'Map',
-            body: 'Use the map to inspect territories, selections, and campaign geography.',
-          },
-          {
-            title: 'Orders',
-            body: 'Orders are saved and locked from the campaign workflow once your membership is active.',
-          },
-          {
-            title: 'Help and notifications',
-            body: 'Use help topics for rules context and the notifications drawer for campaign links.',
-          },
-        ]}
+        steps={DEFAULT_WALKTHROUGH_STEPS}
       />
     </section>
   )

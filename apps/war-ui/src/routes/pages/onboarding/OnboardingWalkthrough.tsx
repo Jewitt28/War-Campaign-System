@@ -1,7 +1,4 @@
-type WalkthroughStep = {
-  title: string
-  body: string
-}
+import type { WalkthroughStep } from './walkthroughSteps'
 
 type OnboardingWalkthroughProps = {
   open: boolean
